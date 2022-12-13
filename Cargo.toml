@@ -1,0 +1,5 @@
+[workspace]
+
+members = [
+    "stakedex_interface"
+]
