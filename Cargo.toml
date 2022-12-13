@@ -1,5 +1,6 @@
 [workspace]
 
 members = [
-    "stakedex_interface"
+    "common",
+    "interfaces/*"
 ]

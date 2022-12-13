@@ -1,0 +1,291 @@
+{
+  "version": "0.1.0",
+  "name": "stakedex",
+  "instructions": [
+    {
+      "name": "StakeWrappedSol",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": false,
+          "isSigner": true,
+          "desc": "The authority of wsol_account"
+        },
+        {
+          "name": "wsolFrom",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The wrapped SOL token account to stake wrapped SOL from"
+        },
+        {
+          "name": "destTokenTo",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The liquid staked SOL token account to receive the resulting tokens"
+        },
+        {
+          "name": "wsolBridgeIn",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The PDA that serves as the wSOL account to bridge user's wSOL to SOL. Pubkey::create_with_seed(). base = sol_bridge_out.pubkey, seed = 'wsol_bridge_in'. owner = token_program"
+        },
+        {
+          "name": "solBridgeOut",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The PDA that serves as the system account to bridge user's wSOL to SOL. Seeds = ['sol_bridge_out']"
+        },
+        {
+          "name": "destTokenFeeTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The liquid staked SOL token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]"
+        },
+        {
+          "name": "destTokenMint",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The liquid staked SOL mint"
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false,
+          "desc": "wSOL token mint"
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "stakeWrappedSolArgs",
+          "type": {
+            "defined": "StakeWrappedSolArgs"
+          }
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "SwapViaStake",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true,
+          "desc": "The payer for any additional rent required e.g. for the bridge stake account"
+        },
+        {
+          "name": "user",
+          "isMut": false,
+          "isSigner": true,
+          "desc": "The authority of src_token_from"
+        },
+        {
+          "name": "srcTokenFrom",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The token account to swap src tokens from"
+        },
+        {
+          "name": "destTokenTo",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The token account to receive dest tokens to"
+        },
+        {
+          "name": "bridgeStake",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The bridge stake account thats withdrawn then deposited. PDA. seeds = ['bridge_stake', user.pubkey, SwapArgs.bridge_stake_seed]. Might be long-lived, make sure the seed is not already in use"
+        },
+        {
+          "name": "destTokenFeeTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]"
+        },
+        {
+          "name": "srcTokenMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "destTokenMint",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "swapViaStakeArgs",
+          "type": {
+            "defined": "SwapViaStakeArgs"
+          }
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    },
+    {
+      "name": "CreateFeeTokenAccount",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true,
+          "desc": "The person paying for the new fee token account. Can be anyone."
+        },
+        {
+          "name": "feeTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The self-owned fee token account to be created. Seeds = ['fee', mint_pubkey]"
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 2
+      }
+    },
+    {
+      "name": "CloseFeeTokenAccount",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": false,
+          "isSigner": true,
+          "desc": "The authorized program admin"
+        },
+        {
+          "name": "feeTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The self-owned fee token account to close. Must be empty or wrapped SOL. Seeds = ['fee', mint_pubkey]"
+        },
+        {
+          "name": "closeTo",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "Refund fee_token_account's rent lamports to here"
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
+      }
+    },
+    {
+      "name": "WithdrawFees",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": false,
+          "isSigner": true,
+          "desc": "The authorized program admin"
+        },
+        {
+          "name": "feeTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The self-owned fee token account to withdraw fees from. Seeds = ['fee', mint_pubkey]"
+        },
+        {
+          "name": "withdrawTo",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "Withdraw accumulated fees to here"
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 4
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "StakeWrappedSolArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SwapViaStakeArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "bridgeStakeSeed",
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq"
+  }
+}

@@ -1,0 +1,364 @@
+{
+  "version": "0.1.0",
+  "name": "stakedex_deposit_stake",
+  "instructions": [
+    {
+      "name": "EversolStakePoolDepositStake",
+      "accounts": [
+        {
+          "name": "eversolStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeSplStakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeDepositAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeManagerFee",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeHistory",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "SoceanStakePoolDepositStake",
+      "accounts": [
+        {
+          "name": "soceanStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeSplStakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeDepositAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeManagerFee",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeHistory",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    },
+    {
+      "name": "SplStakePoolDepositStake",
+      "accounts": [
+        {
+          "name": "splStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeSplStakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeDepositAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeManagerFee",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeHistory",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 2
+      }
+    },
+    {
+      "name": "MarinadeDepositStake",
+      "accounts": [
+        {
+          "name": "marinadeProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeMarinadeState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeStakeList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeDuplicationFlag",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeMsolMintAuth",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
+      }
+    },
+    {
+      "name": "UnstakeItDepositStake",
+      "accounts": [
+        {
+          "name": "unstakeitProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeUnstakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakePoolSolReserves",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeUnstakeFee",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeStakeAccRecord",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeProtocolFee",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeProtocolFeeDest",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 4
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "DepositStakeAccountData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "validatorIndex",
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "11111111111111111111111111111112"
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "version": "0.1.0",
+  "name": "stakedex_deposit_sol",
+  "instructions": [
+    {
+      "name": "EversolStakePoolDepositSol",
+      "accounts": [
+        {
+          "name": "eversolStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolManagerFee",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "LidoDepositSol",
+      "accounts": [
+        {
+          "name": "lidoProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "solido",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lidoReserve",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stsolMintAuthority",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    },
+    {
+      "name": "MarinadeDepositSol",
+      "accounts": [
+        {
+          "name": "marinadeProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "marinadeState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "marinadeLiqPoolSolLeg",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "marinadeLiqPoolMsolLeg",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "marinadeLiqPoolMsolLegAuth",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "marinadeReserve",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "msolMintAuthority",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 2
+      }
+    },
+    {
+      "name": "SoceanStakePoolDepositSol",
+      "accounts": [
+        {
+          "name": "soceanStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolManagerFee",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
+      }
+    },
+    {
+      "name": "SplStakePoolDepositSol",
+      "accounts": [
+        {
+          "name": "splStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolManagerFee",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 4
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "LidoDepositSolAccountData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarinadeDepositSolAccountData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "11111111111111111111111111111112"
+  }
+}

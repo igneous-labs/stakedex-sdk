@@ -1054,7 +1054,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "stakedex_deposit_sol_interface"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "solana-program",
+]
+
+[[package]]
+name = "stakedex_deposit_stake_interface"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "solana-program",
+]
+
+[[package]]
 name = "stakedex_interface"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "solana-program",
+]
+
+[[package]]
+name = "stakedex_sdk_common"
+version = "0.1.0"
+
+[[package]]
+name = "stakedex_withdraw_stake_interface"
 version = "0.1.0"
 dependencies = [
  "borsh",
