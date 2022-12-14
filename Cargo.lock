@@ -3774,20 +3774,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spl_stake_pool"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "borsh 0.9.3",
- "jupiter-core",
- "lazy_static",
- "solana-program",
- "spl-stake-pool",
- "stakedex_deposit_sol_interface",
- "stakedex_sdk_common",
-]
-
-[[package]]
 name = "stakedex_deposit_sol_interface"
 version = "0.1.0"
 dependencies = [
@@ -3826,6 +3812,20 @@ dependencies = [
  "spl-token",
  "stakedex_deposit_sol_interface",
  "stakedex_interface",
+]
+
+[[package]]
+name = "stakedex_spl_stake_pool"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "borsh 0.9.3",
+ "jupiter-core",
+ "lazy_static",
+ "solana-program",
+ "spl-stake-pool",
+ "stakedex_deposit_sol_interface",
+ "stakedex_sdk_common",
 ]
 
 [[package]]

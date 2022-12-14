@@ -93,11 +93,14 @@ where
     }
 
     fn quote(&self, quote_params: &QuoteParams) -> Result<Quote> {
-        // TODO: not sure how yall wanna handle one-way swaps. Return Err or just 0 out quote (Quote::default())?
         if quote_params.input_mint != native_mint::ID
             || quote_params.output_mint != self.0.staked_sol_mint()
         {
-            return Ok(Quote::default());
+            return Err(anyhow!(
+                "Cannot handle {} -> {}",
+                quote_params.input_mint,
+                quote_params.output_mint
+            ));
         }
         let deposit_sol_quote = self.0.get_deposit_sol_quote(quote_params.in_amount)?;
         let quote = self.0.convert_quote(deposit_sol_quote);
