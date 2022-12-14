@@ -1,6 +1,8 @@
 [workspace]
 
 members = [
+    "stakedex_sdk",
     "common",
+    "libs/*",
     "interfaces/*"
 ]

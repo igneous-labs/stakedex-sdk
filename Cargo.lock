@@ -3705,6 +3705,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-stake-pool"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "027ca58e3b61c000dcc264878d4b6fd98f6f89ad363d91e972c11abf167168c5"
+dependencies = [
+ "arrayref",
+ "bincode",
+ "borsh 0.9.3",
+ "num-derive",
+ "num-traits",
+ "num_enum",
+ "serde",
+ "serde_derive",
+ "solana-program",
+ "spl-math",
+ "spl-token",
+ "thiserror",
+]
+
+[[package]]
 name = "spl-token"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3754,6 +3774,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl_stake_pool"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "borsh 0.9.3",
+ "jupiter-core",
+ "lazy_static",
+ "solana-program",
+ "spl-stake-pool",
+ "stakedex_deposit_sol_interface",
+ "stakedex_sdk_common",
+]
+
+[[package]]
 name = "stakedex_deposit_sol_interface"
 version = "0.1.0"
 dependencies = [
@@ -3776,6 +3810,10 @@ dependencies = [
  "borsh 0.9.3",
  "solana-program",
 ]
+
+[[package]]
+name = "stakedex_sdk"
+version = "0.1.0"
 
 [[package]]
 name = "stakedex_sdk_common"

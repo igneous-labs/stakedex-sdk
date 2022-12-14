@@ -6,6 +6,7 @@ use solana_program::{
     program::{invoke, invoke_signed},
     pubkey::Pubkey,
 };
+pub const EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 5usize;
 #[derive(Copy, Clone, Debug)]
 pub struct EversolStakePoolDepositSolAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me>
 {
@@ -36,7 +37,9 @@ impl<'me> From<&EversolStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&EversolStakePoolDepositSolKeys> for [AccountMeta; 5] {
+impl From<&EversolStakePoolDepositSolKeys>
+    for [AccountMeta; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+{
     fn from(keys: &EversolStakePoolDepositSolKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.eversol_stake_pool_program, false),
@@ -48,7 +51,7 @@ impl From<&EversolStakePoolDepositSolKeys> for [AccountMeta; 5] {
     }
 }
 impl<'a> From<&EversolStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; 5]
+    for [AccountInfo<'a>; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
 {
     fn from(accounts: &EversolStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
@@ -84,7 +87,7 @@ pub fn eversol_stake_pool_deposit_sol_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: EversolStakePoolDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; 5] = (&keys).into();
+    let metas: [AccountMeta; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: EversolStakePoolDepositSolIxArgs = args.into();
     let data: EversolStakePoolDepositSolIxData = (&args_full).into();
     Ok(Instruction {
@@ -98,7 +101,8 @@ pub fn eversol_stake_pool_deposit_sol_invoke<'a, A: Into<EversolStakePoolDeposit
     args: A,
 ) -> ProgramResult {
     let ix = eversol_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn eversol_stake_pool_deposit_sol_invoke_signed<
@@ -110,9 +114,11 @@ pub fn eversol_stake_pool_deposit_sol_invoke_signed<
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = eversol_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 4usize;
 #[derive(Copy, Clone, Debug)]
 pub struct LidoDepositSolAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me> {
     pub lido_program: &'me AccountInfo<'a0>,
@@ -137,7 +143,7 @@ impl<'me> From<&LidoDepositSolAccounts<'me, '_, '_, '_, '_>> for LidoDepositSolK
         }
     }
 }
-impl From<&LidoDepositSolKeys> for [AccountMeta; 4] {
+impl From<&LidoDepositSolKeys> for [AccountMeta; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN] {
     fn from(keys: &LidoDepositSolKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.lido_program, false),
@@ -147,7 +153,9 @@ impl From<&LidoDepositSolKeys> for [AccountMeta; 4] {
         ]
     }
 }
-impl<'a> From<&LidoDepositSolAccounts<'_, 'a, 'a, 'a, 'a>> for [AccountInfo<'a>; 4] {
+impl<'a> From<&LidoDepositSolAccounts<'_, 'a, 'a, 'a, 'a>>
+    for [AccountInfo<'a>; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+{
     fn from(accounts: &LidoDepositSolAccounts<'_, 'a, 'a, 'a, 'a>) -> Self {
         [
             accounts.lido_program.clone(),
@@ -178,7 +186,7 @@ pub fn lido_deposit_sol_ix<K: Into<LidoDepositSolKeys>, A: Into<LidoDepositSolIx
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: LidoDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; 4] = (&keys).into();
+    let metas: [AccountMeta; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: LidoDepositSolIxArgs = args.into();
     let data: LidoDepositSolIxData = (&args_full).into();
     Ok(Instruction {
@@ -192,7 +200,7 @@ pub fn lido_deposit_sol_invoke<'a, A: Into<LidoDepositSolIxArgs>>(
     args: A,
 ) -> ProgramResult {
     let ix = lido_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 4] = accounts.into();
+    let account_info: [AccountInfo<'a>; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn lido_deposit_sol_invoke_signed<'a, A: Into<LidoDepositSolIxArgs>>(
@@ -201,9 +209,10 @@ pub fn lido_deposit_sol_invoke_signed<'a, A: Into<LidoDepositSolIxArgs>>(
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = lido_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 4] = accounts.into();
+    let account_info: [AccountInfo<'a>; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 7usize;
 #[derive(Copy, Clone, Debug)]
 pub struct MarinadeDepositSolAccounts<
     'me,
@@ -248,7 +257,7 @@ impl<'me> From<&MarinadeDepositSolAccounts<'me, '_, '_, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&MarinadeDepositSolKeys> for [AccountMeta; 7] {
+impl From<&MarinadeDepositSolKeys> for [AccountMeta; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] {
     fn from(keys: &MarinadeDepositSolKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.marinade_program, false),
@@ -262,7 +271,7 @@ impl From<&MarinadeDepositSolKeys> for [AccountMeta; 7] {
     }
 }
 impl<'a> From<&MarinadeDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; 7]
+    for [AccountInfo<'a>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
 {
     fn from(accounts: &MarinadeDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
@@ -300,7 +309,7 @@ pub fn marinade_deposit_sol_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: MarinadeDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; 7] = (&keys).into();
+    let metas: [AccountMeta; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: MarinadeDepositSolIxArgs = args.into();
     let data: MarinadeDepositSolIxData = (&args_full).into();
     Ok(Instruction {
@@ -314,7 +323,7 @@ pub fn marinade_deposit_sol_invoke<'a, A: Into<MarinadeDepositSolIxArgs>>(
     args: A,
 ) -> ProgramResult {
     let ix = marinade_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 7] = accounts.into();
+    let account_info: [AccountInfo<'a>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn marinade_deposit_sol_invoke_signed<'a, A: Into<MarinadeDepositSolIxArgs>>(
@@ -323,9 +332,10 @@ pub fn marinade_deposit_sol_invoke_signed<'a, A: Into<MarinadeDepositSolIxArgs>>
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = marinade_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 7] = accounts.into();
+    let account_info: [AccountInfo<'a>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 6usize;
 #[derive(Copy, Clone, Debug)]
 pub struct SoceanStakePoolDepositSolAccounts<
     'me,
@@ -366,7 +376,9 @@ impl<'me> From<&SoceanStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&SoceanStakePoolDepositSolKeys> for [AccountMeta; 6] {
+impl From<&SoceanStakePoolDepositSolKeys>
+    for [AccountMeta; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+{
     fn from(keys: &SoceanStakePoolDepositSolKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.socean_stake_pool_program, false),
@@ -379,7 +391,7 @@ impl From<&SoceanStakePoolDepositSolKeys> for [AccountMeta; 6] {
     }
 }
 impl<'a> From<&SoceanStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; 6]
+    for [AccountInfo<'a>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
 {
     fn from(accounts: &SoceanStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
@@ -416,7 +428,7 @@ pub fn socean_stake_pool_deposit_sol_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SoceanStakePoolDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; 6] = (&keys).into();
+    let metas: [AccountMeta; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: SoceanStakePoolDepositSolIxArgs = args.into();
     let data: SoceanStakePoolDepositSolIxData = (&args_full).into();
     Ok(Instruction {
@@ -430,7 +442,8 @@ pub fn socean_stake_pool_deposit_sol_invoke<'a, A: Into<SoceanStakePoolDepositSo
     args: A,
 ) -> ProgramResult {
     let ix = socean_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 6] = accounts.into();
+    let account_info: [AccountInfo<'a>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn socean_stake_pool_deposit_sol_invoke_signed<'a, A: Into<SoceanStakePoolDepositSolIxArgs>>(
@@ -439,9 +452,11 @@ pub fn socean_stake_pool_deposit_sol_invoke_signed<'a, A: Into<SoceanStakePoolDe
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = socean_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 6] = accounts.into();
+    let account_info: [AccountInfo<'a>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 5usize;
 #[derive(Copy, Clone, Debug)]
 pub struct SplStakePoolDepositSolAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me> {
     pub spl_stake_pool_program: &'me AccountInfo<'a0>,
@@ -471,7 +486,9 @@ impl<'me> From<&SplStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&SplStakePoolDepositSolKeys> for [AccountMeta; 5] {
+impl From<&SplStakePoolDepositSolKeys>
+    for [AccountMeta; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+{
     fn from(keys: &SplStakePoolDepositSolKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.spl_stake_pool_program, false),
@@ -482,7 +499,9 @@ impl From<&SplStakePoolDepositSolKeys> for [AccountMeta; 5] {
         ]
     }
 }
-impl<'a> From<&SplStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>> for [AccountInfo<'a>; 5] {
+impl<'a> From<&SplStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
+    for [AccountInfo<'a>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+{
     fn from(accounts: &SplStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
             accounts.spl_stake_pool_program.clone(),
@@ -517,7 +536,7 @@ pub fn spl_stake_pool_deposit_sol_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SplStakePoolDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; 5] = (&keys).into();
+    let metas: [AccountMeta; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: SplStakePoolDepositSolIxArgs = args.into();
     let data: SplStakePoolDepositSolIxData = (&args_full).into();
     Ok(Instruction {
@@ -531,7 +550,8 @@ pub fn spl_stake_pool_deposit_sol_invoke<'a, A: Into<SplStakePoolDepositSolIxArg
     args: A,
 ) -> ProgramResult {
     let ix = spl_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn spl_stake_pool_deposit_sol_invoke_signed<'a, A: Into<SplStakePoolDepositSolIxArgs>>(
@@ -540,6 +560,7 @@ pub fn spl_stake_pool_deposit_sol_invoke_signed<'a, A: Into<SplStakePoolDepositS
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = spl_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }

@@ -7,6 +7,7 @@ use solana_program::{
     program::{invoke, invoke_signed},
     pubkey::Pubkey,
 };
+pub const STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN: usize = 10usize;
 #[derive(Copy, Clone, Debug)]
 pub struct StakeWrappedSolAccounts<
     'me,
@@ -81,7 +82,7 @@ impl<'me> From<&StakeWrappedSolAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '_,
         }
     }
 }
-impl From<&StakeWrappedSolKeys> for [AccountMeta; 10] {
+impl From<&StakeWrappedSolKeys> for [AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] {
     fn from(keys: &StakeWrappedSolKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.user, true),
@@ -98,7 +99,7 @@ impl From<&StakeWrappedSolKeys> for [AccountMeta; 10] {
     }
 }
 impl<'a> From<&StakeWrappedSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; 10]
+    for [AccountInfo<'a>; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]
 {
     fn from(
         accounts: &StakeWrappedSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
@@ -140,7 +141,7 @@ pub fn stake_wrapped_sol_ix<K: Into<StakeWrappedSolKeys>, A: Into<StakeWrappedSo
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: StakeWrappedSolKeys = accounts.into();
-    let metas: [AccountMeta; 10] = (&keys).into();
+    let metas: [AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: StakeWrappedSolIxArgs = args.into();
     let data: StakeWrappedSolIxData = (&args_full).into();
     Ok(Instruction {
@@ -154,7 +155,7 @@ pub fn stake_wrapped_sol_invoke<'a, A: Into<StakeWrappedSolIxArgs>>(
     args: A,
 ) -> ProgramResult {
     let ix = stake_wrapped_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn stake_wrapped_sol_invoke_signed<'a, A: Into<StakeWrappedSolIxArgs>>(
@@ -163,9 +164,10 @@ pub fn stake_wrapped_sol_invoke_signed<'a, A: Into<StakeWrappedSolIxArgs>>(
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = stake_wrapped_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const SWAP_VIA_STAKE_IX_ACCOUNTS_LEN: usize = 8usize;
 #[derive(Copy, Clone, Debug)]
 pub struct SwapViaStakeAccounts<
     'me,
@@ -224,7 +226,7 @@ impl<'me> From<&SwapViaStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_>> for S
         }
     }
 }
-impl From<&SwapViaStakeKeys> for [AccountMeta; 8] {
+impl From<&SwapViaStakeKeys> for [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] {
     fn from(keys: &SwapViaStakeKeys) -> Self {
         [
             AccountMeta::new(keys.payer, true),
@@ -238,7 +240,9 @@ impl From<&SwapViaStakeKeys> for [AccountMeta; 8] {
         ]
     }
 }
-impl<'a> From<&SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>> for [AccountInfo<'a>; 8] {
+impl<'a> From<&SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
+    for [AccountInfo<'a>; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]
+{
     fn from(accounts: &SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
             accounts.payer.clone(),
@@ -275,7 +279,7 @@ pub fn swap_via_stake_ix<K: Into<SwapViaStakeKeys>, A: Into<SwapViaStakeIxArgs>>
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SwapViaStakeKeys = accounts.into();
-    let metas: [AccountMeta; 8] = (&keys).into();
+    let metas: [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: SwapViaStakeIxArgs = args.into();
     let data: SwapViaStakeIxData = (&args_full).into();
     Ok(Instruction {
@@ -289,7 +293,7 @@ pub fn swap_via_stake_invoke<'a, A: Into<SwapViaStakeIxArgs>>(
     args: A,
 ) -> ProgramResult {
     let ix = swap_via_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 8] = accounts.into();
+    let account_info: [AccountInfo<'a>; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn swap_via_stake_invoke_signed<'a, A: Into<SwapViaStakeIxArgs>>(
@@ -298,9 +302,10 @@ pub fn swap_via_stake_invoke_signed<'a, A: Into<SwapViaStakeIxArgs>>(
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = swap_via_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 8] = accounts.into();
+    let account_info: [AccountInfo<'a>; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN: usize = 5usize;
 #[derive(Copy, Clone, Debug)]
 pub struct CreateFeeTokenAccountAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me> {
     ///The person paying for the new fee token account. Can be anyone.
@@ -334,7 +339,7 @@ impl<'me> From<&CreateFeeTokenAccountAccounts<'me, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&CreateFeeTokenAccountKeys> for [AccountMeta; 5] {
+impl From<&CreateFeeTokenAccountKeys> for [AccountMeta; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] {
     fn from(keys: &CreateFeeTokenAccountKeys) -> Self {
         [
             AccountMeta::new(keys.payer, true),
@@ -345,7 +350,9 @@ impl From<&CreateFeeTokenAccountKeys> for [AccountMeta; 5] {
         ]
     }
 }
-impl<'a> From<&CreateFeeTokenAccountAccounts<'_, 'a, 'a, 'a, 'a, 'a>> for [AccountInfo<'a>; 5] {
+impl<'a> From<&CreateFeeTokenAccountAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
+    for [AccountInfo<'a>; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN]
+{
     fn from(accounts: &CreateFeeTokenAccountAccounts<'_, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
             accounts.payer.clone(),
@@ -380,7 +387,7 @@ pub fn create_fee_token_account_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: CreateFeeTokenAccountKeys = accounts.into();
-    let metas: [AccountMeta; 5] = (&keys).into();
+    let metas: [AccountMeta; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: CreateFeeTokenAccountIxArgs = args.into();
     let data: CreateFeeTokenAccountIxData = (&args_full).into();
     Ok(Instruction {
@@ -394,7 +401,7 @@ pub fn create_fee_token_account_invoke<'a, A: Into<CreateFeeTokenAccountIxArgs>>
     args: A,
 ) -> ProgramResult {
     let ix = create_fee_token_account_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn create_fee_token_account_invoke_signed<'a, A: Into<CreateFeeTokenAccountIxArgs>>(
@@ -403,9 +410,10 @@ pub fn create_fee_token_account_invoke_signed<'a, A: Into<CreateFeeTokenAccountI
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = create_fee_token_account_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN: usize = 5usize;
 #[derive(Copy, Clone, Debug)]
 pub struct CloseFeeTokenAccountAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me> {
     ///The authorized program admin
@@ -441,7 +449,7 @@ impl<'me> From<&CloseFeeTokenAccountAccounts<'me, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&CloseFeeTokenAccountKeys> for [AccountMeta; 5] {
+impl From<&CloseFeeTokenAccountKeys> for [AccountMeta; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] {
     fn from(keys: &CloseFeeTokenAccountKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.admin, true),
@@ -452,7 +460,9 @@ impl From<&CloseFeeTokenAccountKeys> for [AccountMeta; 5] {
         ]
     }
 }
-impl<'a> From<&CloseFeeTokenAccountAccounts<'_, 'a, 'a, 'a, 'a, 'a>> for [AccountInfo<'a>; 5] {
+impl<'a> From<&CloseFeeTokenAccountAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
+    for [AccountInfo<'a>; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN]
+{
     fn from(accounts: &CloseFeeTokenAccountAccounts<'_, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
             accounts.admin.clone(),
@@ -487,7 +497,7 @@ pub fn close_fee_token_account_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: CloseFeeTokenAccountKeys = accounts.into();
-    let metas: [AccountMeta; 5] = (&keys).into();
+    let metas: [AccountMeta; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: CloseFeeTokenAccountIxArgs = args.into();
     let data: CloseFeeTokenAccountIxData = (&args_full).into();
     Ok(Instruction {
@@ -501,7 +511,7 @@ pub fn close_fee_token_account_invoke<'a, A: Into<CloseFeeTokenAccountIxArgs>>(
     args: A,
 ) -> ProgramResult {
     let ix = close_fee_token_account_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn close_fee_token_account_invoke_signed<'a, A: Into<CloseFeeTokenAccountIxArgs>>(
@@ -510,9 +520,10 @@ pub fn close_fee_token_account_invoke_signed<'a, A: Into<CloseFeeTokenAccountIxA
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = close_fee_token_account_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const WITHDRAW_FEES_IX_ACCOUNTS_LEN: usize = 5usize;
 #[derive(Copy, Clone, Debug)]
 pub struct WithdrawFeesAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me> {
     ///The authorized program admin
@@ -546,7 +557,7 @@ impl<'me> From<&WithdrawFeesAccounts<'me, '_, '_, '_, '_, '_>> for WithdrawFeesK
         }
     }
 }
-impl From<&WithdrawFeesKeys> for [AccountMeta; 5] {
+impl From<&WithdrawFeesKeys> for [AccountMeta; WITHDRAW_FEES_IX_ACCOUNTS_LEN] {
     fn from(keys: &WithdrawFeesKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.admin, true),
@@ -557,7 +568,9 @@ impl From<&WithdrawFeesKeys> for [AccountMeta; 5] {
         ]
     }
 }
-impl<'a> From<&WithdrawFeesAccounts<'_, 'a, 'a, 'a, 'a, 'a>> for [AccountInfo<'a>; 5] {
+impl<'a> From<&WithdrawFeesAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
+    for [AccountInfo<'a>; WITHDRAW_FEES_IX_ACCOUNTS_LEN]
+{
     fn from(accounts: &WithdrawFeesAccounts<'_, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
             accounts.admin.clone(),
@@ -589,7 +602,7 @@ pub fn withdraw_fees_ix<K: Into<WithdrawFeesKeys>, A: Into<WithdrawFeesIxArgs>>(
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: WithdrawFeesKeys = accounts.into();
-    let metas: [AccountMeta; 5] = (&keys).into();
+    let metas: [AccountMeta; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: WithdrawFeesIxArgs = args.into();
     let data: WithdrawFeesIxData = (&args_full).into();
     Ok(Instruction {
@@ -603,7 +616,7 @@ pub fn withdraw_fees_invoke<'a, A: Into<WithdrawFeesIxArgs>>(
     args: A,
 ) -> ProgramResult {
     let ix = withdraw_fees_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn withdraw_fees_invoke_signed<'a, A: Into<WithdrawFeesIxArgs>>(
@@ -612,6 +625,6 @@ pub fn withdraw_fees_invoke_signed<'a, A: Into<WithdrawFeesIxArgs>>(
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = withdraw_fees_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 5] = accounts.into();
+    let account_info: [AccountInfo<'a>; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }

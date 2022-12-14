@@ -1,0 +1,16 @@
+[package]
+name = "spl_stake_pool"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "^1.0"
+borsh = "^0.9"
+jupiter-core = { git = "https://github.com/jup-ag/rust-amm-implementation", rev = "8e360617"}
+lazy_static = "^1.0"
+solana-program = "^1.9"
+spl-stake-pool = "^0.6.4"
+stakedex_deposit_sol_interface = { path = "../../interfaces/stakedex_deposit_sol_interface" }
+stakedex_sdk_common = { path = "../../common" }

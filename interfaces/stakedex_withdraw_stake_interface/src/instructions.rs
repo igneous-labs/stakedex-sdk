@@ -6,6 +6,7 @@ use solana_program::{
     program::{invoke, invoke_signed},
     pubkey::Pubkey,
 };
+pub const EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10usize;
 #[derive(Copy, Clone, Debug)]
 pub struct EversolStakePoolWithdrawStakeAccounts<
     'me,
@@ -76,7 +77,9 @@ impl<'me> From<&EversolStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '
         }
     }
 }
-impl From<&EversolStakePoolWithdrawStakeKeys> for [AccountMeta; 10] {
+impl From<&EversolStakePoolWithdrawStakeKeys>
+    for [AccountMeta; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
     fn from(keys: &EversolStakePoolWithdrawStakeKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.eversol_stake_pool_program, false),
@@ -93,7 +96,7 @@ impl From<&EversolStakePoolWithdrawStakeKeys> for [AccountMeta; 10] {
     }
 }
 impl<'a> From<&EversolStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; 10]
+    for [AccountInfo<'a>; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
 {
     fn from(
         accounts: &EversolStakePoolWithdrawStakeAccounts<
@@ -150,7 +153,7 @@ pub fn eversol_stake_pool_withdraw_stake_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: EversolStakePoolWithdrawStakeKeys = accounts.into();
-    let metas: [AccountMeta; 10] = (&keys).into();
+    let metas: [AccountMeta; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: EversolStakePoolWithdrawStakeIxArgs = args.into();
     let data: EversolStakePoolWithdrawStakeIxData = (&args_full).into();
     Ok(Instruction {
@@ -167,7 +170,8 @@ pub fn eversol_stake_pool_withdraw_stake_invoke<
     args: A,
 ) -> ProgramResult {
     let ix = eversol_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn eversol_stake_pool_withdraw_stake_invoke_signed<
@@ -179,9 +183,11 @@ pub fn eversol_stake_pool_withdraw_stake_invoke_signed<
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = eversol_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10usize;
 #[derive(Copy, Clone, Debug)]
 pub struct SoceanStakePoolWithdrawStakeAccounts<
     'me,
@@ -252,7 +258,9 @@ impl<'me> From<&SoceanStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_
         }
     }
 }
-impl From<&SoceanStakePoolWithdrawStakeKeys> for [AccountMeta; 10] {
+impl From<&SoceanStakePoolWithdrawStakeKeys>
+    for [AccountMeta; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
     fn from(keys: &SoceanStakePoolWithdrawStakeKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.socean_stake_pool_program, false),
@@ -269,7 +277,7 @@ impl From<&SoceanStakePoolWithdrawStakeKeys> for [AccountMeta; 10] {
     }
 }
 impl<'a> From<&SoceanStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; 10]
+    for [AccountInfo<'a>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
 {
     fn from(
         accounts: &SoceanStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
@@ -314,7 +322,7 @@ pub fn socean_stake_pool_withdraw_stake_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SoceanStakePoolWithdrawStakeKeys = accounts.into();
-    let metas: [AccountMeta; 10] = (&keys).into();
+    let metas: [AccountMeta; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: SoceanStakePoolWithdrawStakeIxArgs = args.into();
     let data: SoceanStakePoolWithdrawStakeIxData = (&args_full).into();
     Ok(Instruction {
@@ -328,7 +336,8 @@ pub fn socean_stake_pool_withdraw_stake_invoke<'a, A: Into<SoceanStakePoolWithdr
     args: A,
 ) -> ProgramResult {
     let ix = socean_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn socean_stake_pool_withdraw_stake_invoke_signed<
@@ -340,9 +349,11 @@ pub fn socean_stake_pool_withdraw_stake_invoke_signed<
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = socean_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10usize;
 #[derive(Copy, Clone, Debug)]
 pub struct SplStakePoolWithdrawStakeAccounts<
     'me,
@@ -401,7 +412,9 @@ impl<'me> From<&SplStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '
         }
     }
 }
-impl From<&SplStakePoolWithdrawStakeKeys> for [AccountMeta; 10] {
+impl From<&SplStakePoolWithdrawStakeKeys>
+    for [AccountMeta; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
     fn from(keys: &SplStakePoolWithdrawStakeKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.spl_stake_pool_program, false),
@@ -418,7 +431,7 @@ impl From<&SplStakePoolWithdrawStakeKeys> for [AccountMeta; 10] {
     }
 }
 impl<'a> From<&SplStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; 10]
+    for [AccountInfo<'a>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
 {
     fn from(
         accounts: &SplStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
@@ -461,7 +474,7 @@ pub fn spl_stake_pool_withdraw_stake_ix<
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SplStakePoolWithdrawStakeKeys = accounts.into();
-    let metas: [AccountMeta; 10] = (&keys).into();
+    let metas: [AccountMeta; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: SplStakePoolWithdrawStakeIxArgs = args.into();
     let data: SplStakePoolWithdrawStakeIxData = (&args_full).into();
     Ok(Instruction {
@@ -475,7 +488,8 @@ pub fn spl_stake_pool_withdraw_stake_invoke<'a, A: Into<SplStakePoolWithdrawStak
     args: A,
 ) -> ProgramResult {
     let ix = spl_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn spl_stake_pool_withdraw_stake_invoke_signed<'a, A: Into<SplStakePoolWithdrawStakeIxArgs>>(
@@ -484,9 +498,11 @@ pub fn spl_stake_pool_withdraw_stake_invoke_signed<'a, A: Into<SplStakePoolWithd
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = spl_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10usize;
 #[derive(Copy, Clone, Debug)]
 pub struct LidoWithdrawStakeAccounts<
     'me,
@@ -545,7 +561,7 @@ impl<'me> From<&LidoWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '
         }
     }
 }
-impl From<&LidoWithdrawStakeKeys> for [AccountMeta; 10] {
+impl From<&LidoWithdrawStakeKeys> for [AccountMeta; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] {
     fn from(keys: &LidoWithdrawStakeKeys) -> Self {
         [
             AccountMeta::new_readonly(keys.lido_program, false),
@@ -562,7 +578,7 @@ impl From<&LidoWithdrawStakeKeys> for [AccountMeta; 10] {
     }
 }
 impl<'a> From<&LidoWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; 10]
+    for [AccountInfo<'a>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
 {
     fn from(
         accounts: &LidoWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
@@ -602,7 +618,7 @@ pub fn lido_withdraw_stake_ix<K: Into<LidoWithdrawStakeKeys>, A: Into<LidoWithdr
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: LidoWithdrawStakeKeys = accounts.into();
-    let metas: [AccountMeta; 10] = (&keys).into();
+    let metas: [AccountMeta; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
     let args_full: LidoWithdrawStakeIxArgs = args.into();
     let data: LidoWithdrawStakeIxData = (&args_full).into();
     Ok(Instruction {
@@ -616,7 +632,7 @@ pub fn lido_withdraw_stake_invoke<'a, A: Into<LidoWithdrawStakeIxArgs>>(
     args: A,
 ) -> ProgramResult {
     let ix = lido_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
 pub fn lido_withdraw_stake_invoke_signed<'a, A: Into<LidoWithdrawStakeIxArgs>>(
@@ -625,6 +641,6 @@ pub fn lido_withdraw_stake_invoke_signed<'a, A: Into<LidoWithdrawStakeIxArgs>>(
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
     let ix = lido_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; 10] = accounts.into();
+    let account_info: [AccountInfo<'a>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
