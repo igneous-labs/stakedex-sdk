@@ -3824,7 +3824,9 @@ dependencies = [
  "lazy_static",
  "solana-program",
  "spl-stake-pool",
+ "spl-token",
  "stakedex_deposit_sol_interface",
+ "stakedex_deposit_stake_interface",
  "stakedex_sdk_common",
 ]
 

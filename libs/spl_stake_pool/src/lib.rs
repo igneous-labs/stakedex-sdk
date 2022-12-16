@@ -7,6 +7,8 @@ use std::collections::HashMap;
 
 mod deposit_sol;
 pub use deposit_sol::*;
+mod swap_via_stake;
+pub use swap_via_stake::*;
 
 lazy_static! {
     pub static ref SPL_STAKE_POOL_STATE_TO_LABEL: HashMap<Pubkey, &'static str> = {
