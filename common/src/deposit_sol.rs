@@ -19,27 +19,23 @@ use crate::{
     pda::{
         cws_wsol_bridge_in, find_deposit_stake_amm_key, find_fee_token_acc, find_sol_bridge_out,
     },
+    BaseStakePoolAmm,
 };
 
 #[derive(Copy, Clone, Debug)]
 pub struct DepositSolQuote {
+    pub in_amount: u64,
+
+    /// After subtracting deposit fees
     pub out_amount: u64,
+
+    /// Deposit fees, in staked_sol_mint
     pub fee_amount: u64,
 }
 
-pub trait DepositSol {
-    fn stake_pool_label(&self) -> &'static str;
-
-    fn main_state_key(&self) -> Pubkey;
-
+pub trait DepositSol: BaseStakePoolAmm {
     /// This should only include the stake pool's fees, not stakedex's global fees
     fn get_deposit_sol_quote(&self, lamports: u64) -> Result<DepositSolQuote>;
-
-    fn staked_sol_mint(&self) -> Pubkey;
-
-    fn get_accounts_to_update(&self) -> Vec<Pubkey>;
-
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()>;
 
     fn virtual_ix(&self) -> Result<Instruction>;
 
@@ -52,6 +48,7 @@ pub trait DepositSol {
         let fee_pct =
             Decimal::from_f64((total_fees as f64) / before_fees).unwrap_or_else(Decimal::zero);
         Quote {
+            in_amount: deposit_sol_quote.in_amount,
             out_amount: final_out_amount,
             fee_amount: total_fees,
             fee_pct,
@@ -63,7 +60,7 @@ pub trait DepositSol {
 }
 
 // newtype pattern in order to impl external trait on internal generic
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct DepositSolWrapper<T: DepositSol + Clone + Send + Sync + 'static>(pub T);
 
 impl<T> Amm for DepositSolWrapper<T>

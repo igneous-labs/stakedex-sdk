@@ -6,8 +6,7 @@ pub const SOL_BRIDGE_OUT_SEED: &[u8; 14] = b"sol_bridge_out";
 
 pub const FEE_TOKEN_ACCOUNT_SEED_PREFIX: &[u8; 3] = b"fee";
 
-// TODO: uncomment for SwapViaStake
-// pub const BRIDGE_STAKE_SEED_PREFIX: &[u8; 12] = b"bridge_stake";
+pub const BRIDGE_STAKE_SEED_PREFIX: &[u8; 12] = b"bridge_stake";
 
 pub fn sol_bridge_out_seeds() -> [&'static [u8]; 1] {
     [SOL_BRIDGE_OUT_SEED]
@@ -21,8 +20,13 @@ pub fn deposit_stake_amm_key_seeds(main_state_key: &Pubkey) -> [&[u8]; 1] {
     [main_state_key.as_ref()]
 }
 
-// TODO: uncomment for SwapViaStake
-/*
+pub fn stake_pool_pair_amm_key_seeds<'seeds>(
+    pool1: &'seeds Pubkey,
+    pool2: &'seeds Pubkey,
+) -> [&'seeds [u8]; 2] {
+    [pool1.as_ref(), pool2.as_ref()]
+}
+
 pub fn bridge_stake_seeds<'seeds>(
     user: &'seeds Pubkey,
     bridge_stake_seed_le_bytes: &'seeds [u8; 4],
@@ -33,7 +37,6 @@ pub fn bridge_stake_seeds<'seeds>(
         bridge_stake_seed_le_bytes.as_ref(),
     ]
 }
-*/
 
 pub fn cws_wsol_bridge_in(sol_bridge_out: &Pubkey) -> Pubkey {
     // unwrap() safety:
@@ -54,6 +57,20 @@ pub fn find_fee_token_acc(mint: &Pubkey) -> (Pubkey, u8) {
 pub fn find_deposit_stake_amm_key(main_state_key: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &deposit_stake_amm_key_seeds(main_state_key),
+        &stakedex_interface::ID,
+    )
+}
+
+pub fn find_bridge_stake(user: &Pubkey, bridge_stake_seed_le_bytes: &[u8; 4]) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &bridge_stake_seeds(user, bridge_stake_seed_le_bytes),
+        &stakedex_interface::ID,
+    )
+}
+
+pub fn find_stake_pool_pair_amm_key(pool1: &Pubkey, pool2: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &stake_pool_pair_amm_key_seeds(pool1, pool2),
         &stakedex_interface::ID,
     )
 }

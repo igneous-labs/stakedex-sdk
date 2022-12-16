@@ -10,7 +10,7 @@ use spl_stake_pool::{
 use stakedex_deposit_sol_interface::{
     spl_stake_pool_deposit_sol_ix, SplStakePoolDepositSolIxArgs, SplStakePoolDepositSolKeys,
 };
-use stakedex_sdk_common::{DepositSol, DepositSolQuote};
+use stakedex_sdk_common::{BaseStakePoolAmm, DepositSol, DepositSolQuote};
 
 use crate::SPL_STAKE_POOL_STATE_TO_LABEL;
 
@@ -44,7 +44,7 @@ impl SplStakePoolDepositSol {
     }
 }
 
-impl DepositSol for SplStakePoolDepositSol {
+impl BaseStakePoolAmm for SplStakePoolDepositSol {
     fn stake_pool_label(&self) -> &'static str {
         self.stake_pool_label
     }
@@ -53,6 +53,21 @@ impl DepositSol for SplStakePoolDepositSol {
         self.stake_pool_addr
     }
 
+    fn staked_sol_mint(&self) -> Pubkey {
+        self.stake_pool.pool_mint
+    }
+
+    fn get_accounts_to_update(&self) -> Vec<Pubkey> {
+        Vec::from([self.stake_pool_addr])
+    }
+
+    fn update(&mut self, accounts_map: &std::collections::HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+        let stake_pool_data = accounts_map.get(&self.stake_pool_addr).unwrap();
+        self.update_fields(stake_pool_data)
+    }
+}
+
+impl DepositSol for SplStakePoolDepositSol {
     fn get_deposit_sol_quote(&self, lamports: u64) -> Result<DepositSolQuote> {
         // Reference: https://github.com/solana-labs/solana-program-library/blob/56cdef9ee82877622a074aa74560742264f20591/stake-pool/program/src/processor.rs#L2268
         let new_pool_tokens = self
@@ -67,22 +82,10 @@ impl DepositSol for SplStakePoolDepositSol {
             .checked_sub(pool_tokens_sol_deposit_fee)
             .ok_or(StakePoolError::CalculationFailure)?;
         Ok(DepositSolQuote {
+            in_amount: lamports,
             out_amount: pool_tokens_user,
             fee_amount: pool_tokens_sol_deposit_fee,
         })
-    }
-
-    fn staked_sol_mint(&self) -> Pubkey {
-        self.stake_pool.pool_mint
-    }
-
-    fn get_accounts_to_update(&self) -> Vec<Pubkey> {
-        Vec::from([self.stake_pool_addr])
-    }
-
-    fn update(&mut self, accounts_map: &std::collections::HashMap<Pubkey, Vec<u8>>) -> Result<()> {
-        let stake_pool_data = accounts_map.get(&self.stake_pool_addr).unwrap();
-        self.update_fields(stake_pool_data)
     }
 
     fn virtual_ix(&self) -> Result<Instruction> {
