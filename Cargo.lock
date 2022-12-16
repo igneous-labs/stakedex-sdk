@@ -3828,6 +3828,7 @@ dependencies = [
  "stakedex_deposit_sol_interface",
  "stakedex_deposit_stake_interface",
  "stakedex_sdk_common",
+ "stakedex_withdraw_stake_interface",
 ]
 
 [[package]]

@@ -3,6 +3,7 @@ use solana_program::{instruction::Instruction, pubkey::Pubkey};
 
 use crate::BaseStakePoolAmm;
 
+// TODO: include additional rent payments?
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WithdrawStakeQuote {
     /// Total lamports contained in the output stake account,

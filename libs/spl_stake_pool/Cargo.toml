@@ -16,3 +16,4 @@ spl-token = "^3.0"
 stakedex_deposit_sol_interface = { path = "../../interfaces/stakedex_deposit_sol_interface" }
 stakedex_deposit_stake_interface = { path = "../../interfaces/stakedex_deposit_stake_interface" }
 stakedex_sdk_common = { path = "../../common" }
+stakedex_withdraw_stake_interface = { path = "../../interfaces/stakedex_withdraw_stake_interface" }

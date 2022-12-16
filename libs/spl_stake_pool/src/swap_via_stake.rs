@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use borsh::BorshDeserialize;
 use jupiter_core::amm::KeyedAccount;
-use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, sysvar};
+use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
 use spl_stake_pool::{
     find_stake_program_address, find_withdraw_authority_program_address,
     state::{StakePool, StakeStatus, ValidatorList},
@@ -9,7 +9,14 @@ use spl_stake_pool::{
 use stakedex_deposit_stake_interface::{
     spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeIxArgs, SplStakePoolDepositStakeKeys,
 };
-use stakedex_sdk_common::{BaseStakePoolAmm, DepositStake, DepositStakeQuote, WithdrawStakeQuote};
+use stakedex_sdk_common::{
+    BaseStakePoolAmm, DepositStake, DepositStakeQuote, WithdrawStake, WithdrawStakeQuote,
+    STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+};
+use stakedex_withdraw_stake_interface::{
+    spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeIxArgs,
+    SplStakePoolWithdrawStakeKeys,
+};
 
 use crate::SPL_STAKE_POOL_STATE_TO_LABEL;
 
@@ -132,6 +139,60 @@ impl DepositStake for SplStakePoolDepositWithdrawStake {
                 stake_program: stake::program::ID,
             },
             SplStakePoolDepositStakeIxArgs {},
+        )?)
+    }
+}
+
+impl WithdrawStake for SplStakePoolDepositWithdrawStake {
+    fn get_quote_for_validator(
+        &self,
+        validator_index: usize,
+        withdraw_amount: u64,
+    ) -> Option<WithdrawStakeQuote> {
+        let validator_list_entry = self.validator_list.validators.get(validator_index)?;
+        // only handle withdrawal from active stake accounts for simplicity.
+        // Likely other stake pools can't accept non active stake anyway
+        if validator_list_entry.status != StakeStatus::Active {
+            return None;
+        }
+        // Reference: https://github.com/solana-labs/solana-program-library/blob/58c1226a513d3d8bb2de8ec67586a679be7fd2d4/stake-pool/program/src/processor.rs#L2297
+        let pool_tokens = withdraw_amount;
+        let pool_tokens_fee = self
+            .stake_pool
+            .calc_pool_tokens_stake_withdrawal_fee(pool_tokens)?;
+        let pool_tokens_burnt = pool_tokens.checked_sub(pool_tokens_fee)?;
+        let withdraw_lamports = self
+            .stake_pool
+            .calc_lamports_withdraw_amount(pool_tokens_burnt)?;
+        if withdraw_lamports > validator_list_entry.active_stake_lamports {
+            return None;
+        }
+        let lamports_staked = withdraw_lamports.checked_sub(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS)?;
+        Some(WithdrawStakeQuote {
+            lamports_out: withdraw_lamports,
+            lamports_staked,
+            fee_amount: pool_tokens_fee,
+            voter: validator_list_entry.vote_account_address,
+        })
+    }
+
+    fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {
+        let withdraw_stake_stake_to_split =
+            find_stake_program_address(&spl_stake_pool::ID, &quote.voter, &self.stake_pool_addr).0;
+        Ok(spl_stake_pool_withdraw_stake_ix(
+            SplStakePoolWithdrawStakeKeys {
+                spl_stake_pool_program: spl_stake_pool::ID,
+                withdraw_stake_spl_stake_pool: self.stake_pool_addr,
+                withdraw_stake_validator_list: self.stake_pool.validator_list,
+                withdraw_stake_withdraw_authority: self.withdraw_authority_addr,
+                withdraw_stake_manager_fee: self.stake_pool.manager_fee_account,
+                withdraw_stake_stake_to_split,
+                clock: sysvar::clock::ID,
+                token_program: spl_token::ID,
+                stake_program: stake::program::ID,
+                system_program: system_program::ID,
+            },
+            SplStakePoolWithdrawStakeIxArgs {},
         )?)
     }
 }
