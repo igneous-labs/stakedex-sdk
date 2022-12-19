@@ -1,7 +1,10 @@
 use anyhow::{anyhow, Result};
 use borsh::BorshDeserialize;
 use jupiter_core::amm::KeyedAccount;
-use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
+use solana_program::{
+    clock::Clock, instruction::Instruction, pubkey::Pubkey, stake, stake_history::Epoch,
+    system_program, sysvar,
+};
 use spl_stake_pool::{
     find_stake_program_address, find_withdraw_authority_program_address,
     state::{StakePool, StakeStatus, ValidatorList},
@@ -27,6 +30,7 @@ pub struct SplStakePoolDepositWithdrawStake {
     stake_pool_label: &'static str,
     stake_pool: StakePool,
     validator_list: ValidatorList,
+    curr_epoch: Epoch,
 }
 
 impl SplStakePoolDepositWithdrawStake {
@@ -70,54 +74,93 @@ impl BaseStakePoolAmm for SplStakePoolDepositWithdrawStake {
     }
 
     fn get_accounts_to_update(&self) -> Vec<Pubkey> {
-        Vec::from([self.stake_pool_addr, self.stake_pool.validator_list])
+        Vec::from([
+            self.stake_pool_addr,
+            self.stake_pool.validator_list,
+            sysvar::clock::ID,
+        ])
     }
 
     fn update(&mut self, accounts_map: &std::collections::HashMap<Pubkey, Vec<u8>>) -> Result<()> {
         let stake_pool_data = accounts_map.get(&self.stake_pool_addr).unwrap();
         self.update_stake_pool(stake_pool_data)?;
         let validator_list_data = accounts_map.get(&self.stake_pool.validator_list).unwrap();
-        self.update_validator_list(validator_list_data)
+        self.update_validator_list(validator_list_data)?;
+        let clock_data = accounts_map.get(&sysvar::clock::ID).unwrap();
+        let clock: Clock = bincode::deserialize(clock_data)?;
+        self.curr_epoch = clock.epoch;
+        Ok(())
     }
 }
 
-// TODO: handle case where stake pool hasn't been updated for the current epoch
-
 impl DepositStake for SplStakePoolDepositWithdrawStake {
-    fn get_deposit_stake_quote(
+    fn can_accept_stake_deposits(&self) -> bool {
+        self.stake_pool.last_update_epoch == self.curr_epoch
+    }
+
+    fn get_deposit_stake_quote_unchecked(
         &self,
         withdraw_stake_quote: WithdrawStakeQuote,
-    ) -> Option<DepositStakeQuote> {
-        let validator_list_entry = self.validator_list.find(&withdraw_stake_quote.voter)?;
+    ) -> DepositStakeQuote {
+        let validator_list_entry = match self.validator_list.find(&withdraw_stake_quote.voter) {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
         if validator_list_entry.status != StakeStatus::Active {
-            return None;
+            return DepositStakeQuote::default();
         }
         // Reference: https://github.com/solana-labs/solana-program-library/blob/stake-pool-v0.6.4/stake-pool/program/src/processor.rs#L1971
         let total_deposit_lamports = withdraw_stake_quote.lamports_out;
         let stake_deposit_lamports = withdraw_stake_quote.lamports_staked;
 
-        let new_pool_tokens = self
+        let new_pool_tokens = match self
             .stake_pool
-            .calc_pool_tokens_for_deposit(total_deposit_lamports)?;
-        let new_pool_tokens_from_stake = self
+            .calc_pool_tokens_for_deposit(total_deposit_lamports)
+        {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
+        let new_pool_tokens_from_stake = match self
             .stake_pool
-            .calc_pool_tokens_for_deposit(stake_deposit_lamports)?;
-        let new_pool_tokens_from_sol = new_pool_tokens.checked_sub(new_pool_tokens_from_stake)?;
+            .calc_pool_tokens_for_deposit(stake_deposit_lamports)
+        {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
+        let new_pool_tokens_from_sol = match new_pool_tokens.checked_sub(new_pool_tokens_from_stake)
+        {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
 
-        let stake_deposit_fee = self
+        let stake_deposit_fee = match self
             .stake_pool
-            .calc_pool_tokens_stake_deposit_fee(new_pool_tokens_from_stake)?;
-        let sol_deposit_fee = self
+            .calc_pool_tokens_stake_deposit_fee(new_pool_tokens_from_stake)
+        {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
+        let sol_deposit_fee = match self
             .stake_pool
-            .calc_pool_tokens_sol_deposit_fee(new_pool_tokens_from_sol)?;
-        let total_fee = stake_deposit_fee.checked_add(sol_deposit_fee)?;
-        let pool_tokens_user = new_pool_tokens.checked_sub(total_fee)?;
+            .calc_pool_tokens_sol_deposit_fee(new_pool_tokens_from_sol)
+        {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
+        let total_fee = match stake_deposit_fee.checked_add(sol_deposit_fee) {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
+        let pool_tokens_user = match new_pool_tokens.checked_sub(total_fee) {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
 
-        Some(DepositStakeQuote {
+        DepositStakeQuote {
             tokens_out: pool_tokens_user,
             fee_amount: total_fee,
             voter: withdraw_stake_quote.voter,
-        })
+        }
     }
 
     fn virtual_ix(&self, quote: &DepositStakeQuote) -> Result<Instruction> {
@@ -144,36 +187,59 @@ impl DepositStake for SplStakePoolDepositWithdrawStake {
 }
 
 impl WithdrawStake for SplStakePoolDepositWithdrawStake {
-    fn get_quote_for_validator(
+    fn can_accept_stake_withdrawals(&self) -> bool {
+        self.stake_pool.last_update_epoch == self.curr_epoch
+    }
+
+    fn get_quote_for_validator_unchecked(
         &self,
         validator_index: usize,
         withdraw_amount: u64,
-    ) -> Option<WithdrawStakeQuote> {
-        let validator_list_entry = self.validator_list.validators.get(validator_index)?;
+    ) -> WithdrawStakeQuote {
+        let validator_list_entry = self.validator_list.validators.get(validator_index).unwrap();
         // only handle withdrawal from active stake accounts for simplicity.
         // Likely other stake pools can't accept non active stake anyway
         if validator_list_entry.status != StakeStatus::Active {
-            return None;
+            return WithdrawStakeQuote::default();
         }
         // Reference: https://github.com/solana-labs/solana-program-library/blob/58c1226a513d3d8bb2de8ec67586a679be7fd2d4/stake-pool/program/src/processor.rs#L2297
         let pool_tokens = withdraw_amount;
-        let pool_tokens_fee = self
+        let pool_tokens_fee = match self
             .stake_pool
-            .calc_pool_tokens_stake_withdrawal_fee(pool_tokens)?;
-        let pool_tokens_burnt = pool_tokens.checked_sub(pool_tokens_fee)?;
-        let withdraw_lamports = self
+            .calc_pool_tokens_stake_withdrawal_fee(pool_tokens)
+        {
+            Some(r) => r,
+            None => return WithdrawStakeQuote::default(),
+        };
+        let pool_tokens_burnt = match pool_tokens.checked_sub(pool_tokens_fee) {
+            Some(r) => r,
+            None => return WithdrawStakeQuote::default(),
+        };
+        let withdraw_lamports = match self
             .stake_pool
-            .calc_lamports_withdraw_amount(pool_tokens_burnt)?;
+            .calc_lamports_withdraw_amount(pool_tokens_burnt)
+        {
+            Some(r) => r,
+            None => return WithdrawStakeQuote::default(),
+        };
         if withdraw_lamports > validator_list_entry.active_stake_lamports {
-            return None;
+            return WithdrawStakeQuote::default();
         }
-        let lamports_staked = withdraw_lamports.checked_sub(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS)?;
-        Some(WithdrawStakeQuote {
+        let lamports_staked =
+            match withdraw_lamports.checked_sub(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS) {
+                Some(r) => r,
+                None => return WithdrawStakeQuote::default(),
+            };
+        WithdrawStakeQuote {
             lamports_out: withdraw_lamports,
             lamports_staked,
             fee_amount: pool_tokens_fee,
             voter: validator_list_entry.vote_account_address,
-        })
+        }
+    }
+
+    fn is_validator_index_out_of_bounds(&self, validator_index: usize) -> bool {
+        validator_index >= self.validator_list.validators.len()
     }
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {

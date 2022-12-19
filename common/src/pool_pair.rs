@@ -24,7 +24,11 @@ fn first_avail_quote<W: WithdrawStake, D: DepositStake>(
         if wsq.is_zero_out() {
             continue;
         }
-        if let Some(dsq) = deposit_to.get_deposit_stake_quote(wsq) {
+        let dsq = match deposit_to.get_deposit_stake_quote(wsq) {
+            Some(r) => r,
+            None => return None,
+        };
+        if !dsq.is_zero_out() {
             return Some((wsq, dsq));
         }
     }

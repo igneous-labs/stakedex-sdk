@@ -3819,6 +3819,7 @@ name = "stakedex_spl_stake_pool"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "borsh 0.9.3",
  "jupiter-core",
  "lazy_static",

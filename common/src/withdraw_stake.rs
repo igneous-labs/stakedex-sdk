@@ -43,13 +43,37 @@ pub trait WithdrawStake: BaseStakePoolAmm + Sized {
     }
 
     /// Returns None if validator_index out of bounds.
+    /// Returns None if stake pool cannot currently accept stake withdrawals
+    /// (e.g. spl not yet updated for this epoch)
     /// Returns WithdrawStakeQuote::default() if given validator cant service withdrawal
     /// eg withdraw_amount > validator stake
     fn get_quote_for_validator(
         &self,
         validator_index: usize,
         withdraw_amount: u64,
-    ) -> Option<WithdrawStakeQuote>;
+    ) -> Option<WithdrawStakeQuote> {
+        if self.is_validator_index_out_of_bounds(validator_index) {
+            return None;
+        }
+        if !self.can_accept_stake_withdrawals() {
+            return None;
+        }
+        Some(self.get_quote_for_validator_unchecked(validator_index, withdraw_amount))
+    }
+
+    fn is_validator_index_out_of_bounds(&self, validator_index: usize) -> bool;
+
+    fn can_accept_stake_withdrawals(&self) -> bool;
+
+    /// panics if validator_index out of bounds
+    /// is_validator_index_out_of_bounds() should be called before calling this
+    /// Inner impl fn, should not be called directly. Instead, call
+    /// get_quote_for_validator()
+    fn get_quote_for_validator_unchecked(
+        &self,
+        validator_index: usize,
+        withdraw_amount: u64,
+    ) -> WithdrawStakeQuote;
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction>;
 }
