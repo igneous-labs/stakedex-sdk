@@ -14,13 +14,13 @@ use crate::{
     DepositStake, DepositStakeQuote, WithdrawStake, WithdrawStakeQuote,
 };
 
-fn first_avail_quote<W: WithdrawStake, D: DepositStake>(
+pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     withdraw_amount: u64,
     withdraw_from: &W,
     deposit_to: &D,
 ) -> Option<(WithdrawStakeQuote, DepositStakeQuote)> {
-    let withdraw_quote_iter = withdraw_from.withdraw_stake_quote_iter(withdraw_amount);
-    for wsq in withdraw_quote_iter {
+    let mut withdraw_quote_iter = withdraw_from.withdraw_stake_quote_iter(withdraw_amount);
+    while let Some(wsq) = withdraw_quote_iter.next(withdraw_from) {
         if wsq.is_zero_out() {
             continue;
         }
@@ -35,7 +35,7 @@ fn first_avail_quote<W: WithdrawStake, D: DepositStake>(
     None
 }
 
-pub fn quote_pool_pair<W: WithdrawStake, D: DepositStake>(
+pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     quote_params: &QuoteParams,
     withdraw_from: &W,
     deposit_to: &D,
@@ -80,7 +80,7 @@ pub fn quote_pool_pair<W: WithdrawStake, D: DepositStake>(
     })
 }
 
-pub fn get_account_metas<W: WithdrawStake, D: DepositStake>(
+pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     swap_params: &SwapParams,
     withdraw_from: &W,
     deposit_to: &D,

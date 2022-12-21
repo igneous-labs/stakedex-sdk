@@ -27,16 +27,22 @@ impl WithdrawStakeQuote {
     }
 }
 
-pub struct WithdrawStakeQuoteIter<'a, W: WithdrawStake> {
-    pool: &'a W,
+pub struct WithdrawStakeQuoteIter {
     withdraw_amount: u64,
     curr_validator_index: usize,
 }
 
-pub trait WithdrawStake: BaseStakePoolAmm + Sized {
-    fn withdraw_stake_quote_iter(&self, withdraw_amount: u64) -> WithdrawStakeQuoteIter<Self> {
+impl WithdrawStakeQuoteIter {
+    pub fn next<P: WithdrawStake + ?Sized>(&mut self, pool: &P) -> Option<WithdrawStakeQuote> {
+        let res = pool.get_quote_for_validator(self.curr_validator_index, self.withdraw_amount);
+        self.curr_validator_index += 1;
+        res
+    }
+}
+
+pub trait WithdrawStake: BaseStakePoolAmm {
+    fn withdraw_stake_quote_iter(&self, withdraw_amount: u64) -> WithdrawStakeQuoteIter {
         WithdrawStakeQuoteIter {
-            pool: self,
             withdraw_amount,
             curr_validator_index: 0,
         }
@@ -76,16 +82,4 @@ pub trait WithdrawStake: BaseStakePoolAmm + Sized {
     ) -> WithdrawStakeQuote;
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction>;
-}
-
-impl<'a, W: WithdrawStake> Iterator for WithdrawStakeQuoteIter<'a, W> {
-    type Item = WithdrawStakeQuote;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let res = self
-            .pool
-            .get_quote_for_validator(self.curr_validator_index, self.withdraw_amount);
-        self.curr_validator_index += 1;
-        res
-    }
 }

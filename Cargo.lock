@@ -3800,6 +3800,15 @@ dependencies = [
 [[package]]
 name = "stakedex_sdk"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "jupiter-core",
+ "solana-sdk",
+ "spl-token",
+ "stakedex_interface",
+ "stakedex_sdk_common",
+ "stakedex_spl_stake_pool",
+]
 
 [[package]]
 name = "stakedex_sdk_common"

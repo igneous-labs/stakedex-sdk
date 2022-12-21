@@ -5,10 +5,8 @@ use stakedex_sdk_common::{
 };
 use std::collections::HashMap;
 
-mod deposit_sol;
-pub use deposit_sol::*;
-mod swap_via_stake;
-pub use swap_via_stake::*;
+mod stakedex_traits;
+pub use stakedex_traits::*;
 
 lazy_static! {
     pub static ref SPL_STAKE_POOL_STATE_TO_LABEL: HashMap<Pubkey, &'static str> = {
@@ -32,7 +30,7 @@ mod tests {
     fn test_wrapper_impls_amm_correctly_compile_time() {
         // DepositSolWrapper<SplStakePoolDepositSol>
         // impls Amm
-        let sp = DepositSolWrapper(SplStakePoolDepositSol::default());
+        let sp = DepositSolWrapper(SplStakePoolStakedex::default());
         sp.clone_amm();
     }
 }

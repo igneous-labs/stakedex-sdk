@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, Result};
 use borsh::BorshDeserialize;
 use jupiter_core::amm::KeyedAccount;
@@ -6,15 +8,19 @@ use solana_program::{
     system_program, sysvar,
 };
 use spl_stake_pool::{
+    error::StakePoolError,
     find_stake_program_address, find_withdraw_authority_program_address,
     state::{StakePool, StakeStatus, ValidatorList},
+};
+use stakedex_deposit_sol_interface::{
+    spl_stake_pool_deposit_sol_ix, SplStakePoolDepositSolIxArgs, SplStakePoolDepositSolKeys,
 };
 use stakedex_deposit_stake_interface::{
     spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeIxArgs, SplStakePoolDepositStakeKeys,
 };
 use stakedex_sdk_common::{
-    BaseStakePoolAmm, DepositStake, DepositStakeQuote, WithdrawStake, WithdrawStakeQuote,
-    STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    BaseStakePoolAmm, DepositSol, DepositSolQuote, DepositStake, DepositStakeQuote, WithdrawStake,
+    WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
     spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeIxArgs,
@@ -24,7 +30,7 @@ use stakedex_withdraw_stake_interface::{
 use crate::SPL_STAKE_POOL_STATE_TO_LABEL;
 
 #[derive(Clone, Default)]
-pub struct SplStakePoolDepositWithdrawStake {
+pub struct SplStakePoolStakedex {
     stake_pool_addr: Pubkey,
     withdraw_authority_addr: Pubkey,
     stake_pool_label: &'static str,
@@ -33,7 +39,7 @@ pub struct SplStakePoolDepositWithdrawStake {
     curr_epoch: Epoch,
 }
 
-impl SplStakePoolDepositWithdrawStake {
+impl SplStakePoolStakedex {
     /// Initialize from stake pool main account
     pub fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
         let mut res = Self::default();
@@ -60,7 +66,7 @@ impl SplStakePoolDepositWithdrawStake {
     }
 }
 
-impl BaseStakePoolAmm for SplStakePoolDepositWithdrawStake {
+impl BaseStakePoolAmm for SplStakePoolStakedex {
     fn stake_pool_label(&self) -> &'static str {
         self.stake_pool_label
     }
@@ -81,7 +87,7 @@ impl BaseStakePoolAmm for SplStakePoolDepositWithdrawStake {
         ])
     }
 
-    fn update(&mut self, accounts_map: &std::collections::HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
         let stake_pool_data = accounts_map.get(&self.stake_pool_addr).unwrap();
         self.update_stake_pool(stake_pool_data)?;
         let validator_list_data = accounts_map.get(&self.stake_pool.validator_list).unwrap();
@@ -93,7 +99,42 @@ impl BaseStakePoolAmm for SplStakePoolDepositWithdrawStake {
     }
 }
 
-impl DepositStake for SplStakePoolDepositWithdrawStake {
+impl DepositSol for SplStakePoolStakedex {
+    fn get_deposit_sol_quote(&self, lamports: u64) -> Result<DepositSolQuote> {
+        // Reference: https://github.com/solana-labs/solana-program-library/blob/56cdef9ee82877622a074aa74560742264f20591/stake-pool/program/src/processor.rs#L2268
+        let new_pool_tokens = self
+            .stake_pool
+            .calc_pool_tokens_for_deposit(lamports)
+            .ok_or(StakePoolError::CalculationFailure)?;
+        let pool_tokens_sol_deposit_fee = self
+            .stake_pool
+            .calc_pool_tokens_sol_deposit_fee(new_pool_tokens)
+            .ok_or(StakePoolError::CalculationFailure)?;
+        let pool_tokens_user = new_pool_tokens
+            .checked_sub(pool_tokens_sol_deposit_fee)
+            .ok_or(StakePoolError::CalculationFailure)?;
+        Ok(DepositSolQuote {
+            in_amount: lamports,
+            out_amount: pool_tokens_user,
+            fee_amount: pool_tokens_sol_deposit_fee,
+        })
+    }
+
+    fn virtual_ix(&self) -> Result<Instruction> {
+        Ok(spl_stake_pool_deposit_sol_ix(
+            SplStakePoolDepositSolKeys {
+                spl_stake_pool_program: spl_stake_pool::ID,
+                stake_pool: self.stake_pool_addr,
+                stake_pool_withdraw_authority: self.withdraw_authority_addr,
+                stake_pool_manager_fee: self.stake_pool.manager_fee_account,
+                stake_pool_reserve_stake: self.stake_pool.reserve_stake,
+            },
+            SplStakePoolDepositSolIxArgs {},
+        )?)
+    }
+}
+
+impl DepositStake for SplStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
         self.stake_pool.last_update_epoch == self.curr_epoch
     }
@@ -186,7 +227,7 @@ impl DepositStake for SplStakePoolDepositWithdrawStake {
     }
 }
 
-impl WithdrawStake for SplStakePoolDepositWithdrawStake {
+impl WithdrawStake for SplStakePoolStakedex {
     fn can_accept_stake_withdrawals(&self) -> bool {
         self.stake_pool.last_update_epoch == self.curr_epoch
     }
