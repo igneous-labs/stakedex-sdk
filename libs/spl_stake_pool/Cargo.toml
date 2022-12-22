@@ -6,15 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "^1.0"
+anyhow = { workspace = true }
 bincode = "^1.0"
 borsh = "^0.9"
-jupiter-core = { git = "https://github.com/jup-ag/rust-amm-implementation", rev = "8e360617"}
+jupiter-core = { workspace = true }
 lazy_static = "^1.0"
-solana-program = "^1.9"
+solana-program = { workspace = true }
 spl-stake-pool = "^0.6.4"
-spl-token = "^3.0"
-stakedex_deposit_sol_interface = { path = "../../interfaces/stakedex_deposit_sol_interface" }
-stakedex_deposit_stake_interface = { path = "../../interfaces/stakedex_deposit_stake_interface" }
-stakedex_sdk_common = { path = "../../common" }
-stakedex_withdraw_stake_interface = { path = "../../interfaces/stakedex_withdraw_stake_interface" }
+spl-token = { workspace = true }
+stakedex_deposit_sol_interface = { workspace = true }
+stakedex_deposit_stake_interface = { workspace = true }
+stakedex_sdk_common = { workspace = true }
+stakedex_withdraw_stake_interface = { workspace = true }

@@ -6,3 +6,16 @@ members = [
     "libs/*",
     "interfaces/*"
 ]
+
+[workspace.dependencies]
+anyhow = "^1.0"
+jupiter-core = { git = "https://github.com/jup-ag/rust-amm-implementation", rev = "8e360617"}
+solana-program = "^1.9"
+solana-sdk = "^1.9"
+spl-token = "^3.0"
+stakedex_deposit_sol_interface = { path = "./interfaces/stakedex_deposit_sol_interface" }
+stakedex_deposit_stake_interface = { path = "./interfaces/stakedex_deposit_stake_interface" }
+stakedex_interface = { path = "./interfaces/stakedex_interface" }
+stakedex_sdk_common = { path = "./common" }
+stakedex_spl_stake_pool = { path = "./libs/spl_stake_pool" }
+stakedex_withdraw_stake_interface = { path = "./interfaces/stakedex_withdraw_stake_interface" }
