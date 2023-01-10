@@ -84,6 +84,15 @@ impl Stakedex {
         .concat()
     }
 
+    pub fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+        self.daopool.update(accounts_map)?;
+        self.jito.update(accounts_map)?;
+        self.jpool.update(accounts_map)?;
+        self.laine.update(accounts_map)?;
+        self.solblaze.update(accounts_map)?;
+        Ok(())
+    }
+
     pub fn get_deposit_sol_pool(&self, token: &Pubkey) -> Option<&dyn DepositSol> {
         if bsol::check_id(token) {
             Some(&self.solblaze)
