@@ -15,6 +15,7 @@ use stakedex_sdk_common::{
 };
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 
+#[derive(Clone, Default)]
 pub struct Stakedex {
     daopool: SplStakePoolStakedex,
     jito: SplStakePoolStakedex,
