@@ -36,6 +36,18 @@ fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Resul
 }
 
 impl Stakedex {
+    /// Gets the list of accounts that must be fetched first to initialize
+    /// Stakedex by passing the result into from_fetched_accounts()
+    pub fn init_accounts() -> [Pubkey; 5] {
+        [
+            daopool_stake_pool::ID,
+            jito_stake_pool::ID,
+            jpool_stake_pool::ID,
+            laine_stake_pool::ID,
+            solblaze_stake_pool::ID,
+        ]
+    }
+
     pub fn from_fetched_accounts(accounts: &HashMap<Pubkey, Account>) -> Result<Self> {
         Ok(Self {
             daopool: SplStakePoolStakedex::from_keyed_account(&get_keyed_account(
