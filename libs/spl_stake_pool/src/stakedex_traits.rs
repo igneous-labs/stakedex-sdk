@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
-use borsh::BorshDeserialize;
 use jupiter_core::amm::KeyedAccount;
 use solana_program::{
-    clock::Clock, instruction::Instruction, pubkey::Pubkey, stake, stake_history::Epoch,
-    system_program, sysvar,
+    borsh::try_from_slice_unchecked, clock::Clock, instruction::Instruction, pubkey::Pubkey, stake,
+    stake_history::Epoch, system_program, sysvar,
 };
 use spl_stake_pool::{
     error::StakePoolError,
@@ -56,12 +55,12 @@ impl SplStakePoolStakedex {
     }
 
     pub fn update_stake_pool(&mut self, data: &[u8]) -> Result<()> {
-        self.stake_pool = StakePool::try_from_slice(data)?;
+        self.stake_pool = try_from_slice_unchecked::<StakePool>(data)?;
         Ok(())
     }
 
     pub fn update_validator_list(&mut self, data: &[u8]) -> Result<()> {
-        self.validator_list = ValidatorList::try_from_slice(data)?;
+        self.validator_list = try_from_slice_unchecked::<ValidatorList>(data)?;
         Ok(())
     }
 }
