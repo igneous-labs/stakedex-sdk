@@ -48,29 +48,43 @@ impl Stakedex {
         ]
     }
 
-    pub fn from_fetched_accounts(accounts: &HashMap<Pubkey, Account>) -> Result<Self> {
-        Ok(Self {
-            daopool: SplStakePoolStakedex::from_keyed_account(&get_keyed_account(
-                accounts,
-                &daopool_stake_pool::ID,
-            )?)?,
-            jito: SplStakePoolStakedex::from_keyed_account(&get_keyed_account(
-                accounts,
-                &jito_stake_pool::ID,
-            )?)?,
-            jpool: SplStakePoolStakedex::from_keyed_account(&get_keyed_account(
-                accounts,
-                &jpool_stake_pool::ID,
-            )?)?,
-            laine: SplStakePoolStakedex::from_keyed_account(&get_keyed_account(
-                accounts,
-                &laine_stake_pool::ID,
-            )?)?,
-            solblaze: SplStakePoolStakedex::from_keyed_account(&get_keyed_account(
-                accounts,
-                &solblaze_stake_pool::ID,
-            )?)?,
-        })
+    pub fn from_fetched_accounts(
+        accounts: &HashMap<Pubkey, Account>,
+    ) -> (Self, Vec<anyhow::Error>) {
+        // So that stakedex is still useable even if some pools fail to load
+        let mut errs = Vec::new();
+        let spl_stake_pools = [
+            daopool_stake_pool::ID,
+            jito_stake_pool::ID,
+            jpool_stake_pool::ID,
+            laine_stake_pool::ID,
+            solblaze_stake_pool::ID,
+        ]
+        .map(|pool_id| {
+            let pool_acc = match get_keyed_account(accounts, &pool_id) {
+                Ok(p) => p,
+                Err(e) => {
+                    errs.push(e);
+                    return SplStakePoolStakedex::default();
+                }
+            };
+            SplStakePoolStakedex::from_keyed_account(&pool_acc).unwrap_or_else(|e| {
+                errs.push(e);
+                SplStakePoolStakedex::default()
+            })
+        });
+        // unwrap safety: spl_stake_pools length is known
+        let mut spl_stake_pools_iter = spl_stake_pools.into_iter();
+        (
+            Self {
+                daopool: spl_stake_pools_iter.next().unwrap(),
+                jito: spl_stake_pools_iter.next().unwrap(),
+                jpool: spl_stake_pools_iter.next().unwrap(),
+                laine: spl_stake_pools_iter.next().unwrap(),
+                solblaze: spl_stake_pools_iter.next().unwrap(),
+            },
+            errs,
+        )
     }
 
     pub fn get_accounts_to_update(&self) -> Vec<Pubkey> {
@@ -84,13 +98,22 @@ impl Stakedex {
         .concat()
     }
 
-    pub fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
-        self.daopool.update(accounts_map)?;
-        self.jito.update(accounts_map)?;
-        self.jpool.update(accounts_map)?;
-        self.laine.update(accounts_map)?;
-        self.solblaze.update(accounts_map)?;
-        Ok(())
+    pub fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Vec<anyhow::Error> {
+        // So that other pools are still updated even if some pools fail to update
+        let mut errs = Vec::new();
+        [
+            &mut self.daopool,
+            &mut self.jito,
+            &mut self.jpool,
+            &mut self.laine,
+            &mut self.solblaze,
+        ]
+        .map(|pool| {
+            if let Err(e) = pool.update(accounts_map) {
+                errs.push(e);
+            }
+        });
+        errs
     }
 
     pub fn get_deposit_sol_pool(&self, token: &Pubkey) -> Option<&dyn DepositSol> {
