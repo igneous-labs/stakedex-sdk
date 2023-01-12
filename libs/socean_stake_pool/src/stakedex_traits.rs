@@ -25,8 +25,8 @@ use stakedex_sdk_common::{
     STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
-    spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeIxArgs,
-    SplStakePoolWithdrawStakeKeys,
+    socean_stake_pool_withdraw_stake_ix, SoceanStakePoolWithdrawStakeIxArgs,
+    SoceanStakePoolWithdrawStakeKeys,
 };
 
 use crate::SOCEAN_STAKE_POOL_LABEL;
@@ -303,9 +303,9 @@ impl WithdrawStake for SoceanStakePoolStakedex {
     }
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {
-        Ok(spl_stake_pool_withdraw_stake_ix(
-            SplStakePoolWithdrawStakeKeys {
-                spl_stake_pool_program: spl_stake_pool::ID,
+        Ok(socean_stake_pool_withdraw_stake_ix(
+            SoceanStakePoolWithdrawStakeKeys {
+                socean_stake_pool_program: socean_program::ID,
                 withdraw_stake_spl_stake_pool: socean_stake_pool::ID,
                 withdraw_stake_validator_list: self.stake_pool.validator_list,
                 withdraw_stake_withdraw_authority: Self::withdraw_authority(),
@@ -316,7 +316,7 @@ impl WithdrawStake for SoceanStakePoolStakedex {
                 stake_program: stake::program::ID,
                 system_program: system_program::ID,
             },
-            SplStakePoolWithdrawStakeIxArgs {},
+            SoceanStakePoolWithdrawStakeIxArgs {},
         )?)
     }
 }
