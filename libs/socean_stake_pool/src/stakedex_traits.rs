@@ -21,7 +21,7 @@ use stakedex_deposit_stake_interface::{
 };
 use stakedex_sdk_common::{
     scnsol, socean_program, socean_stake_pool, BaseStakePoolAmm, DepositSol, DepositSolQuote,
-    DepositStake, DepositStakeQuote, WithdrawStake, WithdrawStakeQuote,
+    DepositStake, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
     STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
@@ -39,15 +39,6 @@ pub struct SoceanStakePoolStakedex {
 }
 
 impl SoceanStakePoolStakedex {
-    /// Initialize from stake pool main account
-    pub fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
-        let mut res = Self::default();
-        res.update_stake_pool(&keyed_account.account.data)?;
-        // NOTE: the validator_list is not initialized until self.update() is
-        // called for the first time with fetched on-chain data
-        Ok(res)
-    }
-
     pub fn update_stake_pool(&mut self, data: &[u8]) -> Result<()> {
         self.stake_pool = try_from_slice_unchecked::<StakePool>(data)?;
         Ok(())
@@ -62,9 +53,20 @@ impl SoceanStakePoolStakedex {
         find_withdraw_authority_program_address(&socean_program::ID, &socean_stake_pool::ID).0
     }
 
-    /// Find and return alidator stake account
+    /// Find and return validator stake account
     pub fn vsa(voter: &Pubkey) -> Pubkey {
         find_stake_program_address(&socean_program::ID, voter, &socean_stake_pool::ID).0
+    }
+}
+
+impl InitFromKeyedAccount for SoceanStakePoolStakedex {
+    /// Initialize from stake pool main account
+    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
+        let mut res = Self::default();
+        res.update_stake_pool(&keyed_account.account.data)?;
+        // NOTE: the validator_list is not initialized until self.update() is
+        // called for the first time with fetched on-chain data
+        Ok(res)
     }
 }
 

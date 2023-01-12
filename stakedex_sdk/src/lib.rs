@@ -3,16 +3,19 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use jupiter_core::amm::{KeyedAccount, Quote, QuoteParams, SwapParams};
 use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
+use stakedex_eversol_stake_pool::EversolStakePoolStakedex;
 use stakedex_interface::{
     StakeWrappedSolArgs, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeArgs,
     SwapViaStakeIxArgs, SwapViaStakeKeys,
 };
 use stakedex_sdk_common::{
-    bsol, cws_wsol_bridge_in, daopool_stake_pool, daosol, find_bridge_stake, find_fee_token_acc,
-    find_sol_bridge_out, first_avail_quote, jito_stake_pool, jitosol, jpool_stake_pool, jsol,
-    laine_stake_pool, lainesol, quote_pool_pair, solblaze_stake_pool, BaseStakePoolAmm, DepositSol,
-    DepositStake, WithdrawStake,
+    bsol, cws_wsol_bridge_in, daopool_stake_pool, daosol, esol, eversol_stake_pool,
+    find_bridge_stake, find_fee_token_acc, find_sol_bridge_out, first_avail_quote, jito_stake_pool,
+    jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, quote_pool_pair, scnsol,
+    socean_stake_pool, solblaze_stake_pool, BaseStakePoolAmm, DepositSol, DepositStake,
+    InitFromKeyedAccount, WithdrawStake,
 };
+use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 
 #[derive(Clone, Default)]
@@ -22,6 +25,8 @@ pub struct Stakedex {
     jpool: SplStakePoolStakedex,
     laine: SplStakePoolStakedex,
     solblaze: SplStakePoolStakedex,
+    socean: SoceanStakePoolStakedex,
+    eversol: EversolStakePoolStakedex,
 }
 
 fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Result<KeyedAccount> {
@@ -35,16 +40,26 @@ fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Resul
     })
 }
 
+fn init_from_keyed_account<P: InitFromKeyedAccount>(
+    accounts: &HashMap<Pubkey, Account>,
+    key: &Pubkey,
+) -> Result<P> {
+    let keyed_acc = get_keyed_account(accounts, key)?;
+    P::from_keyed_account(&keyed_acc)
+}
+
 impl Stakedex {
     /// Gets the list of accounts that must be fetched first to initialize
     /// Stakedex by passing the result into from_fetched_accounts()
-    pub fn init_accounts() -> [Pubkey; 5] {
+    pub fn init_accounts() -> [Pubkey; 7] {
         [
             daopool_stake_pool::ID,
             jito_stake_pool::ID,
             jpool_stake_pool::ID,
             laine_stake_pool::ID,
             solblaze_stake_pool::ID,
+            socean_stake_pool::ID,
+            eversol_stake_pool::ID,
         ]
     }
 
@@ -53,6 +68,19 @@ impl Stakedex {
     ) -> (Self, Vec<anyhow::Error>) {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
+
+        let socean =
+            init_from_keyed_account(accounts, &socean_stake_pool::ID).unwrap_or_else(|e| {
+                errs.push(e);
+                SoceanStakePoolStakedex::default()
+            });
+
+        let eversol =
+            init_from_keyed_account(accounts, &eversol_stake_pool::ID).unwrap_or_else(|e| {
+                errs.push(e);
+                EversolStakePoolStakedex::default()
+            });
+
         let spl_stake_pools = [
             daopool_stake_pool::ID,
             jito_stake_pool::ID,
@@ -61,14 +89,7 @@ impl Stakedex {
             solblaze_stake_pool::ID,
         ]
         .map(|pool_id| {
-            let pool_acc = match get_keyed_account(accounts, &pool_id) {
-                Ok(p) => p,
-                Err(e) => {
-                    errs.push(e);
-                    return SplStakePoolStakedex::default();
-                }
-            };
-            SplStakePoolStakedex::from_keyed_account(&pool_acc).unwrap_or_else(|e| {
+            init_from_keyed_account(accounts, &pool_id).unwrap_or_else(|e| {
                 errs.push(e);
                 SplStakePoolStakedex::default()
             })
@@ -82,6 +103,8 @@ impl Stakedex {
                 jpool: spl_stake_pools_iter.next().unwrap(),
                 laine: spl_stake_pools_iter.next().unwrap(),
                 solblaze: spl_stake_pools_iter.next().unwrap(),
+                socean,
+                eversol,
             },
             errs,
         )
@@ -94,6 +117,8 @@ impl Stakedex {
             self.jpool.get_accounts_to_update(),
             self.laine.get_accounts_to_update(),
             self.solblaze.get_accounts_to_update(),
+            self.socean.get_accounts_to_update(),
+            self.eversol.get_accounts_to_update(),
         ]
         .concat()
     }
@@ -101,6 +126,15 @@ impl Stakedex {
     pub fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Vec<anyhow::Error> {
         // So that other pools are still updated even if some pools fail to update
         let mut errs = Vec::new();
+
+        if let Err(e) = self.socean.update(accounts_map) {
+            errs.push(e);
+        }
+
+        if let Err(e) = self.eversol.update(accounts_map) {
+            errs.push(e);
+        }
+
         [
             &mut self.daopool,
             &mut self.jito,
@@ -127,6 +161,10 @@ impl Stakedex {
             Some(&self.jpool)
         } else if lainesol::check_id(token) {
             Some(&self.laine)
+        } else if scnsol::check_id(token) {
+            Some(&self.socean)
+        } else if esol::check_id(token) {
+            Some(&self.eversol)
         } else {
             None
         }
@@ -143,6 +181,10 @@ impl Stakedex {
             Some(&self.jpool)
         } else if lainesol::check_id(token) {
             Some(&self.laine)
+        } else if scnsol::check_id(token) {
+            Some(&self.socean)
+        } else if esol::check_id(token) {
+            Some(&self.eversol)
         } else {
             None
         }
@@ -159,6 +201,10 @@ impl Stakedex {
             Some(&self.jpool)
         } else if lainesol::check_id(token) {
             Some(&self.laine)
+        } else if scnsol::check_id(token) {
+            Some(&self.socean)
+        } else if esol::check_id(token) {
+            Some(&self.eversol)
         } else {
             None
         }

@@ -10,7 +10,21 @@ pub mod daosol {
     solana_program::declare_id!("GEJpt3Wjmr628FqXxTgxMce1pLntcPV4uFi8ksxMyPQh");
 }
 
-// TODO: eversol
+pub mod eversol_program {
+    solana_program::declare_id!("EverSFw9uN5t1V8kS3ficHUcKffSjwpGzUSGd7mgmSks");
+}
+
+pub mod eversol_stake_pool {
+    solana_program::declare_id!("GUAMR8ciiaijraJeLDEDrFVaueLm9YzWWY9R7CBPL9rA");
+}
+
+pub mod eversol_validator_list {
+    solana_program::declare_id!("37FpUCPhUsX1dLhfm7gt3cArq7U2vmMpapoo7SGZWB9E");
+}
+
+pub mod esol {
+    solana_program::declare_id!("Hg35Vd8K3BS2pLB3xwC2WqQV8pmpCm3oNRGYP1PEpmCM");
+}
 
 pub mod jito_stake_pool {
     solana_program::declare_id!("Jito4APyf642JPZPx3hGc6WWJ8zPKtRbRs4P815Awbb");

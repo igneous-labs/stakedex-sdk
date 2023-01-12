@@ -18,8 +18,8 @@ use stakedex_deposit_stake_interface::{
     spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeIxArgs, SplStakePoolDepositStakeKeys,
 };
 use stakedex_sdk_common::{
-    BaseStakePoolAmm, DepositSol, DepositSolQuote, DepositStake, DepositStakeQuote, WithdrawStake,
-    WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    BaseStakePoolAmm, DepositSol, DepositSolQuote, DepositStake, DepositStakeQuote,
+    InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
     spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeIxArgs,
@@ -39,8 +39,20 @@ pub struct SplStakePoolStakedex {
 }
 
 impl SplStakePoolStakedex {
+    pub fn update_stake_pool(&mut self, data: &[u8]) -> Result<()> {
+        self.stake_pool = try_from_slice_unchecked::<StakePool>(data)?;
+        Ok(())
+    }
+
+    pub fn update_validator_list(&mut self, data: &[u8]) -> Result<()> {
+        self.validator_list = try_from_slice_unchecked::<ValidatorList>(data)?;
+        Ok(())
+    }
+}
+
+impl InitFromKeyedAccount for SplStakePoolStakedex {
     /// Initialize from stake pool main account
-    pub fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
+    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
         let mut res = Self::default();
         res.stake_pool_addr = keyed_account.key;
         res.withdraw_authority_addr =
@@ -52,16 +64,6 @@ impl SplStakePoolStakedex {
         // NOTE: the validator_list is not initialized until self.update() is
         // called for the first time with fetched on-chain data
         Ok(res)
-    }
-
-    pub fn update_stake_pool(&mut self, data: &[u8]) -> Result<()> {
-        self.stake_pool = try_from_slice_unchecked::<StakePool>(data)?;
-        Ok(())
-    }
-
-    pub fn update_validator_list(&mut self, data: &[u8]) -> Result<()> {
-        self.validator_list = try_from_slice_unchecked::<ValidatorList>(data)?;
-        Ok(())
     }
 }
 
