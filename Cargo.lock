@@ -3824,6 +3824,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "stakedex_socean_stake_pool"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "borsh 0.9.3",
+ "jupiter-core",
+ "solana-program",
+ "spl-stake-pool",
+ "spl-token",
+ "stakedex_deposit_sol_interface",
+ "stakedex_deposit_stake_interface",
+ "stakedex_sdk_common",
+ "stakedex_withdraw_stake_interface",
+]
+
+[[package]]
 name = "stakedex_spl_stake_pool"
 version = "0.1.0"
 dependencies = [
