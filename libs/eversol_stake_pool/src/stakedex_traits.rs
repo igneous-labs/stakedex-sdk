@@ -65,6 +65,11 @@ impl EversolStakePoolStakedex {
         &self,
         withdraw_stake_quote: WithdrawStakeQuote,
     ) -> Result<DepositStakeQuote, StakePoolError> {
+        if let Some(v) = self.stake_pool.preferred_deposit_validator_vote_address {
+            if withdraw_stake_quote.voter != v {
+                return Err(StakePoolError::InvalidPreferredValidator);
+            }
+        }
         let validator_list_entry = self
             .validator_list
             .find(&withdraw_stake_quote.voter)
@@ -137,6 +142,11 @@ impl EversolStakePoolStakedex {
         // Likely other stake pools can't accept non active stake anyway
         if validator_list_entry.status != StakeStatus::Active {
             return Err(StakePoolError::InvalidState);
+        }
+        if let Some(v) = self.stake_pool.preferred_withdraw_validator_vote_address {
+            if validator_list_entry.vote_account_address != v {
+                return Err(StakePoolError::InvalidPreferredValidator);
+            }
         }
         let stake_pool = &self.stake_pool;
 

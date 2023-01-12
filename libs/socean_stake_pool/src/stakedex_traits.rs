@@ -144,10 +144,18 @@ impl DepositStake for SoceanStakePoolStakedex {
         self.stake_pool.last_update_epoch == self.curr_epoch
     }
 
+    // Copied from stakedex_spl_stake_pool
+    // TODO: maybe refactor to same style as eversol
+    // (_copy() function that returns Result and can copy pasta from on-chain src directly)
     fn get_deposit_stake_quote_unchecked(
         &self,
         withdraw_stake_quote: WithdrawStakeQuote,
     ) -> DepositStakeQuote {
+        if let Some(v) = self.stake_pool.preferred_deposit_validator_vote_address {
+            if withdraw_stake_quote.voter != v {
+                return DepositStakeQuote::default();
+            }
+        }
         let validator_list_entry = match self.validator_list.find(&withdraw_stake_quote.voter) {
             Some(r) => r,
             None => return DepositStakeQuote::default(),
@@ -235,6 +243,9 @@ impl WithdrawStake for SoceanStakePoolStakedex {
         self.stake_pool.last_update_epoch == self.curr_epoch
     }
 
+    // Copied from stakedex_spl_stake_pool
+    // TODO: maybe refactor to same style as eversol
+    // (_copy() function that returns Result and can copy pasta from on-chain src directly)
     fn get_quote_for_validator_unchecked(
         &self,
         validator_index: usize,
@@ -245,6 +256,11 @@ impl WithdrawStake for SoceanStakePoolStakedex {
         // Likely other stake pools can't accept non active stake anyway
         if validator_list_entry.status != StakeStatus::Active {
             return WithdrawStakeQuote::default();
+        }
+        if let Some(v) = self.stake_pool.preferred_withdraw_validator_vote_address {
+            if validator_list_entry.vote_account_address != v {
+                return WithdrawStakeQuote::default();
+            }
         }
         // Reference: https://github.com/solana-labs/solana-program-library/blob/58c1226a513d3d8bb2de8ec67586a679be7fd2d4/stake-pool/program/src/processor.rs#L2297
         let pool_tokens = withdraw_amount;
