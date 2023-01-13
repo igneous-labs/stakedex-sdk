@@ -11,7 +11,7 @@ use stakedex_interface::{SwapViaStakeKeys, SWAP_VIA_STAKE_IX_ACCOUNTS_LEN};
 
 use crate::{
     apply_global_fee, find_bridge_stake, find_fee_token_acc, find_stake_pool_pair_amm_key,
-    DepositStake, DepositStakeQuote, WithdrawStake, WithdrawStakeQuote,
+    DepositStake, DepositStakeInfo, DepositStakeQuote, WithdrawStake, WithdrawStakeQuote,
 };
 
 pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
@@ -98,6 +98,7 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
         &bridge_stake_seed_le_bytes,
     )
     .0;
+    let deposit_stake_info = DepositStakeInfo { addr: bridge_stake };
     let mut metas = Vec::from(<[AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]>::from(
         &SwapViaStakeKeys {
             payer: swap_params.user_transfer_authority,
@@ -112,7 +113,7 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     ));
     let withdraw_stake_virtual_ix = withdraw_from.virtual_ix(&withdraw_quote)?;
     metas.extend(withdraw_stake_virtual_ix.accounts);
-    let deposit_stake_virtual_ix = deposit_to.virtual_ix(&deposit_quote)?;
+    let deposit_stake_virtual_ix = deposit_to.virtual_ix(&deposit_quote, &deposit_stake_info)?;
     metas.extend(deposit_stake_virtual_ix.accounts);
     Ok(metas)
 }

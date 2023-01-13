@@ -24,6 +24,12 @@ impl DepositStakeQuote {
     }
 }
 
+/// Info about the stake account to be deposited
+#[derive(Clone, Copy, Debug)]
+pub struct DepositStakeInfo {
+    pub addr: Pubkey,
+}
+
 pub trait DepositStake: BaseStakePoolAmm {
     /// This should only include the stake pool's deposit stake fees, not stakedex's global fees
     /// Returns None if stake pool cannot currently accept stake deposits (e.g. not yet updated for this epoch)
@@ -47,5 +53,9 @@ pub trait DepositStake: BaseStakePoolAmm {
         withdraw_stake_quote: WithdrawStakeQuote,
     ) -> DepositStakeQuote;
 
-    fn virtual_ix(&self, quote: &DepositStakeQuote) -> Result<Instruction>;
+    fn virtual_ix(
+        &self,
+        quote: &DepositStakeQuote,
+        deposit_stake_info: &DepositStakeInfo,
+    ) -> Result<Instruction>;
 }

@@ -18,8 +18,9 @@ use stakedex_deposit_stake_interface::{
     spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeIxArgs, SplStakePoolDepositStakeKeys,
 };
 use stakedex_sdk_common::{
-    BaseStakePoolAmm, DepositSol, DepositSolQuote, DepositStake, DepositStakeQuote,
-    InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    BaseStakePoolAmm, DepositSol, DepositSolQuote, DepositStake, DepositStakeInfo,
+    DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
+    STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
     spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeIxArgs,
@@ -212,7 +213,11 @@ impl DepositStake for SplStakePoolStakedex {
         }
     }
 
-    fn virtual_ix(&self, quote: &DepositStakeQuote) -> Result<Instruction> {
+    fn virtual_ix(
+        &self,
+        quote: &DepositStakeQuote,
+        _deposit_stake_info: &DepositStakeInfo,
+    ) -> Result<Instruction> {
         let deposit_stake_validator_stake =
             find_stake_program_address(&spl_stake_pool::ID, &quote.voter, &self.stake_pool_addr).0;
         Ok(spl_stake_pool_deposit_stake_ix(

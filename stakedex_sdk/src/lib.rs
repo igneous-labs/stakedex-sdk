@@ -13,7 +13,7 @@ use stakedex_sdk_common::{
     find_bridge_stake, find_fee_token_acc, find_sol_bridge_out, first_avail_quote, jito_stake_pool,
     jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, quote_pool_pair, scnsol,
     socean_stake_pool, solblaze_stake_pool, BaseStakePoolAmm, DepositSol, DepositStake,
-    InitFromKeyedAccount, WithdrawStake,
+    DepositStakeInfo, InitFromKeyedAccount, WithdrawStake,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
@@ -241,6 +241,7 @@ impl Stakedex {
             &bridge_stake_seed_le_bytes,
         )
         .0;
+        let deposit_stake_info = DepositStakeInfo { addr: bridge_stake };
 
         let mut ix = stakedex_interface::swap_via_stake_ix(
             SwapViaStakeKeys {
@@ -262,7 +263,7 @@ impl Stakedex {
         )?;
         let withdraw_from_virtual_ix = withdraw_from.virtual_ix(&withdraw_quote)?;
         ix.accounts.extend(withdraw_from_virtual_ix.accounts);
-        let deposit_to_virtual_ix = deposit_to.virtual_ix(&deposit_quote)?;
+        let deposit_to_virtual_ix = deposit_to.virtual_ix(&deposit_quote, &deposit_stake_info)?;
         ix.accounts.extend(deposit_to_virtual_ix.accounts);
         Ok(ix)
     }

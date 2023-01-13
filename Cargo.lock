@@ -4072,6 +4072,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "stakedex_unstake_it"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "jupiter-core",
+ "solana-program",
+ "spl-math 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token 3.5.0",
+ "stakedex_deposit_stake_interface",
+ "stakedex_sdk_common",
+ "unstake_it_interface",
+]
+
+[[package]]
 name = "stakedex_withdraw_stake_interface"
 version = "0.1.0"
 dependencies = [
@@ -4512,6 +4526,18 @@ checksum = "9f214e8f697e925001e66ec2c6e37a4ef93f0f78c2eed7814394e10c62025b05"
 dependencies = [
  "generic-array",
  "subtle",
+]
+
+[[package]]
+name = "unstake_it_interface"
+version = "0.1.0"
+source = "git+https://github.com/igneous-labs/unstake_it_interface?rev=8819194#881919454ae7b0a846d0cbfa3345f12962f6cf5b"
+dependencies = [
+ "borsh 0.9.3",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "thiserror",
 ]
 
 [[package]]

@@ -21,3 +21,4 @@ stakedex_sdk_common = { path = "./common" }
 stakedex_socean_stake_pool = { path = "./libs/socean_stake_pool" }
 stakedex_spl_stake_pool = { path = "./libs/spl_stake_pool" }
 stakedex_withdraw_stake_interface = { path = "./interfaces/stakedex_withdraw_stake_interface" }
+unstake_it_interface = { git = "https://github.com/igneous-labs/unstake_it_interface", rev = "8819194" }
