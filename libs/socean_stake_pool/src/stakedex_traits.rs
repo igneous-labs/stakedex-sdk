@@ -21,8 +21,8 @@ use stakedex_deposit_stake_interface::{
 };
 use stakedex_sdk_common::{
     scnsol, socean_program, socean_stake_pool, BaseStakePoolAmm, DepositSol, DepositSolQuote,
-    DepositStake, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
-    STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake,
+    WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
     socean_stake_pool_withdraw_stake_ix, SoceanStakePoolWithdrawStakeIxArgs,
@@ -217,7 +217,11 @@ impl DepositStake for SoceanStakePoolStakedex {
         }
     }
 
-    fn virtual_ix(&self, quote: &DepositStakeQuote) -> Result<Instruction> {
+    fn virtual_ix(
+        &self,
+        quote: &DepositStakeQuote,
+        _deposit_stake_info: &DepositStakeInfo,
+    ) -> Result<Instruction> {
         Ok(socean_stake_pool_deposit_stake_ix(
             SoceanStakePoolDepositStakeKeys {
                 socean_stake_pool_program: socean_program::ID,

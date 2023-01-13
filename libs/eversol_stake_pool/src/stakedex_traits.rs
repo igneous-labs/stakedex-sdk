@@ -22,8 +22,8 @@ use stakedex_deposit_stake_interface::{
 };
 use stakedex_sdk_common::{
     esol, eversol_program, eversol_stake_pool, BaseStakePoolAmm, DepositSol, DepositSolQuote,
-    DepositStake, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
-    STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake,
+    WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
     eversol_stake_pool_withdraw_stake_ix, EversolStakePoolWithdrawStakeIxArgs,
@@ -293,7 +293,11 @@ impl DepositStake for EversolStakePoolStakedex {
             .unwrap_or_default()
     }
 
-    fn virtual_ix(&self, quote: &DepositStakeQuote) -> Result<Instruction> {
+    fn virtual_ix(
+        &self,
+        quote: &DepositStakeQuote,
+        _deposit_stake_info: &DepositStakeInfo,
+    ) -> Result<Instruction> {
         Ok(eversol_stake_pool_deposit_stake_ix(
             EversolStakePoolDepositStakeKeys {
                 eversol_stake_pool_program: eversol_program::ID,

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use jupiter_core::amm::{KeyedAccount, Quote, QuoteParams, SwapParams};
 use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
+use spl_token::native_mint;
 use stakedex_eversol_stake_pool::EversolStakePoolStakedex;
 use stakedex_interface::{
     StakeWrappedSolArgs, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeArgs,
@@ -13,10 +14,11 @@ use stakedex_sdk_common::{
     find_bridge_stake, find_fee_token_acc, find_sol_bridge_out, first_avail_quote, jito_stake_pool,
     jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, quote_pool_pair, scnsol,
     socean_stake_pool, solblaze_stake_pool, BaseStakePoolAmm, DepositSol, DepositStake,
-    InitFromKeyedAccount, WithdrawStake,
+    DepositStakeInfo, InitFromKeyedAccount, WithdrawStake,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
+use stakedex_unstake_it::UnstakeItStakedex;
 
 #[derive(Clone, Default)]
 pub struct Stakedex {
@@ -27,6 +29,7 @@ pub struct Stakedex {
     solblaze: SplStakePoolStakedex,
     socean: SoceanStakePoolStakedex,
     eversol: EversolStakePoolStakedex,
+    unstakeit: UnstakeItStakedex,
 }
 
 fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Result<KeyedAccount> {
@@ -51,7 +54,7 @@ fn init_from_keyed_account<P: InitFromKeyedAccount>(
 impl Stakedex {
     /// Gets the list of accounts that must be fetched first to initialize
     /// Stakedex by passing the result into from_fetched_accounts()
-    pub fn init_accounts() -> [Pubkey; 7] {
+    pub fn init_accounts() -> [Pubkey; 8] {
         [
             daopool_stake_pool::ID,
             jito_stake_pool::ID,
@@ -60,6 +63,7 @@ impl Stakedex {
             solblaze_stake_pool::ID,
             socean_stake_pool::ID,
             eversol_stake_pool::ID,
+            stakedex_unstake_it::find_pool_sol_reserves().0,
         ]
     }
 
@@ -80,6 +84,13 @@ impl Stakedex {
                 errs.push(e);
                 EversolStakePoolStakedex::default()
             });
+
+        let unstakeit =
+            init_from_keyed_account(accounts, &stakedex_unstake_it::find_pool_sol_reserves().0)
+                .unwrap_or_else(|e| {
+                    errs.push(e);
+                    UnstakeItStakedex::default()
+                });
 
         let spl_stake_pools = [
             daopool_stake_pool::ID,
@@ -104,6 +115,7 @@ impl Stakedex {
                 laine: spl_stake_pools_iter.next().unwrap(),
                 solblaze: spl_stake_pools_iter.next().unwrap(),
                 socean,
+                unstakeit,
                 eversol,
             },
             errs,
@@ -123,15 +135,48 @@ impl Stakedex {
         .concat()
     }
 
-    pub fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Vec<anyhow::Error> {
+    /// Note: consumes accounts_map
+    pub fn update(&mut self, accounts_map: HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
+        // unstake.it special-case: required reinitialization to save sol_reserves_lamports correctly
+        let maybe_unstake_it_init_err = match init_from_keyed_account(
+            &accounts_map,
+            &stakedex_unstake_it::find_pool_sol_reserves().0,
+        ) {
+            Ok(unstakeit) => {
+                self.unstakeit = unstakeit;
+                None
+            }
+            Err(e) => Some(e),
+        };
+
+        let accounts_data_map = accounts_map
+            .into_iter()
+            .map(|(pubkey, acc)| (pubkey, acc.data))
+            .collect();
+
+        let mut errs = self.update_data(&accounts_data_map);
+        if let Some(e) = maybe_unstake_it_init_err {
+            errs.push(e);
+        }
+        errs
+    }
+
+    pub fn update_data(
+        &mut self,
+        accounts_data_map: &HashMap<Pubkey, Vec<u8>>,
+    ) -> Vec<anyhow::Error> {
         // So that other pools are still updated even if some pools fail to update
         let mut errs = Vec::new();
 
-        if let Err(e) = self.socean.update(accounts_map) {
+        if let Err(e) = self.socean.update(accounts_data_map) {
             errs.push(e);
         }
 
-        if let Err(e) = self.eversol.update(accounts_map) {
+        if let Err(e) = self.eversol.update(accounts_data_map) {
+            errs.push(e);
+        }
+
+        if let Err(e) = self.unstakeit.update(accounts_data_map) {
             errs.push(e);
         }
 
@@ -143,7 +188,7 @@ impl Stakedex {
             &mut self.solblaze,
         ]
         .map(|pool| {
-            if let Err(e) = pool.update(accounts_map) {
+            if let Err(e) = pool.update(accounts_data_map) {
                 errs.push(e);
             }
         });
@@ -185,6 +230,8 @@ impl Stakedex {
             Some(&self.socean)
         } else if esol::check_id(token) {
             Some(&self.eversol)
+        } else if native_mint::check_id(token) {
+            Some(&self.unstakeit)
         } else {
             None
         }
@@ -241,6 +288,7 @@ impl Stakedex {
             &bridge_stake_seed_le_bytes,
         )
         .0;
+        let deposit_stake_info = DepositStakeInfo { addr: bridge_stake };
 
         let mut ix = stakedex_interface::swap_via_stake_ix(
             SwapViaStakeKeys {
@@ -262,7 +310,7 @@ impl Stakedex {
         )?;
         let withdraw_from_virtual_ix = withdraw_from.virtual_ix(&withdraw_quote)?;
         ix.accounts.extend(withdraw_from_virtual_ix.accounts);
-        let deposit_to_virtual_ix = deposit_to.virtual_ix(&deposit_quote)?;
+        let deposit_to_virtual_ix = deposit_to.virtual_ix(&deposit_quote, &deposit_stake_info)?;
         ix.accounts.extend(deposit_to_virtual_ix.accounts);
         Ok(ix)
     }

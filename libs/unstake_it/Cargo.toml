@@ -1,5 +1,5 @@
 [package]
-name = "stakedex_sdk"
+name = "stakedex_unstake_it"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,11 +8,9 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 jupiter-core = { workspace = true }
-solana-sdk = { workspace = true }
+solana-program = { workspace = true }
+spl-math = { version = "0.1.0", features = ["no-entrypoint"]}
 spl-token = { workspace = true }
-stakedex_eversol_stake_pool = { workspace = true }
-stakedex_interface = { workspace = true }
+stakedex_deposit_stake_interface = { workspace = true }
 stakedex_sdk_common = { workspace = true }
-stakedex_socean_stake_pool = { workspace = true }
-stakedex_spl_stake_pool = { workspace = true }
-stakedex_unstake_it = { workspace = true }
+unstake_it_interface = { workspace = true } # TODO: change to main program crate once we open source unstake.it
