@@ -15,3 +15,4 @@ stakedex_interface = { workspace = true }
 stakedex_sdk_common = { workspace = true }
 stakedex_socean_stake_pool = { workspace = true }
 stakedex_spl_stake_pool = { workspace = true }
+stakedex_unstake_it = { workspace = true }
