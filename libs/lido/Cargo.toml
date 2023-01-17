@@ -1,5 +1,5 @@
 [package]
-name = "stakedex_unstake_it"
+name = "stakedex_lido"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,10 +7,12 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
+bincode = { workspace = true }
+borsh = { workspace = true }
 jupiter-core = { workspace = true }
+lido = { git = "https://github.com/igneous-labs/solido", branch = "mod/2.0.0-loose-deps", features = ["no-entrypoint"] }
 solana-program = { workspace = true }
-spl-math = { version = "0.1.0", features = ["no-entrypoint"]}
 spl-token = { workspace = true }
-stakedex_deposit_stake_interface = { workspace = true }
+stakedex_deposit_sol_interface = { workspace = true }
+stakedex_withdraw_stake_interface = { workspace = true }
 stakedex_sdk_common = { workspace = true }
-unstake_it_interface = { git = "https://github.com/igneous-labs/unstake_it_interface", rev = "8819194" } # TODO: change to main program crate once we open source unstake.it

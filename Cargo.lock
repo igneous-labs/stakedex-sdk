@@ -1937,6 +1937,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "lido"
+version = "1.3.6"
+source = "git+https://github.com/igneous-labs/solido?branch=mod/2.0.0-loose-deps#a45f702331c5e5effdcc657ce0cee78bee433f15"
+dependencies = [
+ "arrayref",
+ "borsh 0.9.3",
+ "num-derive",
+ "num-traits",
+ "serde",
+ "serde_derive",
+ "solana-program",
+ "spl-token 3.5.0",
+]
+
+[[package]]
 name = "link-cplusplus"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4018,6 +4033,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "stakedex_lido"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "borsh 0.9.3",
+ "jupiter-core",
+ "lido",
+ "solana-program",
+ "spl-token 3.5.0",
+ "stakedex_deposit_sol_interface",
+ "stakedex_sdk_common",
+ "stakedex_withdraw_stake_interface",
+]
+
+[[package]]
 name = "stakedex_marinade"
 version = "0.1.0"
 dependencies = [
@@ -4042,6 +4073,7 @@ dependencies = [
  "spl-token 3.5.0",
  "stakedex_eversol_stake_pool",
  "stakedex_interface",
+ "stakedex_lido",
  "stakedex_marinade",
  "stakedex_sdk_common",
  "stakedex_socean_stake_pool",
