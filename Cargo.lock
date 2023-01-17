@@ -4042,6 +4042,7 @@ dependencies = [
  "spl-token 3.5.0",
  "stakedex_eversol_stake_pool",
  "stakedex_interface",
+ "stakedex_marinade",
  "stakedex_sdk_common",
  "stakedex_socean_stake_pool",
  "stakedex_spl_stake_pool",
