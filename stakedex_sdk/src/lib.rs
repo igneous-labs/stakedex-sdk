@@ -15,14 +15,20 @@ use stakedex_sdk_common::{
     bsol, cws_wsol_bridge_in, daopool_stake_pool, daosol, esol, eversol_stake_pool,
     find_bridge_stake, find_fee_token_acc, find_sol_bridge_out, first_avail_quote, jito_stake_pool,
     jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, lido_state, marinade_state, msol,
-    quote_pool_pair, scnsol, socean_stake_pool, solblaze_stake_pool, BaseStakePoolAmm, DepositSol,
-    DepositStake, DepositStakeInfo, InitFromKeyedAccount, WithdrawStake,
+    quote_pool_pair, scnsol, socean_stake_pool, solblaze_stake_pool, stsol, BaseStakePoolAmm,
+    DepositSol, DepositStake, DepositStakeInfo, InitFromKeyedAccount, WithdrawStake,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::UnstakeItStakedex;
 
 pub const N_POOLS: usize = 10;
+
+pub const N_DEPOSIT_SOL_POOLS: usize = 9;
+
+pub const N_DEPOSIT_STAKE_POOLS: usize = 9;
+
+pub const N_WITHDRAW_STAKE_POOLS: usize = 8;
 
 #[derive(Clone, Default)]
 pub struct Stakedex {
@@ -220,70 +226,66 @@ impl Stakedex {
             })
     }
 
+    fn token_to_deposit_sol(&self) -> [(Pubkey, &dyn DepositSol); N_DEPOSIT_SOL_POOLS] {
+        [
+            (bsol::ID, &self.solblaze),
+            (daosol::ID, &self.daopool),
+            (jitosol::ID, &self.jito),
+            (jsol::ID, &self.jpool),
+            (lainesol::ID, &self.laine),
+            (scnsol::ID, &self.socean),
+            (esol::ID, &self.eversol),
+            (msol::ID, &self.marinade),
+            (stsol::ID, &self.lido),
+        ]
+    }
+
     pub fn get_deposit_sol_pool(&self, token: &Pubkey) -> Option<&dyn DepositSol> {
-        if bsol::check_id(token) {
-            Some(&self.solblaze)
-        } else if daosol::check_id(token) {
-            Some(&self.daopool)
-        } else if jitosol::check_id(token) {
-            Some(&self.jito)
-        } else if jsol::check_id(token) {
-            Some(&self.jpool)
-        } else if lainesol::check_id(token) {
-            Some(&self.laine)
-        } else if scnsol::check_id(token) {
-            Some(&self.socean)
-        } else if esol::check_id(token) {
-            Some(&self.eversol)
-        } else if msol::check_id(token) {
-            Some(&self.marinade)
-        } else {
-            None
-        }
+        self.token_to_deposit_sol()
+            .into_iter()
+            .find(|(token_key, _)| token_key == token)
+            .map(|(_, ptr)| ptr)
+    }
+
+    fn token_to_deposit_stake(&self) -> [(Pubkey, &dyn DepositStake); N_DEPOSIT_STAKE_POOLS] {
+        [
+            (bsol::ID, &self.solblaze),
+            (daosol::ID, &self.daopool),
+            (jitosol::ID, &self.jito),
+            (jsol::ID, &self.jpool),
+            (lainesol::ID, &self.laine),
+            (scnsol::ID, &self.socean),
+            (esol::ID, &self.eversol),
+            (msol::ID, &self.marinade),
+            (native_mint::ID, &self.unstakeit),
+        ]
     }
 
     pub fn get_deposit_stake_pool(&self, token: &Pubkey) -> Option<&dyn DepositStake> {
-        if bsol::check_id(token) {
-            Some(&self.solblaze)
-        } else if daosol::check_id(token) {
-            Some(&self.daopool)
-        } else if jitosol::check_id(token) {
-            Some(&self.jito)
-        } else if jsol::check_id(token) {
-            Some(&self.jpool)
-        } else if lainesol::check_id(token) {
-            Some(&self.laine)
-        } else if scnsol::check_id(token) {
-            Some(&self.socean)
-        } else if esol::check_id(token) {
-            Some(&self.eversol)
-        } else if native_mint::check_id(token) {
-            Some(&self.unstakeit)
-        } else if msol::check_id(token) {
-            Some(&self.marinade)
-        } else {
-            None
-        }
+        self.token_to_deposit_stake()
+            .into_iter()
+            .find(|(token_key, _)| token_key == token)
+            .map(|(_, ptr)| ptr)
+    }
+
+    fn token_to_withdraw_stake(&self) -> [(Pubkey, &dyn WithdrawStake); N_WITHDRAW_STAKE_POOLS] {
+        [
+            (bsol::ID, &self.solblaze),
+            (daosol::ID, &self.daopool),
+            (jitosol::ID, &self.jito),
+            (jsol::ID, &self.jpool),
+            (lainesol::ID, &self.laine),
+            (scnsol::ID, &self.socean),
+            (esol::ID, &self.eversol),
+            (stsol::ID, &self.lido),
+        ]
     }
 
     pub fn get_withdraw_stake_pool(&self, token: &Pubkey) -> Option<&dyn WithdrawStake> {
-        if bsol::check_id(token) {
-            Some(&self.solblaze)
-        } else if daosol::check_id(token) {
-            Some(&self.daopool)
-        } else if jitosol::check_id(token) {
-            Some(&self.jito)
-        } else if jsol::check_id(token) {
-            Some(&self.jpool)
-        } else if lainesol::check_id(token) {
-            Some(&self.laine)
-        } else if scnsol::check_id(token) {
-            Some(&self.socean)
-        } else if esol::check_id(token) {
-            Some(&self.eversol)
-        } else {
-            None
-        }
+        self.token_to_withdraw_stake()
+            .into_iter()
+            .find(|(token_key, _)| token_key == token)
+            .map(|(_, ptr)| ptr)
     }
 
     pub fn quote_swap_via_stake(&self, quote_params: &QuoteParams) -> Result<Quote> {
