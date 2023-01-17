@@ -19,6 +19,9 @@ pub struct WithdrawStakeQuote {
 
     /// Active voter of the output stake account
     pub voter: Pubkey,
+    // TODO: activation epoch
+    // (marinade only accepts >=2 epochs activation)
+    // Any way to get without fetching all stake pools' stake accounts?
 }
 
 impl WithdrawStakeQuote {

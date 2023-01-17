@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-bincode = "^1.0"
-borsh = "^0.9"
+bincode = { workspace = true }
+borsh = { workspace = true }
 jupiter-core = { workspace = true }
 solana-program = { workspace = true }
 

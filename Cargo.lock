@@ -1980,6 +1980,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "marinade_finance_interface"
+version = "0.0.0"
+source = "git+https://github.com/igneous-labs/marinade_finance_interface?rev=d625979#d625979d145831f9261f76777501d0037e83fd9d"
+dependencies = [
+ "borsh 0.9.3",
+ "solana-program",
+]
+
+[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4009,6 +4018,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "stakedex_marinade"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "borsh 0.9.3",
+ "jupiter-core",
+ "marinade_finance_interface",
+ "solana-program",
+ "spl-token 3.5.0",
+ "stakedex_deposit_sol_interface",
+ "stakedex_deposit_stake_interface",
+ "stakedex_sdk_common",
+]
+
+[[package]]
 name = "stakedex_sdk"
 version = "0.1.0"
 dependencies = [
@@ -4018,6 +4042,7 @@ dependencies = [
  "spl-token 3.5.0",
  "stakedex_eversol_stake_pool",
  "stakedex_interface",
+ "stakedex_marinade",
  "stakedex_sdk_common",
  "stakedex_socean_stake_pool",
  "stakedex_spl_stake_pool",
