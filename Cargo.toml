@@ -19,6 +19,7 @@ stakedex_deposit_sol_interface = { path = "./interfaces/stakedex_deposit_sol_int
 stakedex_deposit_stake_interface = { path = "./interfaces/stakedex_deposit_stake_interface" }
 stakedex_eversol_stake_pool = { path = "./libs/eversol_stake_pool" }
 stakedex_interface = { path = "./interfaces/stakedex_interface" }
+stakedex_lido = { path = "./libs/lido" }
 stakedex_marinade = { path = "./libs/marinade" }
 stakedex_sdk_common = { path = "./common" }
 stakedex_socean_stake_pool = { path = "./libs/socean_stake_pool" }

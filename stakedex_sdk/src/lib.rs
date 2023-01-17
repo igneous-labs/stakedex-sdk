@@ -9,11 +9,12 @@ use stakedex_interface::{
     StakeWrappedSolArgs, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeArgs,
     SwapViaStakeIxArgs, SwapViaStakeKeys,
 };
+use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
 use stakedex_sdk_common::{
     bsol, cws_wsol_bridge_in, daopool_stake_pool, daosol, esol, eversol_stake_pool,
     find_bridge_stake, find_fee_token_acc, find_sol_bridge_out, first_avail_quote, jito_stake_pool,
-    jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, marinade_state, msol,
+    jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, lido_state, marinade_state, msol,
     quote_pool_pair, scnsol, socean_stake_pool, solblaze_stake_pool, BaseStakePoolAmm, DepositSol,
     DepositStake, DepositStakeInfo, InitFromKeyedAccount, WithdrawStake,
 };
@@ -21,7 +22,7 @@ use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::UnstakeItStakedex;
 
-pub const N_POOLS: usize = 9;
+pub const N_POOLS: usize = 10;
 
 #[derive(Clone, Default)]
 pub struct Stakedex {
@@ -34,6 +35,7 @@ pub struct Stakedex {
     eversol: EversolStakePoolStakedex,
     unstakeit: UnstakeItStakedex,
     marinade: MarinadeStakedex,
+    lido: LidoStakedex,
 }
 
 fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Result<KeyedAccount> {
@@ -69,6 +71,7 @@ impl Stakedex {
             eversol_stake_pool::ID,
             stakedex_unstake_it::find_pool_sol_reserves().0,
             marinade_state::ID,
+            lido_state::ID,
         ]
     }
 
@@ -102,6 +105,11 @@ impl Stakedex {
             MarinadeStakedex::default()
         });
 
+        let lido = init_from_keyed_account(accounts, &lido_state::ID).unwrap_or_else(|e| {
+            errs.push(e);
+            LidoStakedex::default()
+        });
+
         let spl_stake_pools = [
             daopool_stake_pool::ID,
             jito_stake_pool::ID,
@@ -128,6 +136,7 @@ impl Stakedex {
                 unstakeit,
                 eversol,
                 marinade,
+                lido,
             },
             errs,
         )
@@ -144,6 +153,7 @@ impl Stakedex {
             &self.eversol,
             &self.unstakeit,
             &self.marinade,
+            &self.lido,
         ]
     }
 
@@ -158,6 +168,7 @@ impl Stakedex {
             &mut self.eversol,
             &mut self.unstakeit,
             &mut self.marinade,
+            &mut self.lido,
         ]
     }
 
