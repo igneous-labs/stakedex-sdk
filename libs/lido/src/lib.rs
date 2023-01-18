@@ -29,9 +29,15 @@ impl LidoStakedex {
 
     pub fn update_validator_list(&mut self, data: &[u8]) -> Result<()> {
         // first 4 bytes is len as u32
-        let len = u32::from_le_bytes(data[..4].try_into().unwrap()) as usize;
+        let len = u32::from_le_bytes(
+            data[LIST_HEADER_LEN..LIST_HEADER_LEN + 4]
+                .try_into()
+                .unwrap(),
+        ) as usize;
         let mut validator_list = Vec::with_capacity(len);
-        let validator_iter = data[4..].chunks_exact(Validator::LEN).enumerate();
+        let validator_iter = data[LIST_HEADER_LEN + 4..]
+            .chunks_exact(Validator::LEN)
+            .enumerate();
         for (index, record) in validator_iter {
             if len == index {
                 break;

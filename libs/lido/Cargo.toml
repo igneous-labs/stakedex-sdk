@@ -16,3 +16,6 @@ spl-token = { workspace = true }
 stakedex_deposit_sol_interface = { workspace = true }
 stakedex_withdraw_stake_interface = { workspace = true }
 stakedex_sdk_common = { workspace = true }
+
+[dev-dependencies]
+solana-client = "^1.9"
