@@ -97,7 +97,12 @@ impl BaseStakePoolAmm for UnstakeItStakedex {
     }
 
     fn get_accounts_to_update(&self) -> Vec<Pubkey> {
-        Vec::from([unstake_it_pool::ID, find_fee().0, find_protocol_fee().0])
+        Vec::from([
+            unstake_it_pool::ID,
+            find_pool_sol_reserves().0,
+            find_fee().0,
+            find_protocol_fee().0,
+        ])
     }
 
     fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
