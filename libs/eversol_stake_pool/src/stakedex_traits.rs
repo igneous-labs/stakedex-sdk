@@ -21,9 +21,9 @@ use stakedex_deposit_stake_interface::{
     EversolStakePoolDepositStakeKeys,
 };
 use stakedex_sdk_common::{
-    esol, eversol_program, eversol_stake_pool, BaseStakePoolAmm, DepositSol, DepositSolQuote,
-    DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake,
-    WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    account_missing_err, esol, eversol_program, eversol_stake_pool, BaseStakePoolAmm, DepositSol,
+    DepositSolQuote, DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount,
+    WithdrawStake, WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
     eversol_stake_pool_withdraw_stake_ix, EversolStakePoolWithdrawStakeIxArgs,
@@ -211,11 +211,17 @@ impl BaseStakePoolAmm for EversolStakePoolStakedex {
     }
 
     fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
-        let stake_pool_data = accounts_map.get(&self.main_state_key()).unwrap();
+        let stake_pool_data = accounts_map
+            .get(&self.main_state_key())
+            .ok_or_else(|| account_missing_err(&self.main_state_key()))?;
         self.update_stake_pool(stake_pool_data)?;
-        let validator_list_data = accounts_map.get(&self.stake_pool.validator_list).unwrap();
+        let validator_list_data = accounts_map
+            .get(&self.stake_pool.validator_list)
+            .ok_or_else(|| account_missing_err(&self.stake_pool.validator_list))?;
         self.update_validator_list(validator_list_data)?;
-        let clock_data = accounts_map.get(&sysvar::clock::ID).unwrap();
+        let clock_data = accounts_map
+            .get(&sysvar::clock::ID)
+            .ok_or_else(|| account_missing_err(&sysvar::clock::ID))?;
         let clock: Clock = bincode::deserialize(clock_data)?;
         self.curr_epoch = clock.epoch;
         Ok(())

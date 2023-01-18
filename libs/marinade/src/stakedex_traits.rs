@@ -8,8 +8,9 @@ use stakedex_deposit_stake_interface::{
     marinade_deposit_stake_ix, MarinadeDepositStakeIxArgs, MarinadeDepositStakeKeys,
 };
 use stakedex_sdk_common::{
-    marinade_program, marinade_state, msol, BaseStakePoolAmm, DepositSol, DepositSolQuote,
-    DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStakeQuote,
+    account_missing_err, marinade_program, marinade_state, msol, BaseStakePoolAmm, DepositSol,
+    DepositSolQuote, DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount,
+    WithdrawStakeQuote,
 };
 use std::collections::HashMap;
 
@@ -50,11 +51,15 @@ impl BaseStakePoolAmm for MarinadeStakedex {
     }
 
     fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
-        let state_data = accounts_map.get(&marinade_state::ID).unwrap();
+        let state_data = accounts_map
+            .get(&marinade_state::ID)
+            .ok_or_else(|| account_missing_err(&marinade_state::ID))?;
         self.update_state(state_data)?;
         let validator_records_data = accounts_map
             .get(&self.state.validator_system.validator_list.account)
-            .unwrap();
+            .ok_or_else(|| {
+                account_missing_err(&self.state.validator_system.validator_list.account)
+            })?;
         self.update_validator_records(validator_records_data)?;
         Ok(())
     }

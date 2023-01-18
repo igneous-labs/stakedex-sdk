@@ -10,8 +10,8 @@ use stakedex_deposit_stake_interface::{
     unstake_it_deposit_stake_ix, UnstakeItDepositStakeIxArgs, UnstakeItDepositStakeKeys,
 };
 use stakedex_sdk_common::{
-    unstake_it_pool, unstake_it_program, BaseStakePoolAmm, DepositStake, DepositStakeInfo,
-    DepositStakeQuote, InitFromKeyedAccount, WithdrawStakeQuote,
+    account_missing_err, unstake_it_pool, unstake_it_program, BaseStakePoolAmm, DepositStake,
+    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStakeQuote,
 };
 use unstake_it_interface::{Fee, FeeEnum, Pool, ProtocolFee};
 
@@ -101,11 +101,17 @@ impl BaseStakePoolAmm for UnstakeItStakedex {
     }
 
     fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
-        let pool_data = accounts_map.get(&unstake_it_pool::ID).unwrap();
+        let pool_data = accounts_map
+            .get(&unstake_it_pool::ID)
+            .ok_or_else(|| account_missing_err(&unstake_it_pool::ID))?;
         self.update_pool(pool_data)?;
-        let fee_data = accounts_map.get(&find_fee().0).unwrap();
+        let fee_data = accounts_map
+            .get(&find_fee().0)
+            .ok_or_else(|| account_missing_err(&find_fee().0))?;
         self.update_fee(fee_data)?;
-        let protocol_fee_data = accounts_map.get(&find_protocol_fee().0).unwrap();
+        let protocol_fee_data = accounts_map
+            .get(&find_protocol_fee().0)
+            .ok_or_else(|| account_missing_err(&find_protocol_fee().0))?;
         self.update_protocol_fee(protocol_fee_data)?;
         Ok(())
     }
