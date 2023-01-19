@@ -6,12 +6,13 @@ use rust_decimal::{
     prelude::{FromPrimitive, Zero},
     Decimal,
 };
-use solana_program::{instruction::AccountMeta, pubkey::Pubkey};
+use solana_program::{clock::Clock, instruction::AccountMeta, pubkey::Pubkey, sysvar};
 use stakedex_interface::{SwapViaStakeKeys, SWAP_VIA_STAKE_IX_ACCOUNTS_LEN};
 
 use crate::{
-    apply_global_fee, find_bridge_stake, find_fee_token_acc, find_stake_pool_pair_amm_key,
-    DepositStake, DepositStakeInfo, DepositStakeQuote, WithdrawStake, WithdrawStakeQuote,
+    account_missing_err, apply_global_fee, find_bridge_stake, find_fee_token_acc,
+    find_stake_pool_pair_amm_key, DepositStake, DepositStakeInfo, DepositStakeQuote, WithdrawStake,
+    WithdrawStakeQuote,
 };
 
 pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
@@ -84,14 +85,12 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     swap_params: &SwapParams,
     withdraw_from: &W,
     deposit_to: &D,
+    bridge_stake_seed: u32,
 ) -> Result<Vec<AccountMeta>> {
     // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
     let (withdraw_quote, deposit_quote) =
         first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)
             .ok_or_else(|| anyhow!("No route found between pools"))?;
-    // TODO: handle how to generate an unused bridge_stake_seed
-    // for each swap. rng? something derived from SwapParams?
-    let bridge_stake_seed = 0u32;
     let bridge_stake_seed_le_bytes = bridge_stake_seed.to_le_bytes();
     let bridge_stake = find_bridge_stake(
         &swap_params.user_transfer_authority,
@@ -123,8 +122,9 @@ pub struct OneWayPoolPair<
     W: WithdrawStake + Clone + Send + Sync + 'static,
     D: DepositStake + Clone + Send + Sync + 'static,
 > {
-    withdraw: W,
-    deposit: D,
+    pub withdraw: W,
+    pub deposit: D,
+    pub clock: Clock,
 }
 
 impl<W, D> Amm for OneWayPoolPair<W, D>
@@ -159,15 +159,21 @@ where
         [
             self.withdraw.get_accounts_to_update(),
             self.deposit.get_accounts_to_update(),
+            vec![sysvar::clock::ID],
         ]
         .concat()
     }
 
-    fn update(&mut self, accounts_map: &std::collections::HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
         // TODO: not sure if should short-circuit and early return if first update() fails
-        let r1 = self.withdraw.update(accounts_map);
-        let r2 = self.deposit.update(accounts_map);
-        r1.and(r2)
+        let rw = self.withdraw.update(accounts_map);
+        let rd = self.deposit.update(accounts_map);
+        let rc = accounts_map
+            .get(&sysvar::clock::ID)
+            .ok_or_else(|| account_missing_err(&sysvar::clock::ID))
+            .map_or_else(Err, |acc| Ok(bincode::deserialize(acc)?))
+            .map(|new_clock| self.clock = new_clock);
+        rw.and(rd).and(rc)
     }
 
     fn quote(&self, quote_params: &QuoteParams) -> Result<Quote> {
@@ -187,7 +193,14 @@ where
         &self,
         swap_params: &SwapParams,
     ) -> Result<jupiter_core::amm::SwapLegAndAccountMetas> {
-        let _metas = get_account_metas(swap_params, &self.withdraw, &self.deposit)?;
+        // unwrap-safety: assuming 3 slots a second, this should be good for the next 20 years
+        let bridge_stake_seed = self.clock.slot.try_into().unwrap();
+        let _metas = get_account_metas(
+            swap_params,
+            &self.withdraw,
+            &self.deposit,
+            bridge_stake_seed,
+        )?;
         // TODO: jupiter overrides
         Err(anyhow!("UNIMPLEMENTED"))
     }
@@ -202,8 +215,9 @@ pub struct TwoWayPoolPair<
     P1: DepositStake + WithdrawStake + Clone + Send + Sync + 'static,
     P2: DepositStake + WithdrawStake + Clone + Send + Sync + 'static,
 > {
-    p1: P1,
-    p2: P2,
+    pub p1: P1,
+    pub p2: P2,
+    pub clock: Clock,
 }
 
 impl<P1, P2> Amm for TwoWayPoolPair<P1, P2>
@@ -231,6 +245,7 @@ where
         [
             self.p1.get_accounts_to_update(),
             self.p2.get_accounts_to_update(),
+            vec![sysvar::clock::ID],
         ]
         .concat()
     }
@@ -239,7 +254,12 @@ where
         // TODO: not sure if should short-circuit and early return if first update() fails
         let r1 = self.p1.update(accounts_map);
         let r2 = self.p2.update(accounts_map);
-        r1.and(r2)
+        let rc = accounts_map
+            .get(&sysvar::clock::ID)
+            .ok_or_else(|| account_missing_err(&sysvar::clock::ID))
+            .map_or_else(Err, |acc| Ok(bincode::deserialize(acc)?))
+            .map(|new_clock| self.clock = new_clock);
+        r1.and(r2).and(rc)
     }
 
     fn quote(&self, quote_params: &QuoteParams) -> Result<Quote> {
@@ -263,14 +283,16 @@ where
         &self,
         swap_params: &SwapParams,
     ) -> Result<SwapLegAndAccountMetas> {
+        // unwrap-safety: assuming 3 slots a second, this should be good for the next 20 years
+        let bridge_stake_seed = self.clock.slot.try_into().unwrap();
         let _metas = if swap_params.source_mint == self.p1.staked_sol_mint()
             && swap_params.destination_mint == self.p2.staked_sol_mint()
         {
-            get_account_metas(swap_params, &self.p1, &self.p2)?
+            get_account_metas(swap_params, &self.p1, &self.p2, bridge_stake_seed)?
         } else if swap_params.source_mint == self.p2.staked_sol_mint()
             && swap_params.destination_mint == self.p1.staked_sol_mint()
         {
-            get_account_metas(swap_params, &self.p2, &self.p1)?
+            get_account_metas(swap_params, &self.p2, &self.p1, bridge_stake_seed)?
         } else {
             return Err(anyhow!(
                 "Cannot handle {} -> {}",

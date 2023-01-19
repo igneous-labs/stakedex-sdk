@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
+bincode = { workspace = true }
 jupiter-core = { workspace = true }
 rust_decimal = "^1.0"
 solana-program = { workspace = true }

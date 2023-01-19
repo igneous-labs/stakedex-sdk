@@ -4087,6 +4087,7 @@ name = "stakedex_sdk_common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "jupiter-core",
  "rust_decimal",
  "solana-program",
