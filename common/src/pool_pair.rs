@@ -193,8 +193,7 @@ where
         &self,
         swap_params: &SwapParams,
     ) -> Result<jupiter_core::amm::SwapLegAndAccountMetas> {
-        // unwrap-safety: assuming 3 slots a second, this should be good for the next 20 years
-        let bridge_stake_seed = self.clock.slot.try_into().unwrap();
+        let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
         let _metas = get_account_metas(
             swap_params,
             &self.withdraw,
@@ -283,8 +282,7 @@ where
         &self,
         swap_params: &SwapParams,
     ) -> Result<SwapLegAndAccountMetas> {
-        // unwrap-safety: assuming 3 slots a second, this should be good for the next 20 years
-        let bridge_stake_seed = self.clock.slot.try_into().unwrap();
+        let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
         let _metas = if swap_params.source_mint == self.p1.staked_sol_mint()
             && swap_params.destination_mint == self.p2.staked_sol_mint()
         {
