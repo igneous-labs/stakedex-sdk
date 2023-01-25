@@ -1,7 +1,12 @@
 use anyhow::Result;
+use jupiter_core::amm::Quote;
+use rust_decimal::{
+    prelude::{FromPrimitive, Zero},
+    Decimal,
+};
 use solana_program::{instruction::Instruction, pubkey::Pubkey};
 
-use crate::BaseStakePoolAmm;
+use crate::{apply_global_fee, BaseStakePoolAmm};
 
 use super::withdraw_stake::WithdrawStakeQuote;
 
@@ -58,4 +63,23 @@ pub trait DepositStake: BaseStakePoolAmm {
         quote: &DepositStakeQuote,
         deposit_stake_info: &DepositStakeInfo,
     ) -> Result<Instruction>;
+
+    fn convert_deposit_stake_quote(&self, in_amount: u64, quote: DepositStakeQuote) -> Quote {
+        let aft_global_fees = apply_global_fee(quote.tokens_out);
+        let total_fees = quote.fee_amount + aft_global_fees.fee;
+        let final_out_amount = aft_global_fees.remainder;
+        let before_fees = (final_out_amount + total_fees) as f64;
+        // Decimal::from_f64() returns None if infinite / NaN (before_fees = 0)
+        let fee_pct =
+            Decimal::from_f64((total_fees as f64) / before_fees).unwrap_or_else(Decimal::zero);
+        Quote {
+            in_amount,
+            out_amount: final_out_amount,
+            fee_amount: total_fees,
+            fee_pct,
+            // TODO: fee_mint == staked_sol_mint is true for all stake pools for now
+            fee_mint: self.staked_sol_mint(),
+            ..Quote::default()
+        }
+    }
 }

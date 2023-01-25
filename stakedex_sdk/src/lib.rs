@@ -6,8 +6,8 @@ use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, sys
 use spl_token::native_mint;
 use stakedex_eversol_stake_pool::EversolStakePoolStakedex;
 use stakedex_interface::{
-    StakeWrappedSolArgs, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeArgs,
-    SwapViaStakeIxArgs, SwapViaStakeKeys,
+    DepositStakeIxArgs, DepositStakeKeys, StakeWrappedSolArgs, StakeWrappedSolIxArgs,
+    StakeWrappedSolKeys, SwapViaStakeArgs, SwapViaStakeIxArgs, SwapViaStakeKeys,
 };
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
@@ -16,7 +16,8 @@ use stakedex_sdk_common::{
     find_bridge_stake, find_fee_token_acc, find_sol_bridge_out, first_avail_quote, jito_stake_pool,
     jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, lido_state, marinade_state, msol,
     quote_pool_pair, scnsol, socean_stake_pool, solblaze_stake_pool, stsol, BaseStakePoolAmm,
-    DepositSol, DepositStake, DepositStakeInfo, InitFromKeyedAccount, WithdrawStake,
+    DepositSol, DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount,
+    WithdrawStake, WithdrawStakeQuote,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
@@ -382,6 +383,64 @@ impl Stakedex {
         )?;
         let deposit_sol_virtual_ix = deposit_to.virtual_ix()?;
         ix.accounts.extend(deposit_sol_virtual_ix.accounts);
+        Ok(ix)
+    }
+
+    /// input_mint = voter pubkey for deposit stake
+    pub fn quote_deposit_stake(&self, quote_params: &QuoteParams) -> Result<Quote> {
+        let (deposit_to, dsq) = self.quote_deposit_stake_dsq(
+            &quote_params.output_mint,
+            &quote_params.input_mint,
+            quote_params.in_amount,
+        )?;
+        Ok(deposit_to.convert_deposit_stake_quote(quote_params.in_amount, dsq))
+    }
+
+    /// Inner fn for [`Self::quote_deposit_stake()`].
+    /// Returns (stake pool, DepositStakeQuote)
+    fn quote_deposit_stake_dsq(
+        &self,
+        output_mint: &Pubkey,
+        voter: &Pubkey,
+        in_amount: u64,
+    ) -> Result<(&dyn DepositStake, DepositStakeQuote)> {
+        let deposit_to = self
+            .get_deposit_stake_pool(output_mint)
+            .ok_or_else(|| anyhow!("pool not found {}", output_mint))?;
+        let wsq = WithdrawStakeQuote::from_lamports_and_voter(in_amount, *voter);
+        let dsq = deposit_to
+            .get_deposit_stake_quote(wsq)
+            .ok_or_else(|| anyhow!("Pool cannot accept stake account"))?;
+        Ok((deposit_to, dsq))
+    }
+
+    /// source_mint = voter pubkey for stake acc to be deposited
+    /// source_token_account = stake acc to be deposited
+    pub fn deposit_stake_ix(&self, swap_params: &SwapParams) -> Result<Instruction> {
+        let (deposit_to, dsq) = self.quote_deposit_stake_dsq(
+            &swap_params.destination_mint,
+            &swap_params.source_mint,
+            swap_params.in_amount,
+        )?;
+        let stake_account = swap_params.user_source_token_account;
+        let mut ix = stakedex_interface::deposit_stake_ix(
+            DepositStakeKeys {
+                payer: swap_params.user_transfer_authority,
+                user: swap_params.user_transfer_authority,
+                stake_account,
+                dest_token_to: swap_params.user_destination_token_account,
+                dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
+                dest_token_mint: swap_params.destination_mint,
+            },
+            DepositStakeIxArgs {},
+        )?;
+        let deposit_to_virtual_ix = deposit_to.virtual_ix(
+            &dsq,
+            &DepositStakeInfo {
+                addr: stake_account,
+            },
+        )?;
+        ix.accounts.extend(deposit_to_virtual_ix.accounts);
         Ok(ix)
     }
 }

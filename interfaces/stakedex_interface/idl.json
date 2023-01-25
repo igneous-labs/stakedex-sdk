@@ -252,6 +252,51 @@
         "type": "u8",
         "value": 4
       }
+    },
+    {
+      "name": "DepositStake",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true,
+          "desc": "The payer for any additional rent required e.g. for the bridge stake account"
+        },
+        {
+          "name": "user",
+          "isMut": false,
+          "isSigner": true,
+          "desc": "The withdraw authority of stake_account"
+        },
+        {
+          "name": "stakeAccount",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The stake account to deposit"
+        },
+        {
+          "name": "destTokenTo",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The token account to receive dest tokens to"
+        },
+        {
+          "name": "destTokenFeeTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]"
+        },
+        {
+          "name": "destTokenMint",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 5
+      }
     }
   ],
   "types": [
@@ -286,6 +331,8 @@
   ],
   "metadata": {
     "origin": "shank",
-    "address": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq"
+    "address": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
+    "binaryVersion": "0.0.11",
+    "libVersion": "0.0.11"
   }
 }

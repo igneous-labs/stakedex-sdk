@@ -628,3 +628,117 @@ pub fn withdraw_fees_invoke_signed<'a, A: Into<WithdrawFeesIxArgs>>(
     let account_info: [AccountInfo<'a>; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const DEPOSIT_STAKE_IX_ACCOUNTS_LEN: usize = 6usize;
+#[derive(Copy, Clone, Debug)]
+pub struct DepositStakeAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me, 'a5: 'me> {
+    ///The payer for any additional rent required e.g. for the bridge stake account
+    pub payer: &'me AccountInfo<'a0>,
+    ///The withdraw authority of stake_account
+    pub user: &'me AccountInfo<'a1>,
+    ///The stake account to deposit
+    pub stake_account: &'me AccountInfo<'a2>,
+    ///The token account to receive dest tokens to
+    pub dest_token_to: &'me AccountInfo<'a3>,
+    ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
+    pub dest_token_fee_token_account: &'me AccountInfo<'a4>,
+    pub dest_token_mint: &'me AccountInfo<'a5>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct DepositStakeKeys {
+    ///The payer for any additional rent required e.g. for the bridge stake account
+    pub payer: Pubkey,
+    ///The withdraw authority of stake_account
+    pub user: Pubkey,
+    ///The stake account to deposit
+    pub stake_account: Pubkey,
+    ///The token account to receive dest tokens to
+    pub dest_token_to: Pubkey,
+    ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
+    pub dest_token_fee_token_account: Pubkey,
+    pub dest_token_mint: Pubkey,
+}
+impl<'me> From<&DepositStakeAccounts<'me, '_, '_, '_, '_, '_, '_>> for DepositStakeKeys {
+    fn from(accounts: &DepositStakeAccounts<'me, '_, '_, '_, '_, '_, '_>) -> Self {
+        Self {
+            payer: *accounts.payer.key,
+            user: *accounts.user.key,
+            stake_account: *accounts.stake_account.key,
+            dest_token_to: *accounts.dest_token_to.key,
+            dest_token_fee_token_account: *accounts.dest_token_fee_token_account.key,
+            dest_token_mint: *accounts.dest_token_mint.key,
+        }
+    }
+}
+impl From<&DepositStakeKeys> for [AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] {
+    fn from(keys: &DepositStakeKeys) -> Self {
+        [
+            AccountMeta::new(keys.payer, true),
+            AccountMeta::new_readonly(keys.user, true),
+            AccountMeta::new(keys.stake_account, false),
+            AccountMeta::new(keys.dest_token_to, false),
+            AccountMeta::new(keys.dest_token_fee_token_account, false),
+            AccountMeta::new(keys.dest_token_mint, false),
+        ]
+    }
+}
+impl<'a> From<&DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>>
+    for [AccountInfo<'a>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
+        [
+            accounts.payer.clone(),
+            accounts.user.clone(),
+            accounts.stake_account.clone(),
+            accounts.dest_token_to.clone(),
+            accounts.dest_token_fee_token_account.clone(),
+            accounts.dest_token_mint.clone(),
+        ]
+    }
+}
+#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
+pub struct DepositStakeIxArgs {}
+#[derive(Copy, Clone, Debug)]
+pub struct DepositStakeIxData<'me>(pub &'me DepositStakeIxArgs);
+pub const DEPOSIT_STAKE_IX_DISCM: u8 = 5u8;
+impl<'me> From<&'me DepositStakeIxArgs> for DepositStakeIxData<'me> {
+    fn from(args: &'me DepositStakeIxArgs) -> Self {
+        Self(args)
+    }
+}
+impl BorshSerialize for DepositStakeIxData<'_> {
+    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        writer.write_all(&[DEPOSIT_STAKE_IX_DISCM])?;
+        self.0.serialize(writer)
+    }
+}
+pub fn deposit_stake_ix<K: Into<DepositStakeKeys>, A: Into<DepositStakeIxArgs>>(
+    accounts: K,
+    args: A,
+) -> std::io::Result<Instruction> {
+    let keys: DepositStakeKeys = accounts.into();
+    let metas: [AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
+    let args_full: DepositStakeIxArgs = args.into();
+    let data: DepositStakeIxData = (&args_full).into();
+    Ok(Instruction {
+        program_id: crate::ID,
+        accounts: Vec::from(metas),
+        data: data.try_to_vec()?,
+    })
+}
+pub fn deposit_stake_invoke<'a, A: Into<DepositStakeIxArgs>>(
+    accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>,
+    args: A,
+) -> ProgramResult {
+    let ix = deposit_stake_ix(accounts, args)?;
+    let account_info: [AccountInfo<'a>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
+    invoke(&ix, &account_info)
+}
+pub fn deposit_stake_invoke_signed<'a, A: Into<DepositStakeIxArgs>>(
+    accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>,
+    args: A,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let ix = deposit_stake_ix(accounts, args)?;
+    let account_info: [AccountInfo<'a>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
+    invoke_signed(&ix, &account_info, seeds)
+}

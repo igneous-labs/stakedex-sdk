@@ -1,7 +1,12 @@
-use anyhow::Result;
-use solana_program::{instruction::Instruction, pubkey::Pubkey};
+use anyhow::{anyhow, Result};
+use solana_program::{
+    clock::Clock,
+    instruction::Instruction,
+    pubkey::Pubkey,
+    stake::state::{Delegation, Stake, StakeState},
+};
 
-use crate::BaseStakePoolAmm;
+use crate::{BaseStakePoolAmm, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
 
 // TODO: include additional rent payments?
 #[derive(Clone, Copy, Debug, Default)]
@@ -27,6 +32,52 @@ pub struct WithdrawStakeQuote {
 impl WithdrawStakeQuote {
     pub fn is_zero_out(&self) -> bool {
         self.lamports_out == 0
+    }
+
+    pub fn from_lamports_and_voter(stake_acc_lamports: u64, voter: Pubkey) -> Self {
+        let (lamports_out, lamports_staked) =
+            if stake_acc_lamports > STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS {
+                (
+                    stake_acc_lamports,
+                    stake_acc_lamports - STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+                )
+            } else {
+                (0, 0)
+            };
+
+        Self {
+            lamports_out,
+            lamports_staked,
+            fee_amount: 0,
+            voter,
+        }
+    }
+
+    pub fn from_delegation(d: &Delegation, stake_acc_lamports: u64) -> Self {
+        Self {
+            lamports_out: stake_acc_lamports,
+            lamports_staked: d.stake,
+            fee_amount: 0,
+            voter: d.voter_pubkey,
+        }
+    }
+
+    pub fn from_stake(s: &Stake, stake_acc_lamports: u64) -> Self {
+        Self::from_delegation(&s.delegation, stake_acc_lamports)
+    }
+
+    pub fn try_from_stake_acc(
+        s: &StakeState,
+        stake_acc_lamports: u64,
+        clock: &Clock,
+    ) -> Result<Self> {
+        if let StakeState::Stake(meta, stake) = s {
+            if meta.lockup.is_in_force(clock, None) {
+                return Err(anyhow!("Stake acc lockup in force"));
+            }
+            return Ok(Self::from_stake(stake, stake_acc_lamports));
+        }
+        Err(anyhow!("Stake acc not staked"))
     }
 }
 
