@@ -4027,6 +4027,22 @@ dependencies = [
 [[package]]
 name = "stakedex_index"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "borsh 0.9.3",
+ "jupiter-core",
+ "solana-program",
+ "solana-sdk",
+ "stakedex_eversol_stake_pool",
+ "stakedex_interface",
+ "stakedex_lido",
+ "stakedex_marinade",
+ "stakedex_sdk_common",
+ "stakedex_socean_stake_pool",
+ "stakedex_spl_stake_pool",
+ "stakedex_unstake_it",
+]
 
 [[package]]
 name = "stakedex_interface"

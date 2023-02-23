@@ -6,3 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = { workspace = true }
+bincode = { workspace = true }
+borsh = { workspace = true }
+jupiter-core = { workspace = true }
+solana-program = { workspace = true }
+solana-sdk = { workspace = true }
+stakedex_eversol_stake_pool = { workspace = true }
+stakedex_interface = { workspace = true }
+stakedex_lido = { workspace = true }
+stakedex_marinade = { workspace = true }
+stakedex_sdk_common = { workspace = true }
+stakedex_socean_stake_pool = { workspace = true }
+stakedex_spl_stake_pool = { workspace = true }
+stakedex_unstake_it = { workspace = true }
