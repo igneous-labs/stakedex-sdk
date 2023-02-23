@@ -4025,6 +4025,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "stakedex_index"
+version = "0.1.0"
+
+[[package]]
 name = "stakedex_interface"
 version = "0.1.0"
 dependencies = [

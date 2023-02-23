@@ -742,3 +742,105 @@ pub fn deposit_stake_invoke_signed<'a, A: Into<DepositStakeIxArgs>>(
     let account_info: [AccountInfo<'a>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
+pub const RECORD_DEX_IX_ACCOUNTS_LEN: usize = 4usize;
+#[derive(Copy, Clone, Debug)]
+pub struct RecordDexAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me> {
+    ///The record authority
+    pub record_auth: &'me AccountInfo<'a0>,
+    ///The payer for the new record account's rent
+    pub payer: &'me AccountInfo<'a1>,
+    ///The dex record account to write to. PDA. Seeds = DexRecord::pda()
+    pub dex_record: &'me AccountInfo<'a2>,
+    pub system_program: &'me AccountInfo<'a3>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct RecordDexKeys {
+    ///The record authority
+    pub record_auth: Pubkey,
+    ///The payer for the new record account's rent
+    pub payer: Pubkey,
+    ///The dex record account to write to. PDA. Seeds = DexRecord::pda()
+    pub dex_record: Pubkey,
+    pub system_program: Pubkey,
+}
+impl<'me> From<&RecordDexAccounts<'me, '_, '_, '_, '_>> for RecordDexKeys {
+    fn from(accounts: &RecordDexAccounts<'me, '_, '_, '_, '_>) -> Self {
+        Self {
+            record_auth: *accounts.record_auth.key,
+            payer: *accounts.payer.key,
+            dex_record: *accounts.dex_record.key,
+            system_program: *accounts.system_program.key,
+        }
+    }
+}
+impl From<&RecordDexKeys> for [AccountMeta; RECORD_DEX_IX_ACCOUNTS_LEN] {
+    fn from(keys: &RecordDexKeys) -> Self {
+        [
+            AccountMeta::new_readonly(keys.record_auth, true),
+            AccountMeta::new(keys.payer, true),
+            AccountMeta::new(keys.dex_record, false),
+            AccountMeta::new_readonly(keys.system_program, false),
+        ]
+    }
+}
+impl<'a> From<&RecordDexAccounts<'_, 'a, 'a, 'a, 'a>>
+    for [AccountInfo<'a>; RECORD_DEX_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: &RecordDexAccounts<'_, 'a, 'a, 'a, 'a>) -> Self {
+        [
+            accounts.record_auth.clone(),
+            accounts.payer.clone(),
+            accounts.dex_record.clone(),
+            accounts.system_program.clone(),
+        ]
+    }
+}
+#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
+pub struct RecordDexIxArgs {
+    pub record_dex_args: RecordDexArgs,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct RecordDexIxData<'me>(pub &'me RecordDexIxArgs);
+pub const RECORD_DEX_IX_DISCM: u8 = 6u8;
+impl<'me> From<&'me RecordDexIxArgs> for RecordDexIxData<'me> {
+    fn from(args: &'me RecordDexIxArgs) -> Self {
+        Self(args)
+    }
+}
+impl BorshSerialize for RecordDexIxData<'_> {
+    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        writer.write_all(&[RECORD_DEX_IX_DISCM])?;
+        self.0.serialize(writer)
+    }
+}
+pub fn record_dex_ix<K: Into<RecordDexKeys>, A: Into<RecordDexIxArgs>>(
+    accounts: K,
+    args: A,
+) -> std::io::Result<Instruction> {
+    let keys: RecordDexKeys = accounts.into();
+    let metas: [AccountMeta; RECORD_DEX_IX_ACCOUNTS_LEN] = (&keys).into();
+    let args_full: RecordDexIxArgs = args.into();
+    let data: RecordDexIxData = (&args_full).into();
+    Ok(Instruction {
+        program_id: crate::ID,
+        accounts: Vec::from(metas),
+        data: data.try_to_vec()?,
+    })
+}
+pub fn record_dex_invoke<'a, A: Into<RecordDexIxArgs>>(
+    accounts: &RecordDexAccounts<'_, 'a, 'a, 'a, 'a>,
+    args: A,
+) -> ProgramResult {
+    let ix = record_dex_ix(accounts, args)?;
+    let account_info: [AccountInfo<'a>; RECORD_DEX_IX_ACCOUNTS_LEN] = accounts.into();
+    invoke(&ix, &account_info)
+}
+pub fn record_dex_invoke_signed<'a, A: Into<RecordDexIxArgs>>(
+    accounts: &RecordDexAccounts<'_, 'a, 'a, 'a, 'a>,
+    args: A,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let ix = record_dex_ix(accounts, args)?;
+    let account_info: [AccountInfo<'a>; RECORD_DEX_IX_ACCOUNTS_LEN] = accounts.into();
+    invoke_signed(&ix, &account_info, seeds)
+}

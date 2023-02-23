@@ -3,6 +3,7 @@
 members = [
     "stakedex_sdk",
     "common",
+    "index",
     "libs/*",
     "interfaces/*"
 ]

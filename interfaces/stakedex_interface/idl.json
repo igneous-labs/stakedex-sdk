@@ -297,9 +297,159 @@
         "type": "u8",
         "value": 5
       }
+    },
+    {
+      "name": "RecordDex",
+      "accounts": [
+        {
+          "name": "recordAuth",
+          "isMut": false,
+          "isSigner": true,
+          "desc": "The record authority"
+        },
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true,
+          "desc": "The payer for the new record account's rent"
+        },
+        {
+          "name": "dexRecord",
+          "isMut": true,
+          "isSigner": false,
+          "desc": "The dex record account to write to. PDA. Seeds = DexRecord::pda()"
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "recordDexArgs",
+          "type": {
+            "defined": "RecordDexArgs"
+          }
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 6
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "name": "DexRecordAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "record",
+            "type": {
+              "defined": "DexRecord"
+            }
+          }
+        ]
+      }
     }
   ],
   "types": [
+    {
+      "name": "DexRecordDepositSol",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ty",
+            "type": {
+              "defined": "DepositSolType"
+            }
+          },
+          {
+            "name": "mint",
+            "type": "publicKey"
+          },
+          {
+            "name": "mainAccount",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DexRecordOneWayPoolPair",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "withdrawStakeTy",
+            "type": {
+              "defined": "WithdrawStakeType"
+            }
+          },
+          {
+            "name": "depositStakeTy",
+            "type": {
+              "defined": "DepositStakeType"
+            }
+          },
+          {
+            "name": "withdrawStakeMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "depositStakeMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawStakeMainAccount",
+            "type": "publicKey"
+          },
+          {
+            "name": "depositStakeMainAccount",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DexRecordTwoWayPoolPair",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "aTy",
+            "type": {
+              "defined": "DepositWithdrawStakeType"
+            }
+          },
+          {
+            "name": "bTy",
+            "type": {
+              "defined": "DepositWithdrawStakeType"
+            }
+          },
+          {
+            "name": "aMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "bMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "aMainAccount",
+            "type": "publicKey"
+          },
+          {
+            "name": "bMainAccount",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
     {
       "name": "StakeWrappedSolArgs",
       "type": {
@@ -327,12 +477,139 @@
           }
         ]
       }
+    },
+    {
+      "name": "RecordDexArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "dexRecord",
+            "type": {
+              "defined": "DexRecord"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "DexRecord",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "DepositSol",
+            "fields": [
+              {
+                "defined": "DexRecordDepositSol"
+              }
+            ]
+          },
+          {
+            "name": "OneWayPoolPair",
+            "fields": [
+              {
+                "defined": "DexRecordOneWayPoolPair"
+              }
+            ]
+          },
+          {
+            "name": "TwoWayPoolPair",
+            "fields": [
+              {
+                "defined": "DexRecordTwoWayPoolPair"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositSolType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Eversol"
+          },
+          {
+            "name": "Lido"
+          },
+          {
+            "name": "Marinade"
+          },
+          {
+            "name": "Socean"
+          },
+          {
+            "name": "Spl"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositStakeType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Eversol"
+          },
+          {
+            "name": "Marinade"
+          },
+          {
+            "name": "Socean"
+          },
+          {
+            "name": "Spl"
+          },
+          {
+            "name": "Unstakeit"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawStakeType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Eversol"
+          },
+          {
+            "name": "Lido"
+          },
+          {
+            "name": "Socean"
+          },
+          {
+            "name": "Spl"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositWithdrawStakeType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Eversol"
+          },
+          {
+            "name": "Socean"
+          },
+          {
+            "name": "Spl"
+          }
+        ]
+      }
     }
   ],
   "metadata": {
     "origin": "shank",
-    "address": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
-    "binaryVersion": "0.0.11",
-    "libVersion": "0.0.11"
+    "address": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq"
   }
 }
