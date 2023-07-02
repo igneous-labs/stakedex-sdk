@@ -1,3 +1,15 @@
+pub mod cogent_stake_pool {
+    solana_program::declare_id!("CgntPoLka5pD5fesJYhGmUCF8KU1QS1ZmZiuAuMZr2az");
+}
+
+pub mod cogent_validator_list {
+    solana_program::declare_id!("CGNTvFQ5yhxp2H5RmmXJ2w3LXJ3kAHrgPMrfABBTkeTr");
+}
+
+pub mod cogentsol {
+    solana_program::declare_id!("CgnTSoL3DgY9SFHxcLj6CgCgKKoTBr6tp4CPAEWy25DE");
+}
+
 pub mod daopool_stake_pool {
     solana_program::declare_id!("7ge2xKsZXmqPxa3YmXxXmzCp9Hc2ezrTxh6PECaxCwrL");
 }

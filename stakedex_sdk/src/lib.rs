@@ -12,27 +12,28 @@ use stakedex_interface::{
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
 use stakedex_sdk_common::{
-    bsol, cws_wsol_bridge_in, daopool_stake_pool, daosol, esol, eversol_stake_pool,
-    find_bridge_stake, find_fee_token_acc, find_sol_bridge_out, first_avail_quote, jito_stake_pool,
-    jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, lido_state, marinade_state, msol,
-    quote_pool_pair, scnsol, socean_stake_pool, solblaze_stake_pool, stsol, BaseStakePoolAmm,
-    DepositSol, DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount,
-    WithdrawStake, WithdrawStakeQuote,
+    bsol, cogent_stake_pool, cogentsol, cws_wsol_bridge_in, daopool_stake_pool, daosol, esol,
+    eversol_stake_pool, find_bridge_stake, find_fee_token_acc, find_sol_bridge_out,
+    first_avail_quote, jito_stake_pool, jitosol, jpool_stake_pool, jsol, laine_stake_pool,
+    lainesol, lido_state, marinade_state, msol, quote_pool_pair, scnsol, socean_stake_pool,
+    solblaze_stake_pool, stsol, BaseStakePoolAmm, DepositSol, DepositStake, DepositStakeInfo,
+    DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::UnstakeItStakedex;
 
-pub const N_POOLS: usize = 10;
+pub const N_POOLS: usize = 11;
 
-pub const N_DEPOSIT_SOL_POOLS: usize = 9;
+pub const N_DEPOSIT_SOL_POOLS: usize = 10;
 
-pub const N_DEPOSIT_STAKE_POOLS: usize = 9;
+pub const N_DEPOSIT_STAKE_POOLS: usize = 10;
 
-pub const N_WITHDRAW_STAKE_POOLS: usize = 8;
+pub const N_WITHDRAW_STAKE_POOLS: usize = 9;
 
 #[derive(Clone, Default)]
 pub struct Stakedex {
+    cogent: SplStakePoolStakedex,
     daopool: SplStakePoolStakedex,
     jito: SplStakePoolStakedex,
     jpool: SplStakePoolStakedex,
@@ -69,6 +70,7 @@ impl Stakedex {
     /// Stakedex by passing the result into from_fetched_accounts()
     pub fn init_accounts() -> [Pubkey; N_POOLS] {
         [
+            cogent_stake_pool::ID,
             daopool_stake_pool::ID,
             jito_stake_pool::ID,
             jpool_stake_pool::ID,
@@ -118,6 +120,7 @@ impl Stakedex {
         });
 
         let spl_stake_pools = [
+            cogent_stake_pool::ID,
             daopool_stake_pool::ID,
             jito_stake_pool::ID,
             jpool_stake_pool::ID,
@@ -134,6 +137,7 @@ impl Stakedex {
         let mut spl_stake_pools_iter = spl_stake_pools.into_iter();
         (
             Self {
+                cogent: spl_stake_pools_iter.next().unwrap(),
                 daopool: spl_stake_pools_iter.next().unwrap(),
                 jito: spl_stake_pools_iter.next().unwrap(),
                 jpool: spl_stake_pools_iter.next().unwrap(),
@@ -151,6 +155,7 @@ impl Stakedex {
 
     pub fn all_pools(&self) -> [&dyn BaseStakePoolAmm; N_POOLS] {
         [
+            &self.cogent,
             &self.daopool,
             &self.jito,
             &self.jpool,
@@ -166,6 +171,7 @@ impl Stakedex {
 
     pub fn all_pools_mut(&mut self) -> [&mut dyn BaseStakePoolAmm; N_POOLS] {
         [
+            &mut self.cogent,
             &mut self.daopool,
             &mut self.jito,
             &mut self.jpool,
@@ -230,6 +236,7 @@ impl Stakedex {
     fn token_to_deposit_sol(&self) -> [(Pubkey, &dyn DepositSol); N_DEPOSIT_SOL_POOLS] {
         [
             (bsol::ID, &self.solblaze),
+            (cogentsol::ID, &self.cogent),
             (daosol::ID, &self.daopool),
             (jitosol::ID, &self.jito),
             (jsol::ID, &self.jpool),
@@ -251,6 +258,7 @@ impl Stakedex {
     fn token_to_deposit_stake(&self) -> [(Pubkey, &dyn DepositStake); N_DEPOSIT_STAKE_POOLS] {
         [
             (bsol::ID, &self.solblaze),
+            (cogentsol::ID, &self.cogent),
             (daosol::ID, &self.daopool),
             (jitosol::ID, &self.jito),
             (jsol::ID, &self.jpool),
@@ -272,6 +280,7 @@ impl Stakedex {
     fn token_to_withdraw_stake(&self) -> [(Pubkey, &dyn WithdrawStake); N_WITHDRAW_STAKE_POOLS] {
         [
             (bsol::ID, &self.solblaze),
+            (cogentsol::ID, &self.cogent),
             (daosol::ID, &self.daopool),
             (jitosol::ID, &self.jito),
             (jsol::ID, &self.jpool),
@@ -408,6 +417,9 @@ impl Stakedex {
             .ok_or_else(|| anyhow!("pool not found {}", output_mint))?;
         let wsq = WithdrawStakeQuote::from_lamports_and_voter(in_amount, *voter);
         let dsq = deposit_to.get_deposit_stake_quote(wsq)?;
+        if dsq.is_zero_out() {
+            return Err(anyhow!("pool cannot accept stake account"));
+        }
         Ok((deposit_to, dsq))
     }
 

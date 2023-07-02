@@ -47,3 +47,14 @@ fn test_swap_via_stake_jitosol_bsol() {
         })
         .unwrap();
 }
+
+#[test]
+fn test_swap_via_stake_unknown_token() {
+    let unknown_token = Pubkey::new_unique();
+    let res = STAKEDEX.quote_swap_via_stake(&QuoteParams {
+        in_amount: 1_000_000_000,
+        input_mint: unknown_token,
+        output_mint: bsol::ID,
+    });
+    assert!(res.is_err());
+}
