@@ -301,10 +301,15 @@ impl Stakedex {
     pub fn quote_swap_via_stake(&self, quote_params: &QuoteParams) -> Result<Quote> {
         let withdraw_from = self
             .get_withdraw_stake_pool(&quote_params.input_mint)
-            .ok_or_else(|| anyhow!("pool not found {}", quote_params.input_mint))?;
+            .ok_or_else(|| anyhow!("pool not found for input mint {}", quote_params.input_mint))?;
         let deposit_to = self
             .get_deposit_stake_pool(&quote_params.output_mint)
-            .ok_or_else(|| anyhow!("pool not found {}", quote_params.output_mint))?;
+            .ok_or_else(|| {
+                anyhow!(
+                    "pool not found for output mint {}",
+                    quote_params.output_mint
+                )
+            })?;
         quote_pool_pair(quote_params, withdraw_from, deposit_to)
     }
 
@@ -315,10 +320,15 @@ impl Stakedex {
     ) -> Result<Instruction> {
         let withdraw_from = self
             .get_withdraw_stake_pool(&swap_params.source_mint)
-            .ok_or_else(|| anyhow!("pool not found {}", swap_params.source_mint))?;
+            .ok_or_else(|| anyhow!("pool not found for src mint {}", swap_params.source_mint))?;
         let deposit_to = self
             .get_deposit_stake_pool(&swap_params.destination_mint)
-            .ok_or_else(|| anyhow!("pool not found {}", swap_params.destination_mint))?;
+            .ok_or_else(|| {
+                anyhow!(
+                    "pool not found for dst mint {}",
+                    swap_params.destination_mint
+                )
+            })?;
         // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
         let (withdraw_quote, deposit_quote) =
             first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)?;
@@ -358,7 +368,12 @@ impl Stakedex {
     pub fn quote_stake_wrapped_sol(&self, quote_params: &QuoteParams) -> Result<Quote> {
         let deposit_to = self
             .get_deposit_sol_pool(&quote_params.output_mint)
-            .ok_or_else(|| anyhow!("pool not found {}", quote_params.output_mint))?;
+            .ok_or_else(|| {
+                anyhow!(
+                    "pool not found for output mint {}",
+                    quote_params.output_mint
+                )
+            })?;
         let deposit_sol_quote = deposit_to.get_deposit_sol_quote(quote_params.in_amount)?;
         let quote = deposit_to.convert_quote(deposit_sol_quote);
         Ok(quote)
@@ -367,7 +382,12 @@ impl Stakedex {
     pub fn stake_wrapped_sol_ix(&self, swap_params: &SwapParams) -> Result<Instruction> {
         let deposit_to = self
             .get_deposit_sol_pool(&swap_params.destination_mint)
-            .ok_or_else(|| anyhow!("pool not found {}", swap_params.destination_mint))?;
+            .ok_or_else(|| {
+                anyhow!(
+                    "pool not found for dst mint {}",
+                    swap_params.destination_mint
+                )
+            })?;
         let (sol_bridge_out, _) = find_sol_bridge_out();
 
         let mut ix = stakedex_interface::stake_wrapped_sol_ix(
@@ -414,7 +434,7 @@ impl Stakedex {
     ) -> Result<(&dyn DepositStake, DepositStakeQuote)> {
         let deposit_to = self
             .get_deposit_stake_pool(output_mint)
-            .ok_or_else(|| anyhow!("pool not found {}", output_mint))?;
+            .ok_or_else(|| anyhow!("pool not found for output mint {}", output_mint))?;
         let wsq = WithdrawStakeQuote::from_lamports_and_voter(in_amount, *voter);
         let dsq = deposit_to.get_deposit_stake_quote(wsq)?;
         if dsq.is_zero_out() {
