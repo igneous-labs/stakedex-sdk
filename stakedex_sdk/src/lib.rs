@@ -312,8 +312,7 @@ impl Stakedex {
             .ok_or_else(|| anyhow!("pool not found {}", swap_params.destination_mint))?;
         // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
         let (withdraw_quote, deposit_quote) =
-            first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)
-                .ok_or_else(|| anyhow!("No route found between pools"))?;
+            first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)?;
         let bridge_stake_seed_le_bytes = bridge_stake_seed.to_le_bytes();
         let bridge_stake = find_bridge_stake(
             &swap_params.user_transfer_authority,
@@ -408,9 +407,7 @@ impl Stakedex {
             .get_deposit_stake_pool(output_mint)
             .ok_or_else(|| anyhow!("pool not found {}", output_mint))?;
         let wsq = WithdrawStakeQuote::from_lamports_and_voter(in_amount, *voter);
-        let dsq = deposit_to
-            .get_deposit_stake_quote(wsq)
-            .ok_or_else(|| anyhow!("Pool cannot accept stake account"))?;
+        let dsq = deposit_to.get_deposit_stake_quote(wsq)?;
         Ok((deposit_to, dsq))
     }
 

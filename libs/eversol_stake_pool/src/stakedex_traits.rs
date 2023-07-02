@@ -286,7 +286,7 @@ impl DepositSol for EversolStakePoolStakedex {
 
 impl DepositStake for EversolStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
-        self.stake_pool.last_update_epoch == self.curr_epoch
+        self.stake_pool.last_update_epoch >= self.curr_epoch
     }
 
     /// Reference (copy-pasta):
@@ -326,7 +326,7 @@ impl DepositStake for EversolStakePoolStakedex {
 
 impl WithdrawStake for EversolStakePoolStakedex {
     fn can_accept_stake_withdrawals(&self) -> bool {
-        self.stake_pool.last_update_epoch == self.curr_epoch
+        self.stake_pool.last_update_epoch >= self.curr_epoch
     }
 
     fn get_quote_for_validator_unchecked(

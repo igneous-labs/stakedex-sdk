@@ -6,7 +6,7 @@ use solana_program::{
     stake::state::{Delegation, Stake, StakeState},
 };
 
-use crate::{BaseStakePoolAmm, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
+use crate::{BaseStakePoolAmm, WithdrawStakeQuoteErr, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
 
 // TODO: include additional rent payments?
 #[derive(Clone, Copy, Debug, Default)]
@@ -87,7 +87,10 @@ pub struct WithdrawStakeQuoteIter {
 }
 
 impl WithdrawStakeQuoteIter {
-    pub fn next<P: WithdrawStake + ?Sized>(&mut self, pool: &P) -> Option<WithdrawStakeQuote> {
+    pub fn next<P: WithdrawStake + ?Sized>(
+        &mut self,
+        pool: &P,
+    ) -> Result<Option<WithdrawStakeQuote>, WithdrawStakeQuoteErr> {
         let res = pool.get_quote_for_validator(self.curr_validator_index, self.withdraw_amount);
         self.curr_validator_index += 1;
         res
@@ -102,23 +105,26 @@ pub trait WithdrawStake: BaseStakePoolAmm {
         }
     }
 
-    /// Returns None if validator_index out of bounds.
-    /// Returns None if stake pool cannot currently accept stake withdrawals
+    /// Returns Err if stake pool cannot currently accept stake withdrawals
     /// (e.g. spl not yet updated for this epoch)
+    /// Returns None if validator_index out of bounds (all validators searched).
     /// Returns WithdrawStakeQuote::default() if given validator cant service withdrawal
-    /// eg withdraw_amount > validator stake
+    /// eg withdraw_amount > validator stake amount
     fn get_quote_for_validator(
         &self,
         validator_index: usize,
         withdraw_amount: u64,
-    ) -> Option<WithdrawStakeQuote> {
+    ) -> Result<Option<WithdrawStakeQuote>, WithdrawStakeQuoteErr> {
         if self.is_validator_index_out_of_bounds(validator_index) {
-            return None;
+            return Ok(None);
         }
         if !self.can_accept_stake_withdrawals() {
-            return None;
+            return Err(WithdrawStakeQuoteErr::CannotAcceptStakeWithdrawals);
         }
-        Some(self.get_quote_for_validator_unchecked(validator_index, withdraw_amount))
+        Ok(Some(self.get_quote_for_validator_unchecked(
+            validator_index,
+            withdraw_amount,
+        )))
     }
 
     fn is_validator_index_out_of_bounds(&self, validator_index: usize) -> bool;

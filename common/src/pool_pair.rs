@@ -11,29 +11,26 @@ use stakedex_interface::{SwapViaStakeKeys, SWAP_VIA_STAKE_IX_ACCOUNTS_LEN};
 
 use crate::{
     account_missing_err, apply_global_fee, find_bridge_stake, find_fee_token_acc,
-    find_stake_pool_pair_amm_key, DepositStake, DepositStakeInfo, DepositStakeQuote, WithdrawStake,
-    WithdrawStakeQuote,
+    find_stake_pool_pair_amm_key, DepositStake, DepositStakeInfo, DepositStakeQuote,
+    SwapViaStakeQuoteErr, WithdrawStake, WithdrawStakeQuote,
 };
 
 pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     withdraw_amount: u64,
     withdraw_from: &W,
     deposit_to: &D,
-) -> Option<(WithdrawStakeQuote, DepositStakeQuote)> {
+) -> Result<(WithdrawStakeQuote, DepositStakeQuote), SwapViaStakeQuoteErr> {
     let mut withdraw_quote_iter = withdraw_from.withdraw_stake_quote_iter(withdraw_amount);
-    while let Some(wsq) = withdraw_quote_iter.next(withdraw_from) {
+    while let Some(wsq) = withdraw_quote_iter.next(withdraw_from)? {
         if wsq.is_zero_out() {
             continue;
         }
-        let dsq = match deposit_to.get_deposit_stake_quote(wsq) {
-            Some(r) => r,
-            None => return None,
-        };
+        let dsq = deposit_to.get_deposit_stake_quote(wsq)?;
         if !dsq.is_zero_out() {
-            return Some((wsq, dsq));
+            return Ok((wsq, dsq));
         }
     }
-    None
+    Err(SwapViaStakeQuoteErr::NoRouteFound)
 }
 
 pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
@@ -42,8 +39,7 @@ pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     deposit_to: &D,
 ) -> Result<Quote> {
     let (withdraw_quote, deposit_quote) =
-        first_avail_quote(quote_params.in_amount, withdraw_from, deposit_to)
-            .ok_or_else(|| anyhow!("No route found between pools"))?;
+        first_avail_quote(quote_params.in_amount, withdraw_from, deposit_to)?;
 
     let in_amount = quote_params.in_amount;
     let aft_global_fees = apply_global_fee(deposit_quote.tokens_out);
@@ -89,8 +85,7 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
 ) -> Result<Vec<AccountMeta>> {
     // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
     let (withdraw_quote, deposit_quote) =
-        first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)
-            .ok_or_else(|| anyhow!("No route found between pools"))?;
+        first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)?;
     let bridge_stake_seed_le_bytes = bridge_stake_seed.to_le_bytes();
     let bridge_stake = find_bridge_stake(
         &swap_params.user_transfer_authority,

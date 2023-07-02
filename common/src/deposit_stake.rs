@@ -6,7 +6,7 @@ use rust_decimal::{
 };
 use solana_program::{instruction::Instruction, pubkey::Pubkey};
 
-use crate::{apply_global_fee, BaseStakePoolAmm};
+use crate::{apply_global_fee, BaseStakePoolAmm, DepositStakeQuoteErr};
 
 use super::withdraw_stake::WithdrawStakeQuote;
 
@@ -36,17 +36,19 @@ pub struct DepositStakeInfo {
 }
 
 pub trait DepositStake: BaseStakePoolAmm {
+    /// Quotes a deposit stake operation that corresponds to the given withdraw_stake_quote
+    ///
     /// This should only include the stake pool's deposit stake fees, not stakedex's global fees
-    /// Returns None if stake pool cannot currently accept stake deposits (e.g. not yet updated for this epoch)
+    /// Returns Err if stake pool cannot currently accept stake deposits (e.g. not yet updated for this epoch)
     /// Returns DepositStakeQuote::default() if unable to handle withdraw_stake_quote (e.g. cannot accept provided voter)
     fn get_deposit_stake_quote(
         &self,
         withdraw_stake_quote: WithdrawStakeQuote,
-    ) -> Option<DepositStakeQuote> {
+    ) -> Result<DepositStakeQuote, DepositStakeQuoteErr> {
         if !self.can_accept_stake_deposits() {
-            return None;
+            return Err(DepositStakeQuoteErr::CannotAcceptStakeDeposits);
         }
-        Some(self.get_deposit_stake_quote_unchecked(withdraw_stake_quote))
+        Ok(self.get_deposit_stake_quote_unchecked(withdraw_stake_quote))
     }
 
     fn can_accept_stake_deposits(&self) -> bool;

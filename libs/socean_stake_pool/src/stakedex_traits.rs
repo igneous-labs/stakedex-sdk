@@ -147,7 +147,7 @@ impl DepositSol for SoceanStakePoolStakedex {
 
 impl DepositStake for SoceanStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
-        self.stake_pool.last_update_epoch == self.curr_epoch
+        self.stake_pool.last_update_epoch >= self.curr_epoch
     }
 
     // Copied from stakedex_spl_stake_pool
@@ -250,7 +250,7 @@ impl DepositStake for SoceanStakePoolStakedex {
 
 impl WithdrawStake for SoceanStakePoolStakedex {
     fn can_accept_stake_withdrawals(&self) -> bool {
-        self.stake_pool.last_update_epoch == self.curr_epoch
+        self.stake_pool.last_update_epoch >= self.curr_epoch
     }
 
     // Copied from stakedex_spl_stake_pool

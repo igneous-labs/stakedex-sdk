@@ -144,7 +144,7 @@ impl DepositSol for SplStakePoolStakedex {
 
 impl DepositStake for SplStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
-        self.stake_pool.last_update_epoch == self.curr_epoch
+        self.stake_pool.last_update_epoch >= self.curr_epoch
     }
 
     // TODO: maybe refactor to same style as eversol
@@ -248,7 +248,7 @@ impl DepositStake for SplStakePoolStakedex {
 
 impl WithdrawStake for SplStakePoolStakedex {
     fn can_accept_stake_withdrawals(&self) -> bool {
-        self.stake_pool.last_update_epoch == self.curr_epoch
+        self.stake_pool.last_update_epoch >= self.curr_epoch
     }
 
     // TODO: maybe refactor to same style as eversol

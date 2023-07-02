@@ -135,7 +135,7 @@ fn get_quote_for_validator_copied(
 
 impl WithdrawStake for LidoStakedex {
     fn is_validator_index_out_of_bounds(&self, validator_index: usize) -> bool {
-        validator_index >= self.validator_list.len() as usize
+        validator_index >= self.validator_list.len()
     }
 
     fn can_accept_stake_withdrawals(&self) -> bool {
