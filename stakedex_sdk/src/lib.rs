@@ -342,7 +342,6 @@ impl Stakedex {
 
         let mut ix = stakedex_interface::swap_via_stake_ix(
             SwapViaStakeKeys {
-                payer: swap_params.user_transfer_authority,
                 user: swap_params.user_transfer_authority,
                 src_token_from: swap_params.user_source_token_account,
                 src_token_mint: swap_params.source_mint,
@@ -454,7 +453,6 @@ impl Stakedex {
         let stake_account = swap_params.user_source_token_account;
         let mut ix = stakedex_interface::deposit_stake_ix(
             DepositStakeKeys {
-                payer: swap_params.user_transfer_authority,
                 user: swap_params.user_transfer_authority,
                 stake_account,
                 dest_token_to: swap_params.user_destination_token_account,
