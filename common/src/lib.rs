@@ -6,6 +6,7 @@ mod deposit_stake;
 mod errs;
 mod fees;
 mod init_from_keyed_account;
+pub mod jupiter_stakedex_interface;
 mod pda;
 mod pool_pair;
 mod withdraw_stake;

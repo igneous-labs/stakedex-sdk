@@ -25,14 +25,12 @@ lazy_static! {
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use jupiter_core::amm::Amm;
     use stakedex_sdk_common::DepositSolWrapper;
 
     #[test]
     fn test_wrapper_impls_amm_correctly_compile_time() {
         // DepositSolWrapper<SplStakePoolDepositSol>
         // impls Amm
-        let sp = DepositSolWrapper(SplStakePoolStakedex::default());
-        sp.clone_amm();
+        let _sp = DepositSolWrapper(SplStakePoolStakedex::default());
     }
 }

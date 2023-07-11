@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
-use jupiter_core::amm::{KeyedAccount, Quote, QuoteParams, SwapParams};
-use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
+use itertools::Itertools;
+use jupiter_core_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
+use solana_sdk::{
+    account::Account, clock::Clock, instruction::Instruction, pubkey::Pubkey, system_program,
+};
 use spl_token::native_mint;
 use stakedex_eversol_stake_pool::EversolStakePoolStakedex;
 use stakedex_interface::{
@@ -195,10 +198,10 @@ impl Stakedex {
     }
 
     /// Note: consumes accounts_map
-    pub fn update(&mut self, accounts_map: HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
+    pub fn update(&mut self, account_map: HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
         // unstake.it special-case: required reinitialization to save sol_reserves_lamports correctly
         let maybe_unstake_it_init_err = match init_from_keyed_account(
-            &accounts_map,
+            &account_map,
             &stakedex_unstake_it::find_pool_sol_reserves().0,
         ) {
             Ok(unstakeit) => {
@@ -208,27 +211,19 @@ impl Stakedex {
             Err(e) => Some(e),
         };
 
-        let accounts_data_map = accounts_map
-            .into_iter()
-            .map(|(pubkey, acc)| (pubkey, acc.data))
-            .collect();
-
-        let mut errs = self.update_data(&accounts_data_map);
+        let mut errs = self.update_data(&account_map);
         if let Some(e) = maybe_unstake_it_init_err {
             errs.push(e);
         }
         errs
     }
 
-    pub fn update_data(
-        &mut self,
-        accounts_data_map: &HashMap<Pubkey, Vec<u8>>,
-    ) -> Vec<anyhow::Error> {
+    pub fn update_data(&mut self, account_map: &AccountMap) -> Vec<anyhow::Error> {
         // So that other pools are still updated even if some pools fail to update
         self.all_pools_mut()
             .iter_mut()
             .fold(Vec::new(), |mut vec, p| {
-                if let Err(e) = p.update(accounts_data_map) {
+                if let Err(e) = p.update(account_map) {
                     vec.push(e);
                 }
                 vec
@@ -482,5 +477,106 @@ impl Stakedex {
         }
         ix.accounts.extend(deposit_to_virtual_ix.accounts);
         Ok(ix)
+    }
+
+    /// Creates all possible Amms from the underlying available Stakedexes
+    pub fn get_amms(&self) -> Vec<Box<dyn Amm + Send + Sync>> {
+        enum Stakedex {
+            SplStakePool(SplStakePoolStakedex),
+            Marinade(MarinadeStakedex),
+            Lido(LidoStakedex),
+            UnstakeIt(UnstakeItStakedex),
+        }
+
+        // TODO: Use all of them
+        let stakedexes: Vec<Stakedex> = vec![
+            Stakedex::SplStakePool(self.cogent.clone()),
+            Stakedex::SplStakePool(self.jito.clone()),
+            Stakedex::Marinade(self.marinade.clone()),
+            Stakedex::Lido(self.lido.clone()),
+            Stakedex::UnstakeIt(self.unstakeit.clone()),
+        ];
+
+        let mut amms: Vec<Box<dyn Amm + Send + Sync>> = Vec::new();
+        for stakedex in stakedexes.iter() {
+            match stakedex {
+                Stakedex::SplStakePool(spl_stake_pool) => {
+                    amms.push(Box::new(DepositSolWrapper(spl_stake_pool.clone())))
+                }
+
+                Stakedex::Marinade(marinade) => {
+                    amms.push(Box::new(DepositSolWrapper(marinade.clone())))
+                }
+                Stakedex::Lido(lido) => amms.push(Box::new(DepositSolWrapper(lido.clone()))),
+                Stakedex::UnstakeIt(unstake_it) => (),
+            }
+        }
+
+        for (first_stakedex, second_stakedex) in stakedexes.iter().tuple_combinations() {
+            match (first_stakedex, second_stakedex) {
+                (
+                    Stakedex::SplStakePool(first_stakedex),
+                    Stakedex::SplStakePool(second_stakedex),
+                ) => {
+                    amms.push(Box::new(TwoWayPoolPair {
+                        p1: first_stakedex.clone(),
+                        p2: second_stakedex.clone(),
+                        clock: Clock::default(),
+                    }));
+                }
+                (
+                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
+                    Stakedex::Lido(lido_stakedex),
+                )
+                | (
+                    Stakedex::Lido(lido_stakedex),
+                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
+                ) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw: lido_stakedex.clone(),
+                        deposit: spl_stake_pool_stakedex.clone(),
+                        clock: Clock::default(),
+                    }));
+                }
+                (
+                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
+                    Stakedex::Marinade(marinade_stakedex),
+                )
+                | (
+                    Stakedex::Marinade(marinade_stakedex),
+                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
+                ) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        deposit: marinade_stakedex.clone(),
+                        withdraw: spl_stake_pool_stakedex.clone(),
+                        clock: Clock::default(),
+                    }));
+                }
+                (
+                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
+                    Stakedex::UnstakeIt(unstake_it_stakedex),
+                )
+                | (
+                    Stakedex::UnstakeIt(unstake_it_stakedex),
+                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
+                ) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw: spl_stake_pool_stakedex.clone(),
+                        deposit: unstake_it_stakedex.clone(),
+                        clock: Clock::default(),
+                    }));
+                }
+                _ => {
+                    println!("Skip doing anything for this pair");
+                }
+            }
+        }
+
+        println!(
+            "StakeDex amms: {:?}",
+            amms.iter().map(|amm| amm.label()).collect::<Vec<_>>()
+        );
+
+        amms
     }
 }

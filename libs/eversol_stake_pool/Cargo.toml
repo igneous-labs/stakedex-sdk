@@ -9,7 +9,6 @@ edition = "2021"
 anyhow = { workspace = true }
 bincode = { workspace = true }
 borsh = { workspace = true }
-jupiter-core = { workspace = true }
 solana-program = { workspace = true }
 spl-stake-pool = { git = "https://github.com/everstake/solana-program-library", rev = "22534fe3885e698598e92b2fe20da3a8adbfc5ff"}
 spl-token = { workspace = true }

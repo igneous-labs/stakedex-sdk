@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use anyhow::Result;
-use jupiter_core::amm::KeyedAccount;
+use jupiter_core_interface::{AccountMap, KeyedAccount};
 use solana_program::{
     borsh::try_from_slice_unchecked, instruction::Instruction, pubkey::Pubkey, stake,
     system_program, sysvar,
@@ -72,14 +70,8 @@ impl UnstakeItStakedex {
 }
 
 impl InitFromKeyedAccount for UnstakeItStakedex {
-    /// Initialize from sol_reserves account since
-    /// update() doesnt allow access to the .lamports field.
-    /// This means we have to reinitialize the struct everytime we update()
-    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
-        Ok(UnstakeItStakedex {
-            sol_reserves_lamports: keyed_account.account.lamports,
-            ..Default::default()
-        })
+    fn from_keyed_account(_keyed_account: &KeyedAccount) -> Result<Self> {
+        Ok(UnstakeItStakedex::default())
     }
 }
 
@@ -105,18 +97,24 @@ impl BaseStakePoolAmm for UnstakeItStakedex {
         ])
     }
 
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+    fn update(&mut self, accounts_map: &AccountMap) -> Result<()> {
         let pool_data = accounts_map
             .get(&unstake_it_pool::ID)
-            .ok_or_else(|| account_missing_err(&unstake_it_pool::ID))?;
+            .ok_or_else(|| account_missing_err(&unstake_it_pool::ID))?
+            .data
+            .as_ref();
         self.update_pool(pool_data)?;
         let fee_data = accounts_map
             .get(&find_fee().0)
-            .ok_or_else(|| account_missing_err(&find_fee().0))?;
+            .ok_or_else(|| account_missing_err(&find_fee().0))?
+            .data
+            .as_ref();
         self.update_fee(fee_data)?;
         let protocol_fee_data = accounts_map
             .get(&find_protocol_fee().0)
-            .ok_or_else(|| account_missing_err(&find_protocol_fee().0))?;
+            .ok_or_else(|| account_missing_err(&find_protocol_fee().0))?
+            .data
+            .as_ref();
         self.update_protocol_fee(protocol_fee_data)?;
         Ok(())
     }
