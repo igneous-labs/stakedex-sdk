@@ -20,6 +20,7 @@ use stakedex_interface::{StakeWrappedSolKeys, STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN}
 use crate::{
     fees::apply_global_fee,
     init_from_keyed_account::InitFromKeyedAccount,
+    jupiter_stakedex_interface::{JUPITER_ACCOUNT_META, STAKEDEX_ACCOUNT_META},
     pda::{
         cws_wsol_bridge_in, find_deposit_stake_amm_key, find_fee_token_acc, find_sol_bridge_out,
     },
@@ -114,8 +115,9 @@ where
 
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
         let (sol_bridge_out, _) = find_sol_bridge_out();
-        let mut account_metas = Vec::from(
-            <[AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]>::from(&StakeWrappedSolKeys {
+        let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
+        account_metas.extend(<[AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]>::from(
+            &StakeWrappedSolKeys {
                 user: swap_params.user_transfer_authority,
                 wsol_from: swap_params.user_source_token_account,
                 dest_token_to: swap_params.user_destination_token_account,
@@ -126,10 +128,11 @@ where
                 wsol_bridge_in: cws_wsol_bridge_in(&sol_bridge_out),
                 sol_bridge_out,
                 dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
-            }),
-        );
+            },
+        ));
         let deposit_sol_virtual_ix = self.0.virtual_ix()?;
         account_metas.extend(deposit_sol_virtual_ix.accounts);
+        account_metas.push(JUPITER_ACCOUNT_META);
         Ok(SwapAndAccountMetas {
             swap: Swap::StakeDexStakeWrappedSol,
             account_metas,

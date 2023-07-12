@@ -12,9 +12,11 @@ use stakedex_interface::{SwapViaStakeKeys, SWAP_VIA_STAKE_IX_ACCOUNTS_LEN};
 
 use crate::{
     account_missing_err, apply_global_fee, find_bridge_stake, find_fee_token_acc,
-    find_stake_pool_pair_amm_key, DepositStake, DepositStakeInfo, DepositStakeQuote,
-    SwapViaStakeQuoteErr, WithdrawStake, WithdrawStakeQuote,
-    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    find_stake_pool_pair_amm_key,
+    jupiter_stakedex_interface::{Swap, JUPITER_ACCOUNT_META, STAKEDEX_ACCOUNT_META},
+    DepositStake, DepositStakeInfo, DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake,
+    WithdrawStakeQuote, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 
 pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
@@ -200,12 +202,14 @@ where
 
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
         let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
-        let account_metas = get_account_metas(
+        let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
+        account_metas.extend(get_account_metas(
             swap_params,
             &self.withdraw,
             &self.deposit,
             bridge_stake_seed,
-        )?;
+        )?);
+        account_metas.push(JUPITER_ACCOUNT_META);
         Ok(SwapAndAccountMetas {
             swap: Swap::StakeDexSwapViaStake { bridge_stake_seed },
             account_metas,
@@ -297,7 +301,8 @@ where
 
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
         let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
-        let account_metas = if swap_params.source_mint == self.p1.staked_sol_mint()
+        let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
+        let other_account_metas = if swap_params.source_mint == self.p1.staked_sol_mint()
             && swap_params.destination_mint == self.p2.staked_sol_mint()
         {
             get_account_metas(swap_params, &self.p1, &self.p2, bridge_stake_seed)?
@@ -312,6 +317,8 @@ where
                 swap_params.destination_mint
             ));
         };
+        account_metas.extend(other_account_metas);
+        account_metas.push(JUPITER_ACCOUNT_META);
         Ok(SwapAndAccountMetas {
             swap: Swap::StakeDexSwapViaStake { bridge_stake_seed },
             account_metas,

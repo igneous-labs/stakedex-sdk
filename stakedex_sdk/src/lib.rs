@@ -19,10 +19,10 @@ use stakedex_sdk_common::{
     eversol_stake_pool, find_bridge_stake, find_fee_token_acc, find_sol_bridge_out,
     first_avail_quote, jito_stake_pool, jitosol, jpool_stake_pool, jsol, laine_stake_pool,
     lainesol, lido_state, marinade_state, msol, quote_pool_pair, scnsol, socean_stake_pool,
-    solblaze_stake_pool, stsol, BaseStakePoolAmm, DepositSol, DepositStake, DepositStakeInfo,
-    DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
-    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    solblaze_stake_pool, stsol, BaseStakePoolAmm, DepositSol, DepositSolWrapper, DepositStake,
+    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, OneWayPoolPair, TwoWayPoolPair,
+    WithdrawStake, WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
