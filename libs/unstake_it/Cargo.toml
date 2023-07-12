@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-jupiter-core-interface = { workspace = true }
 solana-program = { workspace = true }
 spl-math = { version = "0.1.0", features = ["no-entrypoint"]}
 spl-token = { workspace = true }

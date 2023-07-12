@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jupiter_core_interface::AccountMap;
+use jupiter_amm_interface::AccountMap;
 
 use solana_program::pubkey::Pubkey;
 

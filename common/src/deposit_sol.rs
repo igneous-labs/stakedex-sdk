@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
-use jupiter_core_interface::{
+use jupiter_amm_interface::{
     Amm, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas, SwapParams,
 };
 use rust_decimal::{

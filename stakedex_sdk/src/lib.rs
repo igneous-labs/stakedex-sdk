@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use jupiter_core_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
+use jupiter_amm_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
 use solana_sdk::{
     account::Account, clock::Clock, instruction::Instruction, pubkey::Pubkey, system_program,
 };
@@ -35,6 +35,14 @@ pub const N_DEPOSIT_SOL_POOLS: usize = 10;
 pub const N_DEPOSIT_STAKE_POOLS: usize = 10;
 
 pub const N_WITHDRAW_STAKE_POOLS: usize = 9;
+
+#[macro_export]
+macro_rules! match_stakedexes {
+    ( $Variant1:ident, $Variant2:ident, $first:pat, $second:pat ) => {
+        (Stakedex::$Variant1($first), Stakedex::$Variant2($second))
+            | (Stakedex::$Variant2($second), Stakedex::$Variant1($first))
+    };
+}
 
 #[derive(Clone, Default)]
 pub struct Stakedex {
@@ -483,18 +491,25 @@ impl Stakedex {
     pub fn get_amms(&self) -> Vec<Box<dyn Amm + Send + Sync>> {
         enum Stakedex {
             SplStakePool(SplStakePoolStakedex),
+            Socean(SoceanStakePoolStakedex),
+            Eversol(EversolStakePoolStakedex),
+            UnstakeIt(UnstakeItStakedex),
             Marinade(MarinadeStakedex),
             Lido(LidoStakedex),
-            UnstakeIt(UnstakeItStakedex),
         }
 
-        // TODO: Use all of them
-        let stakedexes: Vec<Stakedex> = vec![
+        let stakedexes = vec![
             Stakedex::SplStakePool(self.cogent.clone()),
+            Stakedex::SplStakePool(self.daopool.clone()),
             Stakedex::SplStakePool(self.jito.clone()),
+            Stakedex::SplStakePool(self.jpool.clone()),
+            Stakedex::SplStakePool(self.laine.clone()),
+            Stakedex::SplStakePool(self.solblaze.clone()),
+            Stakedex::Socean(self.socean.clone()),
+            Stakedex::Eversol(self.eversol.clone()),
+            Stakedex::UnstakeIt(self.unstakeit.clone()),
             Stakedex::Marinade(self.marinade.clone()),
             Stakedex::Lido(self.lido.clone()),
-            Stakedex::UnstakeIt(self.unstakeit.clone()),
         ];
 
         let mut amms: Vec<Box<dyn Amm + Send + Sync>> = Vec::new();
@@ -503,17 +518,20 @@ impl Stakedex {
                 Stakedex::SplStakePool(spl_stake_pool) => {
                     amms.push(Box::new(DepositSolWrapper(spl_stake_pool.clone())))
                 }
-
+                Stakedex::Socean(socean) => amms.push(Box::new(DepositSolWrapper(socean.clone()))),
+                Stakedex::Eversol(eversol) => {
+                    amms.push(Box::new(DepositSolWrapper(eversol.clone())))
+                }
+                Stakedex::UnstakeIt(_) => (),
                 Stakedex::Marinade(marinade) => {
                     amms.push(Box::new(DepositSolWrapper(marinade.clone())))
                 }
                 Stakedex::Lido(lido) => amms.push(Box::new(DepositSolWrapper(lido.clone()))),
-                Stakedex::UnstakeIt(unstake_it) => (),
             }
         }
 
-        for (first_stakedex, second_stakedex) in stakedexes.iter().tuple_combinations() {
-            match (first_stakedex, second_stakedex) {
+        for stakedexes in stakedexes.iter().tuple_combinations() {
+            match stakedexes {
                 (
                     Stakedex::SplStakePool(first_stakedex),
                     Stakedex::SplStakePool(second_stakedex),
@@ -524,48 +542,49 @@ impl Stakedex {
                         clock: Clock::default(),
                     }));
                 }
-                (
-                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
-                    Stakedex::Lido(lido_stakedex),
-                )
-                | (
-                    Stakedex::Lido(lido_stakedex),
-                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
-                ) => {
+                match_stakedexes!(SplStakePool, Lido, first, second) => {
                     amms.push(Box::new(OneWayPoolPair {
-                        withdraw: lido_stakedex.clone(),
-                        deposit: spl_stake_pool_stakedex.clone(),
+                        withdraw: second.clone(),
+                        deposit: first.clone(),
                         clock: Clock::default(),
                     }));
                 }
-                (
-                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
-                    Stakedex::Marinade(marinade_stakedex),
-                )
-                | (
-                    Stakedex::Marinade(marinade_stakedex),
-                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
-                ) => {
+                match_stakedexes!(SplStakePool, Marinade, first, second) => {
                     amms.push(Box::new(OneWayPoolPair {
-                        deposit: marinade_stakedex.clone(),
-                        withdraw: spl_stake_pool_stakedex.clone(),
+                        deposit: second.clone(),
+                        withdraw: first.clone(),
                         clock: Clock::default(),
                     }));
                 }
-                (
-                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
-                    Stakedex::UnstakeIt(unstake_it_stakedex),
-                )
-                | (
-                    Stakedex::UnstakeIt(unstake_it_stakedex),
-                    Stakedex::SplStakePool(spl_stake_pool_stakedex),
-                ) => {
+                match_stakedexes!(SplStakePool, UnstakeIt, first, second) => {
                     amms.push(Box::new(OneWayPoolPair {
-                        withdraw: spl_stake_pool_stakedex.clone(),
-                        deposit: unstake_it_stakedex.clone(),
+                        withdraw: first.clone(),
+                        deposit: second.clone(),
                         clock: Clock::default(),
                     }));
                 }
+                match_stakedexes!(Socean, UnstakeIt, first, second) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw: first.clone(),
+                        deposit: second.clone(),
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Eversol, UnstakeIt, first, second) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw: first.clone(),
+                        deposit: second.clone(),
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Lido, UnstakeIt, first, second) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw: first.clone(),
+                        deposit: second.clone(),
+                        clock: Clock::default(),
+                    }));
+                }
+                // More
                 _ => {
                     println!("Skip doing anything for this pair");
                 }

@@ -1,1 +1,1 @@
-pub use jupiter_core_interface::{AccountMap, KeyedAccount, Swap};
+pub use jupiter_amm_interface::{AccountMap, KeyedAccount, Swap};

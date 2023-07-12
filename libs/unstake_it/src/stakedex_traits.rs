@@ -1,5 +1,4 @@
 use anyhow::Result;
-use jupiter_core_interface::{AccountMap, KeyedAccount};
 use solana_program::{
     borsh::try_from_slice_unchecked, instruction::Instruction, pubkey::Pubkey, stake,
     system_program, sysvar,
@@ -8,8 +7,10 @@ use stakedex_deposit_stake_interface::{
     unstake_it_deposit_stake_ix, UnstakeItDepositStakeIxArgs, UnstakeItDepositStakeKeys,
 };
 use stakedex_sdk_common::{
-    account_missing_err, unstake_it_pool, unstake_it_program, BaseStakePoolAmm, DepositStake,
-    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStakeQuote,
+    account_missing_err,
+    jupiter_stakedex_interface::{AccountMap, KeyedAccount},
+    unstake_it_pool, unstake_it_program, BaseStakePoolAmm, DepositStake, DepositStakeInfo,
+    DepositStakeQuote, InitFromKeyedAccount, WithdrawStakeQuote,
 };
 use unstake_it_interface::{Fee, FeeEnum, Pool, ProtocolFee};
 

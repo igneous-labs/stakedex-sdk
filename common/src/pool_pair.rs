@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use jupiter_core_interface::{
+use jupiter_amm_interface::{
     AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapAndAccountMetas, SwapParams,
 };
 use rust_decimal::{

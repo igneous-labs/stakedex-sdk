@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-jupiter-core-interface = { workspace = true }
+jupiter-amm-interface = { workspace = true }
 solana-sdk = { workspace = true }
 spl-token = { workspace = true }
 stakedex_eversol_stake_pool = { workspace = true }

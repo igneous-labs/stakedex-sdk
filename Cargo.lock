@@ -1576,7 +1576,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "jupiter-core-interface"
+name = "jupiter-amm-interface"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -3810,7 +3810,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "itertools",
- "jupiter-core-interface",
+ "jupiter-amm-interface",
  "lazy_static",
  "solana-client",
  "solana-sdk",
@@ -3831,7 +3831,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bincode",
- "jupiter-core-interface",
+ "jupiter-amm-interface",
  "rust_decimal",
  "serde",
  "serde_json",
@@ -3881,7 +3881,6 @@ name = "stakedex_unstake_it"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "jupiter-core-interface",
  "solana-program",
  "spl-math 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spl-token 3.5.0",
