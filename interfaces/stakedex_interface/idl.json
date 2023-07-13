@@ -81,12 +81,6 @@
       "name": "SwapViaStake",
       "accounts": [
         {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true,
-          "desc": "The payer for any additional rent required e.g. for the bridge stake account"
-        },
-        {
           "name": "user",
           "isMut": false,
           "isSigner": true,
@@ -256,12 +250,6 @@
     {
       "name": "DepositStake",
       "accounts": [
-        {
-          "name": "payer",
-          "isMut": true,
-          "isSigner": true,
-          "desc": "The payer for any additional rent required e.g. for the bridge stake account"
-        },
         {
           "name": "user",
           "isMut": false,

@@ -107,8 +107,8 @@ pub trait WithdrawStake: BaseStakePoolAmm {
 
     /// Returns Err if stake pool cannot currently accept stake withdrawals
     /// (e.g. spl not yet updated for this epoch)
-    /// Returns None if validator_index out of bounds (all validators searched).
-    /// Returns WithdrawStakeQuote::default() if given validator cant service withdrawal
+    /// Returns Ok(None) if validator_index out of bounds (all validators searched).
+    /// Returns Ok(WithdrawStakeQuote::default()) if given validator cant service withdrawal
     /// eg withdraw_amount > validator stake amount
     fn get_quote_for_validator(
         &self,
@@ -121,6 +121,10 @@ pub trait WithdrawStake: BaseStakePoolAmm {
         if !self.can_accept_stake_withdrawals() {
             return Err(WithdrawStakeQuoteErr::CannotAcceptStakeWithdrawals);
         }
+        // TODO: return err if lamports out below minimum delegation once
+        // minimum delegation feature activated
+        // TODO: this currently returns default if lamports out below rent-exempt min,
+        // return err instead?
         Ok(Some(self.get_quote_for_validator_unchecked(
             validator_index,
             withdraw_amount,

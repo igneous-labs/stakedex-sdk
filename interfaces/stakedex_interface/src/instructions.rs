@@ -167,7 +167,7 @@ pub fn stake_wrapped_sol_invoke_signed<'a, A: Into<StakeWrappedSolIxArgs>>(
     let account_info: [AccountInfo<'a>; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
-pub const SWAP_VIA_STAKE_IX_ACCOUNTS_LEN: usize = 8usize;
+pub const SWAP_VIA_STAKE_IX_ACCOUNTS_LEN: usize = 7usize;
 #[derive(Copy, Clone, Debug)]
 pub struct SwapViaStakeAccounts<
     'me,
@@ -178,27 +178,22 @@ pub struct SwapViaStakeAccounts<
     'a4: 'me,
     'a5: 'me,
     'a6: 'me,
-    'a7: 'me,
 > {
-    ///The payer for any additional rent required e.g. for the bridge stake account
-    pub payer: &'me AccountInfo<'a0>,
     ///The authority of src_token_from
-    pub user: &'me AccountInfo<'a1>,
+    pub user: &'me AccountInfo<'a0>,
     ///The token account to swap src tokens from
-    pub src_token_from: &'me AccountInfo<'a2>,
+    pub src_token_from: &'me AccountInfo<'a1>,
     ///The token account to receive dest tokens to
-    pub dest_token_to: &'me AccountInfo<'a3>,
+    pub dest_token_to: &'me AccountInfo<'a2>,
     ///The bridge stake account thats withdrawn then deposited. PDA. seeds = ['bridge_stake', user.pubkey, SwapArgs.bridge_stake_seed]. Might be long-lived, make sure the seed is not already in use
-    pub bridge_stake: &'me AccountInfo<'a4>,
+    pub bridge_stake: &'me AccountInfo<'a3>,
     ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
-    pub dest_token_fee_token_account: &'me AccountInfo<'a5>,
-    pub src_token_mint: &'me AccountInfo<'a6>,
-    pub dest_token_mint: &'me AccountInfo<'a7>,
+    pub dest_token_fee_token_account: &'me AccountInfo<'a4>,
+    pub src_token_mint: &'me AccountInfo<'a5>,
+    pub dest_token_mint: &'me AccountInfo<'a6>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct SwapViaStakeKeys {
-    ///The payer for any additional rent required e.g. for the bridge stake account
-    pub payer: Pubkey,
     ///The authority of src_token_from
     pub user: Pubkey,
     ///The token account to swap src tokens from
@@ -212,10 +207,9 @@ pub struct SwapViaStakeKeys {
     pub src_token_mint: Pubkey,
     pub dest_token_mint: Pubkey,
 }
-impl<'me> From<&SwapViaStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_>> for SwapViaStakeKeys {
-    fn from(accounts: &SwapViaStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_>) -> Self {
+impl<'me> From<&SwapViaStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_>> for SwapViaStakeKeys {
+    fn from(accounts: &SwapViaStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_>) -> Self {
         Self {
-            payer: *accounts.payer.key,
             user: *accounts.user.key,
             src_token_from: *accounts.src_token_from.key,
             dest_token_to: *accounts.dest_token_to.key,
@@ -229,7 +223,6 @@ impl<'me> From<&SwapViaStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_>> for S
 impl From<&SwapViaStakeKeys> for [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] {
     fn from(keys: &SwapViaStakeKeys) -> Self {
         [
-            AccountMeta::new(keys.payer, true),
             AccountMeta::new_readonly(keys.user, true),
             AccountMeta::new(keys.src_token_from, false),
             AccountMeta::new(keys.dest_token_to, false),
@@ -240,12 +233,11 @@ impl From<&SwapViaStakeKeys> for [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] {
         ]
     }
 }
-impl<'a> From<&SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
+impl<'a> From<&SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
     for [AccountInfo<'a>; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
+    fn from(accounts: &SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
-            accounts.payer.clone(),
             accounts.user.clone(),
             accounts.src_token_from.clone(),
             accounts.dest_token_to.clone(),
@@ -289,7 +281,7 @@ pub fn swap_via_stake_ix<K: Into<SwapViaStakeKeys>, A: Into<SwapViaStakeIxArgs>>
     })
 }
 pub fn swap_via_stake_invoke<'a, A: Into<SwapViaStakeIxArgs>>(
-    accounts: &SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
+    accounts: &SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
     args: A,
 ) -> ProgramResult {
     let ix = swap_via_stake_ix(accounts, args)?;
@@ -297,7 +289,7 @@ pub fn swap_via_stake_invoke<'a, A: Into<SwapViaStakeIxArgs>>(
     invoke(&ix, &account_info)
 }
 pub fn swap_via_stake_invoke_signed<'a, A: Into<SwapViaStakeIxArgs>>(
-    accounts: &SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
+    accounts: &SwapViaStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
     args: A,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
@@ -628,25 +620,21 @@ pub fn withdraw_fees_invoke_signed<'a, A: Into<WithdrawFeesIxArgs>>(
     let account_info: [AccountInfo<'a>; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
-pub const DEPOSIT_STAKE_IX_ACCOUNTS_LEN: usize = 6usize;
+pub const DEPOSIT_STAKE_IX_ACCOUNTS_LEN: usize = 5usize;
 #[derive(Copy, Clone, Debug)]
-pub struct DepositStakeAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me, 'a5: 'me> {
-    ///The payer for any additional rent required e.g. for the bridge stake account
-    pub payer: &'me AccountInfo<'a0>,
+pub struct DepositStakeAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me> {
     ///The withdraw authority of stake_account
-    pub user: &'me AccountInfo<'a1>,
+    pub user: &'me AccountInfo<'a0>,
     ///The stake account to deposit
-    pub stake_account: &'me AccountInfo<'a2>,
+    pub stake_account: &'me AccountInfo<'a1>,
     ///The token account to receive dest tokens to
-    pub dest_token_to: &'me AccountInfo<'a3>,
+    pub dest_token_to: &'me AccountInfo<'a2>,
     ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
-    pub dest_token_fee_token_account: &'me AccountInfo<'a4>,
-    pub dest_token_mint: &'me AccountInfo<'a5>,
+    pub dest_token_fee_token_account: &'me AccountInfo<'a3>,
+    pub dest_token_mint: &'me AccountInfo<'a4>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct DepositStakeKeys {
-    ///The payer for any additional rent required e.g. for the bridge stake account
-    pub payer: Pubkey,
     ///The withdraw authority of stake_account
     pub user: Pubkey,
     ///The stake account to deposit
@@ -657,10 +645,9 @@ pub struct DepositStakeKeys {
     pub dest_token_fee_token_account: Pubkey,
     pub dest_token_mint: Pubkey,
 }
-impl<'me> From<&DepositStakeAccounts<'me, '_, '_, '_, '_, '_, '_>> for DepositStakeKeys {
-    fn from(accounts: &DepositStakeAccounts<'me, '_, '_, '_, '_, '_, '_>) -> Self {
+impl<'me> From<&DepositStakeAccounts<'me, '_, '_, '_, '_, '_>> for DepositStakeKeys {
+    fn from(accounts: &DepositStakeAccounts<'me, '_, '_, '_, '_, '_>) -> Self {
         Self {
-            payer: *accounts.payer.key,
             user: *accounts.user.key,
             stake_account: *accounts.stake_account.key,
             dest_token_to: *accounts.dest_token_to.key,
@@ -672,7 +659,6 @@ impl<'me> From<&DepositStakeAccounts<'me, '_, '_, '_, '_, '_, '_>> for DepositSt
 impl From<&DepositStakeKeys> for [AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] {
     fn from(keys: &DepositStakeKeys) -> Self {
         [
-            AccountMeta::new(keys.payer, true),
             AccountMeta::new_readonly(keys.user, true),
             AccountMeta::new(keys.stake_account, false),
             AccountMeta::new(keys.dest_token_to, false),
@@ -681,12 +667,11 @@ impl From<&DepositStakeKeys> for [AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] {
         ]
     }
 }
-impl<'a> From<&DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>>
+impl<'a> From<&DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
     for [AccountInfo<'a>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
+    fn from(accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a>) -> Self {
         [
-            accounts.payer.clone(),
             accounts.user.clone(),
             accounts.stake_account.clone(),
             accounts.dest_token_to.clone(),
@@ -726,7 +711,7 @@ pub fn deposit_stake_ix<K: Into<DepositStakeKeys>, A: Into<DepositStakeIxArgs>>(
     })
 }
 pub fn deposit_stake_invoke<'a, A: Into<DepositStakeIxArgs>>(
-    accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>,
+    accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a>,
     args: A,
 ) -> ProgramResult {
     let ix = deposit_stake_ix(accounts, args)?;
@@ -734,7 +719,7 @@ pub fn deposit_stake_invoke<'a, A: Into<DepositStakeIxArgs>>(
     invoke(&ix, &account_info)
 }
 pub fn deposit_stake_invoke_signed<'a, A: Into<DepositStakeIxArgs>>(
-    accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>,
+    accounts: &DepositStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a>,
     args: A,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
