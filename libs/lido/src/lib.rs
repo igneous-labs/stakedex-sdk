@@ -8,7 +8,7 @@ use solana_program::{
 };
 pub use stakedex_traits::*;
 
-pub const LIDO_LABEL: &str = "lido";
+pub const LIDO_LABEL: &str = "Lido";
 
 // Because ListHeader::LEN is private
 pub const LIST_HEADER_LEN: usize =

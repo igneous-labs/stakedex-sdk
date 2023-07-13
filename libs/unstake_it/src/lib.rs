@@ -8,4 +8,4 @@ pub use pda::*;
 pub use rational::*;
 pub use stakedex_traits::*;
 
-pub const UNSTAKE_IT_LABEL: &str = "unstake.it";
+pub const UNSTAKE_IT_LABEL: &str = "Unstake.it";

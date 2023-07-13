@@ -44,6 +44,13 @@ macro_rules! match_stakedexes {
     };
 }
 
+#[macro_export]
+macro_rules! match_same_stakedex {
+    ( $Variant:ident) => {
+        (Stakedex::$Variant(_), Stakedex::$Variant(_))
+    };
+}
+
 #[derive(Clone, Default)]
 pub struct Stakedex {
     cogent: SplStakePoolStakedex,
@@ -644,9 +651,12 @@ impl Stakedex {
                         clock: Clock::default(),
                     }));
                 }
-                _ => {
-                    // Should we handle same Stakedex (impossible) only to catch missing match branch?
-                }
+                match_stakedexes!(Marinade, UnstakeIt, _, _) => (), // Cannot do anything with those two
+                match_same_stakedex!(Socean)
+                | match_same_stakedex!(Eversol)
+                | match_same_stakedex!(UnstakeIt)
+                | match_same_stakedex!(Marinade)
+                | match_same_stakedex!(Lido) => (), // Invalid if found
             }
         }
 

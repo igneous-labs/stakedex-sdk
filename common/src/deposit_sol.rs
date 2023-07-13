@@ -144,6 +144,10 @@ where
     }
 
     fn program_id(&self) -> Pubkey {
-        todo!()
+        stakedex_interface::ID
+    }
+
+    fn unidirectional(&self) -> bool {
+        true
     }
 }
