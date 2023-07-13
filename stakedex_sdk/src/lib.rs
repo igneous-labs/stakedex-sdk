@@ -18,6 +18,8 @@ use stakedex_sdk_common::{
     lainesol, lido_state, marinade_state, msol, quote_pool_pair, scnsol, socean_stake_pool,
     solblaze_stake_pool, stsol, BaseStakePoolAmm, DepositSol, DepositStake, DepositStakeInfo,
     DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
+    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
@@ -357,6 +359,14 @@ impl Stakedex {
                 },
             },
         )?;
+        for mint_idx in [
+            SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+            SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
+        ] {
+            if ix.accounts[mint_idx].pubkey == native_mint::ID {
+                ix.accounts[mint_idx].is_writable = false;
+            }
+        }
         let withdraw_from_virtual_ix = withdraw_from.virtual_ix(&withdraw_quote)?;
         ix.accounts.extend(withdraw_from_virtual_ix.accounts);
         let deposit_to_virtual_ix = deposit_to.virtual_ix(&deposit_quote, &deposit_stake_info)?;
@@ -467,6 +477,9 @@ impl Stakedex {
                 addr: stake_account,
             },
         )?;
+        if ix.accounts[DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX].pubkey == native_mint::ID {
+            ix.accounts[DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX].is_writable = false;
+        }
         ix.accounts.extend(deposit_to_virtual_ix.accounts);
         Ok(ix)
     }

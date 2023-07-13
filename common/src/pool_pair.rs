@@ -7,12 +7,14 @@ use rust_decimal::{
     Decimal,
 };
 use solana_program::{clock::Clock, instruction::AccountMeta, pubkey::Pubkey, sysvar};
+use spl_token::native_mint;
 use stakedex_interface::{SwapViaStakeKeys, SWAP_VIA_STAKE_IX_ACCOUNTS_LEN};
 
 use crate::{
     account_missing_err, apply_global_fee, find_bridge_stake, find_fee_token_acc,
     find_stake_pool_pair_amm_key, DepositStake, DepositStakeInfo, DepositStakeQuote,
     SwapViaStakeQuoteErr, WithdrawStake, WithdrawStakeQuote,
+    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 
 pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
@@ -104,6 +106,14 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
             bridge_stake,
         },
     ));
+    for mint_idx in [
+        SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+        SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
+    ] {
+        if metas[mint_idx].pubkey == native_mint::ID {
+            metas[mint_idx].is_writable = false;
+        }
+    }
     let withdraw_stake_virtual_ix = withdraw_from.virtual_ix(&withdraw_quote)?;
     metas.extend(withdraw_stake_virtual_ix.accounts);
     let deposit_stake_virtual_ix = deposit_to.virtual_ix(&deposit_quote, &deposit_stake_info)?;
