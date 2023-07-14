@@ -8,6 +8,7 @@ use solana_sdk::{
 };
 use spl_token::native_mint;
 use stakedex_eversol_stake_pool::EversolStakePoolStakedex;
+pub use stakedex_interface::ID as stakedex_program_id;
 use stakedex_interface::{
     DepositStakeIxArgs, DepositStakeKeys, StakeWrappedSolArgs, StakeWrappedSolIxArgs,
     StakeWrappedSolKeys, SwapViaStakeArgs, SwapViaStakeIxArgs, SwapViaStakeKeys,
