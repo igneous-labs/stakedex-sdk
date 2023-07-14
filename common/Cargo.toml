@@ -6,9 +6,10 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 bincode = { workspace = true }
-jupiter-core = { workspace = true }
+jupiter-amm-interface = { workspace = true }
 rust_decimal = "^1.0"
 solana-program = { workspace = true }
+solana-sdk = { workspace = true }
 spl-token = { workspace = true }
 stakedex_deposit_sol_interface = { workspace = true }
 stakedex_interface = { workspace = true }

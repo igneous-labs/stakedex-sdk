@@ -1,10 +1,14 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
-use jupiter_core::amm::{KeyedAccount, Quote, QuoteParams, SwapParams};
-use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
+use itertools::Itertools;
+use jupiter_amm_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
+use solana_sdk::{
+    account::Account, clock::Clock, instruction::Instruction, pubkey::Pubkey, system_program,
+};
 use spl_token::native_mint;
 use stakedex_eversol_stake_pool::EversolStakePoolStakedex;
+pub use stakedex_interface::ID as stakedex_program_id;
 use stakedex_interface::{
     DepositStakeIxArgs, DepositStakeKeys, StakeWrappedSolArgs, StakeWrappedSolIxArgs,
     StakeWrappedSolKeys, SwapViaStakeArgs, SwapViaStakeIxArgs, SwapViaStakeKeys,
@@ -16,10 +20,10 @@ use stakedex_sdk_common::{
     eversol_stake_pool, find_bridge_stake, find_fee_token_acc, find_sol_bridge_out,
     first_avail_quote, jito_stake_pool, jitosol, jpool_stake_pool, jsol, laine_stake_pool,
     lainesol, lido_state, marinade_state, msol, quote_pool_pair, scnsol, socean_stake_pool,
-    solblaze_stake_pool, stsol, BaseStakePoolAmm, DepositSol, DepositStake, DepositStakeInfo,
-    DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
-    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    solblaze_stake_pool, stsol, BaseStakePoolAmm, DepositSol, DepositSolWrapper, DepositStake,
+    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, OneWayPoolPair, TwoWayPoolPair,
+    WithdrawStake, WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
@@ -32,6 +36,21 @@ pub const N_DEPOSIT_SOL_POOLS: usize = 10;
 pub const N_DEPOSIT_STAKE_POOLS: usize = 10;
 
 pub const N_WITHDRAW_STAKE_POOLS: usize = 9;
+
+#[macro_export]
+macro_rules! match_stakedexes {
+    ( $Variant1:ident, $Variant2:ident, $first:pat, $second:pat ) => {
+        (Stakedex::$Variant1($first), Stakedex::$Variant2($second))
+            | (Stakedex::$Variant2($second), Stakedex::$Variant1($first))
+    };
+}
+
+#[macro_export]
+macro_rules! match_same_stakedex {
+    ( $Variant:ident) => {
+        (Stakedex::$Variant(_), Stakedex::$Variant(_))
+    };
+}
 
 #[derive(Clone, Default)]
 pub struct Stakedex {
@@ -195,10 +214,10 @@ impl Stakedex {
     }
 
     /// Note: consumes accounts_map
-    pub fn update(&mut self, accounts_map: HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
+    pub fn update(&mut self, account_map: HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
         // unstake.it special-case: required reinitialization to save sol_reserves_lamports correctly
         let maybe_unstake_it_init_err = match init_from_keyed_account(
-            &accounts_map,
+            &account_map,
             &stakedex_unstake_it::find_pool_sol_reserves().0,
         ) {
             Ok(unstakeit) => {
@@ -208,27 +227,19 @@ impl Stakedex {
             Err(e) => Some(e),
         };
 
-        let accounts_data_map = accounts_map
-            .into_iter()
-            .map(|(pubkey, acc)| (pubkey, acc.data))
-            .collect();
-
-        let mut errs = self.update_data(&accounts_data_map);
+        let mut errs = self.update_data(&account_map);
         if let Some(e) = maybe_unstake_it_init_err {
             errs.push(e);
         }
         errs
     }
 
-    pub fn update_data(
-        &mut self,
-        accounts_data_map: &HashMap<Pubkey, Vec<u8>>,
-    ) -> Vec<anyhow::Error> {
+    pub fn update_data(&mut self, account_map: &AccountMap) -> Vec<anyhow::Error> {
         // So that other pools are still updated even if some pools fail to update
         self.all_pools_mut()
             .iter_mut()
             .fold(Vec::new(), |mut vec, p| {
-                if let Err(e) = p.update(accounts_data_map) {
+                if let Err(e) = p.update(account_map) {
                     vec.push(e);
                 }
                 vec
@@ -482,5 +493,179 @@ impl Stakedex {
         }
         ix.accounts.extend(deposit_to_virtual_ix.accounts);
         Ok(ix)
+    }
+
+    /// Creates all possible Amms from the underlying available Stakedexes
+    pub fn get_amms(&self) -> Vec<Box<dyn Amm + Send + Sync>> {
+        #[derive(Clone)]
+        enum Stakedex {
+            SplStakePool(SplStakePoolStakedex),
+            Socean(SoceanStakePoolStakedex),
+            Eversol(EversolStakePoolStakedex),
+            UnstakeIt(UnstakeItStakedex),
+            Marinade(MarinadeStakedex),
+            Lido(LidoStakedex),
+        }
+
+        let stakedexes = vec![
+            Stakedex::SplStakePool(self.cogent.clone()),
+            Stakedex::SplStakePool(self.daopool.clone()),
+            Stakedex::SplStakePool(self.jito.clone()),
+            Stakedex::SplStakePool(self.jpool.clone()),
+            Stakedex::SplStakePool(self.laine.clone()),
+            Stakedex::SplStakePool(self.solblaze.clone()),
+            Stakedex::Socean(self.socean.clone()),
+            Stakedex::Eversol(self.eversol.clone()),
+            Stakedex::UnstakeIt(self.unstakeit.clone()),
+            Stakedex::Marinade(self.marinade.clone()),
+            Stakedex::Lido(self.lido.clone()),
+        ];
+
+        let mut amms: Vec<Box<dyn Amm + Send + Sync>> = Vec::new();
+        for stakedex in stakedexes.iter() {
+            match stakedex {
+                Stakedex::SplStakePool(spl_stake_pool) => {
+                    amms.push(Box::new(DepositSolWrapper(spl_stake_pool.clone())))
+                }
+                Stakedex::Socean(socean) => amms.push(Box::new(DepositSolWrapper(socean.clone()))),
+                Stakedex::Eversol(eversol) => {
+                    amms.push(Box::new(DepositSolWrapper(eversol.clone())))
+                }
+                Stakedex::UnstakeIt(_) => (),
+                Stakedex::Marinade(marinade) => {
+                    amms.push(Box::new(DepositSolWrapper(marinade.clone())))
+                }
+                Stakedex::Lido(lido) => amms.push(Box::new(DepositSolWrapper(lido.clone()))),
+            }
+        }
+
+        // SplStakePool WithdrawStake + DepositStake
+        // Socean WithdrawStake + DepositStake
+        // Eversol WithdrawStake + DepositStake
+        // UnstakeIt DepositStake
+        // Marinade DepositStake
+        // Lido WithdrawStake
+        for (first_stakedex, second_stakedex) in stakedexes.into_iter().tuple_combinations() {
+            match (first_stakedex, second_stakedex) {
+                (Stakedex::SplStakePool(p1), Stakedex::SplStakePool(p2)) => {
+                    amms.push(Box::new(TwoWayPoolPair {
+                        p1,
+                        p2,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(SplStakePool, Socean, p1, p2) => {
+                    amms.push(Box::new(TwoWayPoolPair {
+                        p1,
+                        p2,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(SplStakePool, Eversol, p1, p2) => {
+                    amms.push(Box::new(TwoWayPoolPair {
+                        p1,
+                        p2,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(SplStakePool, Marinade, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(SplStakePool, UnstakeIt, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Socean, Eversol, p1, p2) => {
+                    amms.push(Box::new(TwoWayPoolPair {
+                        p1,
+                        p2,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Socean, UnstakeIt, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Socean, Marinade, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Eversol, UnstakeIt, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Eversol, Marinade, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Lido, SplStakePool, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Lido, Socean, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Lido, Eversol, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Lido, UnstakeIt, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Lido, Marinade, withdraw, deposit) => {
+                    amms.push(Box::new(OneWayPoolPair {
+                        withdraw,
+                        deposit,
+                        clock: Clock::default(),
+                    }));
+                }
+                match_stakedexes!(Marinade, UnstakeIt, _, _) => (), // Cannot do anything with those two
+                match_same_stakedex!(Socean)
+                | match_same_stakedex!(Eversol)
+                | match_same_stakedex!(UnstakeIt)
+                | match_same_stakedex!(Marinade)
+                | match_same_stakedex!(Lido) => (), // Invalid if found
+            }
+        }
+
+        println!(
+            "StakeDex amms: {:?}",
+            amms.iter().map(|amm| amm.label()).collect::<Vec<_>>()
+        );
+
+        amms
     }
 }

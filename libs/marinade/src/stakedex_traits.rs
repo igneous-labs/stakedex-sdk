@@ -1,5 +1,4 @@
 use anyhow::Result;
-use jupiter_core::amm::KeyedAccount;
 use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
 use stakedex_deposit_sol_interface::{
     marinade_deposit_sol_ix, MarinadeDepositSolIxArgs, MarinadeDepositSolKeys,
@@ -8,11 +7,11 @@ use stakedex_deposit_stake_interface::{
     marinade_deposit_stake_ix, MarinadeDepositStakeIxArgs, MarinadeDepositStakeKeys,
 };
 use stakedex_sdk_common::{
-    account_missing_err, marinade_program, marinade_state, msol, BaseStakePoolAmm, DepositSol,
-    DepositSolQuote, DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount,
-    WithdrawStakeQuote,
+    account_missing_err,
+    jupiter_stakedex_interface::{AccountMap, KeyedAccount},
+    marinade_program, marinade_state, msol, BaseStakePoolAmm, DepositSol, DepositSolQuote,
+    DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStakeQuote,
 };
-use std::collections::HashMap;
 
 use crate::{
     liq_pool::LiqPoolWrapper, state::StateWrapper, validator_system::ValidatorRecordWrapper,
@@ -50,16 +49,20 @@ impl BaseStakePoolAmm for MarinadeStakedex {
         ]
     }
 
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+    fn update(&mut self, accounts_map: &AccountMap) -> Result<()> {
         let state_data = accounts_map
             .get(&marinade_state::ID)
-            .ok_or_else(|| account_missing_err(&marinade_state::ID))?;
+            .ok_or_else(|| account_missing_err(&marinade_state::ID))?
+            .data
+            .as_ref();
         self.update_state(state_data)?;
         let validator_records_data = accounts_map
             .get(&self.state.validator_system.validator_list.account)
             .ok_or_else(|| {
                 account_missing_err(&self.state.validator_system.validator_list.account)
-            })?;
+            })?
+            .data
+            .as_ref();
         self.update_validator_records(validator_records_data)?;
         Ok(())
     }

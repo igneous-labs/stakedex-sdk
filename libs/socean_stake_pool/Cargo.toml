@@ -9,7 +9,6 @@ edition = "2021"
 anyhow = { workspace = true }
 bincode = { workspace = true }
 borsh = { workspace = true }
-jupiter-core = { workspace = true }
 solana-program = { workspace = true }
 
 spl-stake-pool = "^0.6.4"

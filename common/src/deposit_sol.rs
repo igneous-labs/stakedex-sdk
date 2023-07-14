@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
-use jupiter_core::amm::{Amm, Quote, QuoteParams, SwapLegAndAccountMetas, SwapParams};
+use jupiter_amm_interface::{
+    Amm, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas, SwapParams,
+};
 use rust_decimal::{
     prelude::{FromPrimitive, Zero},
     Decimal,
@@ -11,11 +13,14 @@ use solana_program::{
     pubkey::Pubkey,
     system_program,
 };
+use solana_sdk::account::Account;
 use spl_token::native_mint;
 use stakedex_interface::{StakeWrappedSolKeys, STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN};
 
 use crate::{
     fees::apply_global_fee,
+    init_from_keyed_account::InitFromKeyedAccount,
+    jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META,
     pda::{
         cws_wsol_bridge_in, find_deposit_stake_amm_key, find_fee_token_acc, find_sol_bridge_out,
     },
@@ -65,8 +70,12 @@ pub struct DepositSolWrapper<T: DepositSol + Clone + Send + Sync + 'static>(pub 
 
 impl<T> Amm for DepositSolWrapper<T>
 where
-    T: DepositSol + Clone + Send + Sync,
+    T: DepositSol + InitFromKeyedAccount + Clone + Send + Sync,
 {
+    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
+        T::from_keyed_account(keyed_account).map(|t| Self(t))
+    }
+
     fn label(&self) -> String {
         format!("{} (StakeDex)", self.0.stake_pool_label())
     }
@@ -85,7 +94,7 @@ where
         self.0.get_accounts_to_update()
     }
 
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+    fn update(&mut self, accounts_map: &HashMap<Pubkey, Account>) -> Result<()> {
         self.0.update(accounts_map)
     }
 
@@ -104,12 +113,10 @@ where
         Ok(quote)
     }
 
-    fn get_swap_leg_and_account_metas(
-        &self,
-        swap_params: &SwapParams,
-    ) -> Result<SwapLegAndAccountMetas> {
+    fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
         let (sol_bridge_out, _) = find_sol_bridge_out();
-        let mut metas = Vec::from(<[AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]>::from(
+        let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
+        account_metas.extend(<[AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]>::from(
             &StakeWrappedSolKeys {
                 user: swap_params.user_transfer_authority,
                 wsol_from: swap_params.user_source_token_account,
@@ -124,12 +131,23 @@ where
             },
         ));
         let deposit_sol_virtual_ix = self.0.virtual_ix()?;
-        metas.extend(deposit_sol_virtual_ix.accounts);
-        // TODO: jupiter overrides
-        Err(anyhow!("UNIMPLEMENTED"))
+        account_metas.extend(deposit_sol_virtual_ix.accounts);
+        account_metas.push(swap_params.placeholder_account_meta());
+        Ok(SwapAndAccountMetas {
+            swap: Swap::StakeDexStakeWrappedSol,
+            account_metas,
+        })
     }
 
     fn clone_amm(&self) -> Box<dyn Amm + Send + Sync> {
         Box::new(self.clone())
+    }
+
+    fn program_id(&self) -> Pubkey {
+        stakedex_interface::ID
+    }
+
+    fn unidirectional(&self) -> bool {
+        true
     }
 }

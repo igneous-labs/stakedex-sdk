@@ -11,7 +11,7 @@ members = [
 anyhow = "^1.0"
 bincode = "^1.0"
 borsh = "^0.9"
-jupiter-core = { git = "https://github.com/jup-ag/rust-amm-implementation", rev = "8e360617"}
+jupiter-amm-interface = "~0.1.1"
 lazy_static = "^1.0"
 solana-client = "^1.9"
 solana-program = "^1.9"

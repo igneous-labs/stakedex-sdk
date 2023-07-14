@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, Result};
-use jupiter_core::amm::{Amm, Quote, QuoteParams, SwapLegAndAccountMetas, SwapParams};
+use jupiter_amm_interface::{
+    AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapAndAccountMetas, SwapParams,
+};
 use rust_decimal::{
     prelude::{FromPrimitive, Zero},
     Decimal,
@@ -12,9 +12,11 @@ use stakedex_interface::{SwapViaStakeKeys, SWAP_VIA_STAKE_IX_ACCOUNTS_LEN};
 
 use crate::{
     account_missing_err, apply_global_fee, find_bridge_stake, find_fee_token_acc,
-    find_stake_pool_pair_amm_key, DepositStake, DepositStakeInfo, DepositStakeQuote,
-    SwapViaStakeQuoteErr, WithdrawStake, WithdrawStakeQuote,
-    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    find_stake_pool_pair_amm_key,
+    jupiter_stakedex_interface::{Swap, STAKEDEX_ACCOUNT_META},
+    DepositStake, DepositStakeInfo, DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake,
+    WithdrawStakeQuote, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 
 pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
@@ -136,6 +138,10 @@ where
     W: WithdrawStake + Clone + Send + Sync,
     D: DepositStake + Clone + Send + Sync,
 {
+    fn from_keyed_account(_keyed_account: &KeyedAccount) -> Result<Self> {
+        todo!() // TODO: Assess this code smell
+    }
+
     fn label(&self) -> String {
         format!(
             "{}+{} (StakeDex)",
@@ -168,14 +174,14 @@ where
         .concat()
     }
 
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+    fn update(&mut self, account_map: &AccountMap) -> Result<()> {
         // TODO: not sure if should short-circuit and early return if first update() fails
-        let rw = self.withdraw.update(accounts_map);
-        let rd = self.deposit.update(accounts_map);
-        let rc = accounts_map
+        let rw = self.withdraw.update(account_map);
+        let rd = self.deposit.update(account_map);
+        let rc = account_map
             .get(&sysvar::clock::ID)
             .ok_or_else(|| account_missing_err(&sysvar::clock::ID))
-            .map_or_else(Err, |acc| Ok(bincode::deserialize(acc)?))
+            .map_or_else(Err, |acc| Ok(bincode::deserialize(&acc.data)?))
             .map(|new_clock| self.clock = new_clock);
         rw.and(rd).and(rc)
     }
@@ -184,32 +190,42 @@ where
         if quote_params.input_mint != self.withdraw.staked_sol_mint()
             || quote_params.output_mint != self.deposit.staked_sol_mint()
         {
-            return Err(anyhow!(
+            Err(anyhow!(
                 "Cannot handle {} -> {}",
                 quote_params.input_mint,
                 quote_params.output_mint
-            ));
+            ))
+        } else {
+            quote_pool_pair(quote_params, &self.withdraw, &self.deposit)
         }
-        quote_pool_pair(quote_params, &self.withdraw, &self.deposit)
     }
 
-    fn get_swap_leg_and_account_metas(
-        &self,
-        swap_params: &SwapParams,
-    ) -> Result<jupiter_core::amm::SwapLegAndAccountMetas> {
+    fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
         let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
-        let _metas = get_account_metas(
+        let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
+        account_metas.extend(get_account_metas(
             swap_params,
             &self.withdraw,
             &self.deposit,
             bridge_stake_seed,
-        )?;
-        // TODO: jupiter overrides
-        Err(anyhow!("UNIMPLEMENTED"))
+        )?);
+        account_metas.push(swap_params.placeholder_account_meta());
+        Ok(SwapAndAccountMetas {
+            swap: Swap::StakeDexSwapViaStake { bridge_stake_seed },
+            account_metas,
+        })
     }
 
     fn clone_amm(&self) -> Box<dyn Amm + Send + Sync> {
         Box::new(self.clone())
+    }
+
+    fn program_id(&self) -> Pubkey {
+        stakedex_interface::ID
+    }
+
+    fn unidirectional(&self) -> bool {
+        true
     }
 }
 
@@ -228,6 +244,10 @@ where
     P1: DepositStake + WithdrawStake + Clone + Send + Sync,
     P2: DepositStake + WithdrawStake + Clone + Send + Sync,
 {
+    fn from_keyed_account(_keyed_account: &KeyedAccount) -> Result<Self> {
+        panic!(); // TODO: Assess this code smell
+    }
+
     fn label(&self) -> String {
         format!(
             "{}+{} (StakeDex)",
@@ -253,14 +273,14 @@ where
         .concat()
     }
 
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+    fn update(&mut self, account_map: &AccountMap) -> Result<()> {
         // TODO: not sure if should short-circuit and early return if first update() fails
-        let r1 = self.p1.update(accounts_map);
-        let r2 = self.p2.update(accounts_map);
-        let rc = accounts_map
+        let r1 = self.p1.update(account_map);
+        let r2 = self.p2.update(account_map);
+        let rc = account_map
             .get(&sysvar::clock::ID)
             .ok_or_else(|| account_missing_err(&sysvar::clock::ID))
-            .map_or_else(Err, |acc| Ok(bincode::deserialize(acc)?))
+            .map_or_else(Err, |acc| Ok(bincode::deserialize(&acc.data)?))
             .map(|new_clock| self.clock = new_clock);
         r1.and(r2).and(rc)
     }
@@ -269,25 +289,24 @@ where
         if quote_params.input_mint == self.p1.staked_sol_mint()
             && quote_params.output_mint == self.p2.staked_sol_mint()
         {
-            return quote_pool_pair(quote_params, &self.p1, &self.p2);
+            quote_pool_pair(quote_params, &self.p1, &self.p2)
         } else if quote_params.input_mint == self.p2.staked_sol_mint()
             && quote_params.output_mint == self.p1.staked_sol_mint()
         {
-            return quote_pool_pair(quote_params, &self.p2, &self.p1);
+            quote_pool_pair(quote_params, &self.p2, &self.p1)
+        } else {
+            Err(anyhow!(
+                "Cannot handle {} -> {}",
+                quote_params.input_mint,
+                quote_params.output_mint
+            ))
         }
-        Err(anyhow!(
-            "Cannot handle {} -> {}",
-            quote_params.input_mint,
-            quote_params.output_mint
-        ))
     }
 
-    fn get_swap_leg_and_account_metas(
-        &self,
-        swap_params: &SwapParams,
-    ) -> Result<SwapLegAndAccountMetas> {
+    fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
         let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
-        let _metas = if swap_params.source_mint == self.p1.staked_sol_mint()
+        let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
+        let other_account_metas = if swap_params.source_mint == self.p1.staked_sol_mint()
             && swap_params.destination_mint == self.p2.staked_sol_mint()
         {
             get_account_metas(swap_params, &self.p1, &self.p2, bridge_stake_seed)?
@@ -302,11 +321,19 @@ where
                 swap_params.destination_mint
             ));
         };
-        // TODO: jupiter overrides
-        Err(anyhow!("UNIMPLEMENTED"))
+        account_metas.extend(other_account_metas);
+        account_metas.push(swap_params.placeholder_account_meta());
+        Ok(SwapAndAccountMetas {
+            swap: Swap::StakeDexSwapViaStake { bridge_stake_seed },
+            account_metas,
+        })
     }
 
     fn clone_amm(&self) -> Box<dyn Amm + Send + Sync> {
         Box::new(self.clone())
+    }
+
+    fn program_id(&self) -> Pubkey {
+        stakedex_interface::ID
     }
 }

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::collections::HashMap;
+use jupiter_amm_interface::AccountMap;
 
 use solana_program::pubkey::Pubkey;
 
@@ -14,5 +14,5 @@ pub trait BaseStakePoolAmm {
 
     fn get_accounts_to_update(&self) -> Vec<Pubkey>;
 
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()>;
+    fn update(&mut self, account_map: &AccountMap) -> Result<()>;
 }

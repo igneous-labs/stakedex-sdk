@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jupiter_core::amm::Quote;
+use jupiter_amm_interface::Quote;
 use rust_decimal::{
     prelude::{FromPrimitive, Zero},
     Decimal,

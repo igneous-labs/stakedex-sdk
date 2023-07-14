@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use jupiter_core::amm::KeyedAccount;
 use lido::{
     processor::StakeType,
     token::{Lamports, Rational, StLamports},
@@ -13,14 +12,15 @@ use stakedex_deposit_sol_interface::{
     lido_deposit_sol_ix, LidoDepositSolIxArgs, LidoDepositSolKeys,
 };
 use stakedex_sdk_common::{
-    account_missing_err, lido_program, lido_state, stsol, BaseStakePoolAmm, DepositSol,
-    DepositSolQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
-    STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    account_missing_err,
+    jupiter_stakedex_interface::{AccountMap, KeyedAccount},
+    lido_program, lido_state, stsol, BaseStakePoolAmm, DepositSol, DepositSolQuote,
+    InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
     lido_withdraw_stake_ix, LidoWithdrawStakeIxArgs, LidoWithdrawStakeKeys,
 };
-use std::{collections::HashMap, ops::Add};
+use std::ops::Add;
 
 use crate::{LidoStakedex, LIDO_LABEL};
 
@@ -56,18 +56,24 @@ impl BaseStakePoolAmm for LidoStakedex {
         ]
     }
 
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Vec<u8>>) -> Result<()> {
+    fn update(&mut self, accounts_map: &AccountMap) -> Result<()> {
         let state_data = accounts_map
             .get(&lido_state::ID)
-            .ok_or_else(|| account_missing_err(&lido_state::ID))?;
+            .ok_or_else(|| account_missing_err(&lido_state::ID))?
+            .data
+            .as_ref();
         self.update_lido_state(state_data)?;
         let validator_list_data = accounts_map
             .get(&self.lido_state.validator_list)
-            .ok_or_else(|| account_missing_err(&self.lido_state.validator_list))?;
+            .ok_or_else(|| account_missing_err(&self.lido_state.validator_list))?
+            .data
+            .as_ref();
         self.update_validator_list(validator_list_data)?;
         let clock_data = accounts_map
             .get(&sysvar::clock::ID)
-            .ok_or_else(|| account_missing_err(&sysvar::clock::ID))?;
+            .ok_or_else(|| account_missing_err(&sysvar::clock::ID))?
+            .data
+            .as_ref();
         self.update_curr_epoch(clock_data)?;
         Ok(())
     }

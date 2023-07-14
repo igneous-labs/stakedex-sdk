@@ -1,4 +1,4 @@
-use jupiter_core::amm::QuoteParams;
+use jupiter_amm_interface::QuoteParams;
 use lazy_static::lazy_static;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{account::Account, pubkey::Pubkey};
