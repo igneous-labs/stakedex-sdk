@@ -13,7 +13,7 @@ use stakedex_interface::{SwapViaStakeKeys, SWAP_VIA_STAKE_IX_ACCOUNTS_LEN};
 use crate::{
     account_missing_err, apply_global_fee, find_bridge_stake, find_fee_token_acc,
     find_stake_pool_pair_amm_key,
-    jupiter_stakedex_interface::{Swap, JUPITER_ACCOUNT_META, STAKEDEX_ACCOUNT_META},
+    jupiter_stakedex_interface::{Swap, STAKEDEX_ACCOUNT_META},
     DepositStake, DepositStakeInfo, DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake,
     WithdrawStakeQuote, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
     SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
@@ -209,7 +209,7 @@ where
             &self.deposit,
             bridge_stake_seed,
         )?);
-        account_metas.push(JUPITER_ACCOUNT_META);
+        account_metas.push(swap_params.placeholder_account_meta());
         Ok(SwapAndAccountMetas {
             swap: Swap::StakeDexSwapViaStake { bridge_stake_seed },
             account_metas,
@@ -322,7 +322,7 @@ where
             ));
         };
         account_metas.extend(other_account_metas);
-        account_metas.push(JUPITER_ACCOUNT_META);
+        account_metas.push(swap_params.placeholder_account_meta());
         Ok(SwapAndAccountMetas {
             swap: Swap::StakeDexSwapViaStake { bridge_stake_seed },
             account_metas,

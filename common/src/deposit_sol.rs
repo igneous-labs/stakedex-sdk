@@ -20,7 +20,7 @@ use stakedex_interface::{StakeWrappedSolKeys, STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN}
 use crate::{
     fees::apply_global_fee,
     init_from_keyed_account::InitFromKeyedAccount,
-    jupiter_stakedex_interface::{JUPITER_ACCOUNT_META, STAKEDEX_ACCOUNT_META},
+    jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META,
     pda::{
         cws_wsol_bridge_in, find_deposit_stake_amm_key, find_fee_token_acc, find_sol_bridge_out,
     },
@@ -132,7 +132,7 @@ where
         ));
         let deposit_sol_virtual_ix = self.0.virtual_ix()?;
         account_metas.extend(deposit_sol_virtual_ix.accounts);
-        account_metas.push(JUPITER_ACCOUNT_META);
+        account_metas.push(swap_params.placeholder_account_meta());
         Ok(SwapAndAccountMetas {
             swap: Swap::StakeDexStakeWrappedSol,
             account_metas,
