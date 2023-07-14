@@ -215,13 +215,13 @@ impl BaseStakePoolAmm for EversolStakePoolStakedex {
             .ok_or_else(|| account_missing_err(&self.main_state_key()))?
             .data
             .as_ref();
-        self.update_stake_pool(&stake_pool_data)?;
+        self.update_stake_pool(stake_pool_data)?;
         let validator_list_data = accounts_map
             .get(&self.stake_pool.validator_list)
             .ok_or_else(|| account_missing_err(&self.stake_pool.validator_list))?
             .data
             .as_ref();
-        self.update_validator_list(&validator_list_data)?;
+        self.update_validator_list(validator_list_data)?;
         let clock_data = accounts_map
             .get(&sysvar::clock::ID)
             .ok_or_else(|| account_missing_err(&sysvar::clock::ID))?

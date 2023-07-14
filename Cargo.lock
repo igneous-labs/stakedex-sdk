@@ -3835,8 +3835,6 @@ dependencies = [
  "bincode",
  "jupiter-amm-interface",
  "rust_decimal",
- "serde",
- "serde_json",
  "solana-program",
  "solana-sdk",
  "spl-token 3.5.0",
