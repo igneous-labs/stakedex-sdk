@@ -5,6 +5,7 @@ use spl_stake_pool::{
 };
 use stakedex_deposit_stake_interface::{
     spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeKeys,
+    SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
 };
 use stakedex_sdk_common::{DepositStake, DepositStakeInfo, DepositStakeQuote, WithdrawStakeQuote};
 
@@ -113,8 +114,13 @@ impl DepositStake for SplStakePoolStakedex {
         quote: &DepositStakeQuote,
         _deposit_stake_info: &DepositStakeInfo,
     ) -> Result<Instruction> {
-        let deposit_stake_validator_stake =
-            find_stake_program_address(&spl_stake_pool::ID, &quote.voter, &self.stake_pool_addr).0;
+        let deposit_stake_validator_stake = find_stake_program_address(
+            &spl_stake_pool::ID,
+            &quote.voter,
+            &self.stake_pool_addr,
+            None,
+        )
+        .0;
         Ok(spl_stake_pool_deposit_stake_ix(
             SplStakePoolDepositStakeKeys {
                 spl_stake_pool_program: spl_stake_pool::ID,
@@ -131,5 +137,9 @@ impl DepositStake for SplStakePoolStakedex {
                 stake_program: stake::program::ID,
             },
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN
     }
 }

@@ -1,6 +1,8 @@
 use anyhow::Result;
 use solana_program::instruction::Instruction;
-use stakedex_deposit_sol_interface::{marinade_deposit_sol_ix, MarinadeDepositSolKeys};
+use stakedex_deposit_sol_interface::{
+    marinade_deposit_sol_ix, MarinadeDepositSolKeys, MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN,
+};
 use stakedex_sdk_common::{marinade_program, marinade_state, DepositSol, DepositSolQuote};
 
 use crate::{state::StateWrapper, MarinadeStakedex};
@@ -31,5 +33,9 @@ impl DepositSol for MarinadeStakedex {
             marinade_liq_pool_msol_leg_auth: marinade_program::LIQ_POOL_MSOL_LEG_AUTHORITY_ID,
             marinade_liq_pool_sol_leg: marinade_program::LIQ_POOL_SOL_LEG_ID,
         })?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN
     }
 }

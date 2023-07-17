@@ -13,6 +13,7 @@ use stakedex_sdk_common::{
 use std::collections::HashMap;
 
 mod stakedex_traits;
+pub use spl_stake_pool::ID;
 pub use stakedex_traits::*;
 
 lazy_static! {
@@ -90,7 +91,7 @@ impl SplStakePoolStakedex {
         // according to https://github.com/solana-labs/solana-program-library/blob/58c1226a513d3d8bb2de8ec67586a679be7fd2d4/stake-pool/program/src/state.rs#L536C1-L542
         // `active_stake_lamports` = delegation.stake - MIN_ACTIVE_STAKE_LAMPORTS.
         // Withdrawals must leave at least MIN_ACTIVE_STAKE_LAMPORTS active stake in vsa
-        if withdraw_lamports > validator_list_entry.active_stake_lamports {
+        if withdraw_lamports > u64::from(validator_list_entry.active_stake_lamports) {
             return Err(StakePoolError::InvalidState);
         }
         let lamports_staked = withdraw_lamports

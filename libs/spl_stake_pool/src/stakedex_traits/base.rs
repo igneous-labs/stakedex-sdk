@@ -28,6 +28,10 @@ impl InitFromKeyedAccount for SplStakePoolStakedex {
 }
 
 impl BaseStakePoolAmm for SplStakePoolStakedex {
+    fn program_id(&self) -> Pubkey {
+        spl_stake_pool::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         self.stake_pool_label
     }

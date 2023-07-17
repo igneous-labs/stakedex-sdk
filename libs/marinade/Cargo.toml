@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 borsh = { workspace = true }
-marinade_finance_interface = { git = "https://github.com/igneous-labs/marinade_finance_interface", rev = "d625979" }
+marinade_finance_interface = { git = "https://github.com/jup-ag/marinade_finance_interface", rev = "5747b5350c5505fc2ea597c3f8ae1f8cf71c363d" }
 solana-program = { workspace = true }
 spl-token = { workspace = true }
 stakedex_deposit_sol_interface = { workspace = true }

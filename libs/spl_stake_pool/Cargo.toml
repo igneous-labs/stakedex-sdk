@@ -11,7 +11,10 @@ bincode = { workspace = true }
 borsh = { workspace = true }
 lazy_static = "^1.0"
 solana-program = { workspace = true }
-spl-stake-pool = "^0.6.4"
+spl-stake-pool = { git = "https://github.com/solana-labs/solana-program-library.git", rev = "a3996814cb44eab2834f72113b742c875ac7b1b9", features = [
+    "no-entrypoint",
+] }
+# spl-stake-pool = "^0.6.4"
 spl-token = { workspace = true }
 stakedex_deposit_sol_interface = { workspace = true }
 stakedex_deposit_stake_interface = { workspace = true }

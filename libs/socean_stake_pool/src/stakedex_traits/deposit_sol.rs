@@ -3,6 +3,7 @@ use solana_program::{instruction::Instruction, sysvar};
 use spl_stake_pool::error::StakePoolError;
 use stakedex_deposit_sol_interface::{
     socean_stake_pool_deposit_sol_ix, SoceanStakePoolDepositSolKeys,
+    SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN,
 };
 use stakedex_sdk_common::{socean_program, socean_stake_pool, DepositSol, DepositSolQuote};
 
@@ -55,5 +56,9 @@ impl DepositSol for SoceanStakePoolStakedex {
                 stake_pool_reserve_stake: self.stake_pool.reserve_stake,
             },
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN
     }
 }

@@ -3,7 +3,7 @@ use solana_program::{pubkey::Pubkey, sysvar};
 use stakedex_sdk_common::{
     account_missing_err,
     jupiter_stakedex_interface::{AccountMap, KeyedAccount},
-    lido_state, stsol, BaseStakePoolAmm, InitFromKeyedAccount,
+    lido_program, lido_state, stsol, BaseStakePoolAmm, InitFromKeyedAccount,
 };
 
 use crate::{LidoStakedex, LIDO_LABEL};
@@ -20,6 +20,10 @@ impl InitFromKeyedAccount for LidoStakedex {
 }
 
 impl BaseStakePoolAmm for LidoStakedex {
+    fn program_id(&self) -> Pubkey {
+        lido_program::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         LIDO_LABEL
     }

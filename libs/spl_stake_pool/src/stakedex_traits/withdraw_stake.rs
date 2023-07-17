@@ -1,9 +1,10 @@
 use anyhow::Result;
-use solana_program::{instruction::Instruction, stake, system_program, sysvar};
+use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
 use spl_stake_pool::{find_stake_program_address, MINIMUM_ACTIVE_STAKE};
 use stakedex_sdk_common::{WithdrawStakeBase, WithdrawStakeIter, WithdrawStakeQuote};
 use stakedex_withdraw_stake_interface::{
     spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeKeys,
+    SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 
 use crate::SplStakePoolStakedex;
@@ -52,7 +53,7 @@ impl<'a> WithdrawStakeQuoteIter<'a> {
             .enumerate()
             .find(|(_, vsi)| vsi.vote_account_address == preferred_voter)?;
         // preferred cant service withdrawals, fallback to normal
-        if vsi.active_stake_lamports <= MINIMUM_ACTIVE_STAKE {
+        if u64::from(vsi.active_stake_lamports) <= MINIMUM_ACTIVE_STAKE {
             return Some((
                 WithdrawStakeQuote::default(),
                 WithdrawStakeQuoteIterState::Normal(0),
@@ -103,8 +104,13 @@ impl WithdrawStakeBase for SplStakePoolStakedex {
     }
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {
-        let withdraw_stake_stake_to_split =
-            find_stake_program_address(&spl_stake_pool::ID, &quote.voter, &self.stake_pool_addr).0;
+        let withdraw_stake_stake_to_split = find_stake_program_address(
+            &spl_stake_pool::ID,
+            &quote.voter,
+            &self.stake_pool_addr,
+            None,
+        )
+        .0;
         Ok(spl_stake_pool_withdraw_stake_ix(
             SplStakePoolWithdrawStakeKeys {
                 spl_stake_pool_program: spl_stake_pool::ID,
@@ -119,5 +125,13 @@ impl WithdrawStakeBase for SplStakePoolStakedex {
                 system_program: system_program::ID,
             },
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
+    }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&self.stake_pool_addr)
     }
 }

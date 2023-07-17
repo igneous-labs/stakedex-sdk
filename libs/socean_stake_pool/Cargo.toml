@@ -10,8 +10,11 @@ anyhow = { workspace = true }
 bincode = { workspace = true }
 borsh = { workspace = true }
 solana-program = { workspace = true }
+# spl-stake-pool = "^0.6.4"
 
-spl-stake-pool = "^0.6.4"
+spl-stake-pool = { git = "https://github.com/solana-labs/solana-program-library.git", rev = "a3996814cb44eab2834f72113b742c875ac7b1b9", features = [
+    "no-entrypoint",
+] }
 # { git = "https://github.com/igneous-labs/solana-program-library", branch = "release/v0.1"} incompatible with solana-program ^1.9
 
 spl-token = { workspace = true }

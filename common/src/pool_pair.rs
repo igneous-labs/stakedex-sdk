@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::{anyhow, Result};
 use jupiter_amm_interface::{
     AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapAndAccountMetas, SwapParams,
@@ -126,6 +128,21 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     Ok(metas)
 }
 
+fn prepare_underlying_liquidities(
+    underlying_liquidities: &[Option<&Pubkey>],
+) -> Option<HashSet<Pubkey>> {
+    let uls = HashSet::from_iter(
+        underlying_liquidities
+            .into_iter()
+            .filter_map(|ul| ul.cloned()),
+    );
+    if uls.len() > 0 {
+        Some(uls)
+    } else {
+        None
+    }
+}
+
 #[derive(Clone)]
 pub struct OneWayPoolPair<
     W: WithdrawStake + Clone + Send + Sync + 'static,
@@ -133,7 +150,27 @@ pub struct OneWayPoolPair<
 > {
     pub withdraw: W,
     pub deposit: D,
-    pub clock: Clock,
+    clock: Clock,
+    underlying_liquidities: Option<HashSet<Pubkey>>,
+}
+
+impl<W, D> OneWayPoolPair<W, D>
+where
+    W: WithdrawStake + Clone + Send + Sync,
+    D: DepositStake + Clone + Send + Sync,
+{
+    pub fn new(withdraw: W, deposit: D) -> Self {
+        let underlying_liquidities = prepare_underlying_liquidities(&[
+            withdraw.underlying_liquidity(),
+            deposit.underlying_liquidity(),
+        ]);
+        Self {
+            withdraw,
+            deposit,
+            clock: Clock::default(),
+            underlying_liquidities,
+        }
+    }
 }
 
 impl<W, D> Amm for OneWayPoolPair<W, D>
@@ -200,7 +237,7 @@ where
     }
 
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
-        let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
+        let bridge_stake_seed = rand::random();
         let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
         account_metas.extend(get_account_metas(
             swap_params,
@@ -226,6 +263,27 @@ where
     fn unidirectional(&self) -> bool {
         true
     }
+
+    fn get_accounts_len(&self) -> usize {
+        1 + self.withdraw.accounts_len() + self.deposit.accounts_len()
+    }
+
+    fn underlying_liquidities(&self) -> Option<HashSet<Pubkey>> {
+        self.underlying_liquidities.clone()
+    }
+
+    fn program_dependencies(&self) -> Vec<(Pubkey, String)> {
+        vec![
+            (
+                self.withdraw.program_id(),
+                self.withdraw.stake_pool_label().to_lowercase(),
+            ),
+            (
+                self.deposit.program_id(),
+                self.deposit.stake_pool_label().to_lowercase(),
+            ),
+        ]
+    }
 }
 
 #[derive(Clone)]
@@ -235,7 +293,29 @@ pub struct TwoWayPoolPair<
 > {
     pub p1: P1,
     pub p2: P2,
-    pub clock: Clock,
+    clock: Clock,
+    underlying_liquidities: Option<HashSet<Pubkey>>,
+}
+
+impl<P1, P2> TwoWayPoolPair<P1, P2>
+where
+    P1: DepositStake + WithdrawStake + Clone + Send + Sync,
+    P2: DepositStake + WithdrawStake + Clone + Send + Sync,
+{
+    pub fn new(p1: P1, p2: P2) -> Self {
+        let underlying_liquidities = prepare_underlying_liquidities(&[
+            DepositStake::underlying_liquidity(&p1),
+            <dyn WithdrawStake>::underlying_liquidity(&p1),
+            DepositStake::underlying_liquidity(&p2),
+            <dyn WithdrawStake>::underlying_liquidity(&p2),
+        ]);
+        Self {
+            p1,
+            p2,
+            clock: Clock::default(),
+            underlying_liquidities,
+        }
+    }
 }
 
 impl<P1, P2> Amm for TwoWayPoolPair<P1, P2>
@@ -299,7 +379,7 @@ where
     }
 
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
-        let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
+        let bridge_stake_seed = rand::random();
         let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
         let other_account_metas = if swap_params.source_mint == self.p1.staked_sol_mint()
             && swap_params.destination_mint == self.p2.staked_sol_mint()
@@ -330,5 +410,27 @@ where
 
     fn program_id(&self) -> Pubkey {
         stakedex_interface::ID
+    }
+
+    fn get_accounts_len(&self) -> usize {
+        // Pick a single direction
+        1 + <dyn WithdrawStake>::accounts_len(&self.p1) + DepositStake::accounts_len(&self.p2) + 1
+    }
+
+    fn underlying_liquidities(&self) -> Option<HashSet<Pubkey>> {
+        self.underlying_liquidities.clone()
+    }
+
+    fn program_dependencies(&self) -> Vec<(Pubkey, String)> {
+        vec![
+            (
+                self.p1.program_id(),
+                self.p1.stake_pool_label().to_lowercase(),
+            ),
+            (
+                self.p2.program_id(),
+                self.p2.stake_pool_label().to_lowercase(),
+            ),
+        ]
     }
 }
