@@ -74,6 +74,18 @@ pub mod lainesol {
     solana_program::declare_id!("LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X");
 }
 
+pub mod risklol_stake_pool {
+    solana_program::declare_id!("F8h46pYkaqPJNP2MRkUUUtRkf8efCkpoqehn9g1bTTm7");
+}
+
+pub mod risklol_validator_list {
+    solana_program::declare_id!("3p3pwXkx15WSphpmcQyBqJ235pMVQkLYM9t2faBH1Zix");
+}
+
+pub mod risksol {
+    solana_program::declare_id!("C4kq9QRFLAqwYHK7p4Ez54KMZLZNw2yLsiT3KN4FSmdH");
+}
+
 pub mod socean_program {
     solana_program::declare_id!("5ocnV1qiCgaQR8Jb8xWnVbApfaygJ8tNoZfgPwsgx9kx");
 }
