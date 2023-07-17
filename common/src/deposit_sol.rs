@@ -159,4 +159,26 @@ where
     fn unidirectional(&self) -> bool {
         true
     }
+
+    fn program_dependencies(&self) -> Vec<(Pubkey, String)> {
+        use crate::{eversol_program, lido_program, marinade_program, socean_program};
+        use solana_sdk::pubkey;
+
+        let mut stake_pool_label = self.0.stake_pool_label();
+        let stake_pool_program = match stake_pool_label {
+            "Eversol" => eversol_program::ID,
+            "Socean" => socean_program::ID,
+            "Marinade" => marinade_program::ID,
+            "Lido" => lido_program::ID,
+            "Cogent" | "DaoPool" | "Jito" | "Laine" | "SolBlaze" => {
+                stake_pool_label = "spl_stake_pool";
+                pubkey!("SPoo1Ku8WFXoNDMHPsrGSTSG1Y47rzgn41SLUNakuHy")
+            }
+            _ => {
+                println!("Label not recognized: {}", stake_pool_label);
+                return vec![];
+            }
+        };
+        vec![(stake_pool_program, stake_pool_label.into())]
+    }
 }

@@ -693,3 +693,17 @@ impl Stakedex {
         amms
     }
 }
+
+pub mod test_utils {
+    pub use stakedex_eversol_stake_pool::EversolStakePoolStakedex;
+    pub use stakedex_lido::LidoStakedex;
+    pub use stakedex_marinade::MarinadeStakedex;
+    pub use stakedex_sdk_common::DepositSolWrapper;
+    pub use stakedex_sdk_common::{
+        eversol_program, eversol_stake_pool, jito_stake_pool, lido_program, lido_state,
+        marinade_program, marinade_state, socean_program, socean_stake_pool, unstake_it_pool,
+    };
+    pub use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
+    pub use stakedex_spl_stake_pool::SplStakePoolStakedex;
+    pub use stakedex_unstake_it::UnstakeItStakedex;
+}
