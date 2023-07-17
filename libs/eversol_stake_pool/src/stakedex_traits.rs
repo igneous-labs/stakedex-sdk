@@ -169,7 +169,8 @@ impl EversolStakePoolStakedex {
         if withdraw_lamports
             > validator_list_entry
                 .active_stake_lamports
-                .saturating_sub(MINIMUM_ACTIVE_STAKE)
+                .checked_sub(MINIMUM_ACTIVE_STAKE)
+                .ok_or(StakePoolError::CalculationFailure)?
         {
             return Err(StakePoolError::StakeLamportsNotEqualToMinimum);
         }
