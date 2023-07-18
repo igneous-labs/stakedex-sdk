@@ -16,7 +16,7 @@ use crate::{
     jupiter_stakedex_interface::{Swap, STAKEDEX_ACCOUNT_META},
     DepositStake, DepositStakeInfo, DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake,
     WithdrawStakeQuote, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX, TEMPORARY_JUP_AMM_LABEL,
 };
 
 pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
@@ -143,11 +143,7 @@ where
     }
 
     fn label(&self) -> String {
-        format!(
-            "{}+{} (StakeDex)",
-            self.withdraw.stake_pool_label(),
-            self.deposit.stake_pool_label()
-        )
+        TEMPORARY_JUP_AMM_LABEL.to_owned()
     }
 
     fn key(&self) -> Pubkey {
@@ -249,11 +245,7 @@ where
     }
 
     fn label(&self) -> String {
-        format!(
-            "{}+{} (StakeDex)",
-            self.p1.stake_pool_label(),
-            self.p2.stake_pool_label()
-        )
+        TEMPORARY_JUP_AMM_LABEL.to_owned()
     }
 
     fn key(&self) -> Pubkey {

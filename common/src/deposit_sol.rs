@@ -24,7 +24,7 @@ use crate::{
     pda::{
         cws_wsol_bridge_in, find_deposit_stake_amm_key, find_fee_token_acc, find_sol_bridge_out,
     },
-    BaseStakePoolAmm,
+    BaseStakePoolAmm, TEMPORARY_JUP_AMM_LABEL,
 };
 
 #[derive(Copy, Clone, Debug)]
@@ -77,7 +77,7 @@ where
     }
 
     fn label(&self) -> String {
-        format!("{} (StakeDex)", self.0.stake_pool_label())
+        TEMPORARY_JUP_AMM_LABEL.to_owned()
     }
 
     // To avoid key clashes with existing stake pools on jup (Marinade),
