@@ -134,7 +134,7 @@ impl From<&StakeWrappedSolAccounts<'_, '_>> for StakeWrappedSolKeys {
 impl From<&StakeWrappedSolKeys> for [AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] {
     fn from(keys: &StakeWrappedSolKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.user, true),
+            AccountMeta::new_readonly(keys.user, false),
             AccountMeta::new(keys.wsol_from, false),
             AccountMeta::new(keys.dest_token_to, false),
             AccountMeta::new(keys.wsol_bridge_in, false),
@@ -362,7 +362,7 @@ impl From<&SwapViaStakeAccounts<'_, '_>> for SwapViaStakeKeys {
 impl From<&SwapViaStakeKeys> for [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] {
     fn from(keys: &SwapViaStakeKeys) -> Self {
         [
-            AccountMeta::new(keys.user, true),
+            AccountMeta::new_readonly(keys.user, true),
             AccountMeta::new(keys.src_token_from, false),
             AccountMeta::new(keys.dest_token_to, false),
             AccountMeta::new(keys.bridge_stake, false),
