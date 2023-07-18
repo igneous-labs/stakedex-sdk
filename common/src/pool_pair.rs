@@ -197,7 +197,7 @@ where
     }
 
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
-        let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
+        let bridge_stake_seed = rand::random();
         let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
         account_metas.extend(get_account_metas(
             swap_params,
@@ -296,7 +296,7 @@ where
     }
 
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
-        let bridge_stake_seed = (self.clock.slot % u64::from(u32::MAX)).try_into().unwrap();
+        let bridge_stake_seed = rand::random();
         let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
         let other_account_metas = if swap_params.source_mint == self.p1.staked_sol_mint()
             && swap_params.destination_mint == self.p2.staked_sol_mint()

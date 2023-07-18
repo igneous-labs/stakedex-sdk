@@ -14,3 +14,5 @@ spl-token = { workspace = true }
 stakedex_deposit_sol_interface = { workspace = true }
 stakedex_interface = { workspace = true }
 thiserror = { workspace = true }
+
+rand = "0.8.5"

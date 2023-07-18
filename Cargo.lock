@@ -3837,6 +3837,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "jupiter-amm-interface",
+ "rand 0.8.5",
  "rust_decimal",
  "solana-program",
  "solana-sdk",
