@@ -160,7 +160,11 @@ impl EversolStakePoolStakedex {
             .convert_amount_of_pool_tokens_to_amount_of_lamports(pool_tokens_burnt)
             .ok_or(StakePoolError::CalculationFailure)?;
 
-        if withdraw_lamports > validator_list_entry.active_stake_lamports - MINIMUM_ACTIVE_STAKE {
+        if withdraw_lamports
+            > validator_list_entry
+                .active_stake_lamports
+                .saturating_sub(MINIMUM_ACTIVE_STAKE)
+        {
             return Err(StakePoolError::StakeLamportsNotEqualToMinimum);
         }
 

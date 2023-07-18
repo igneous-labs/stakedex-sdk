@@ -49,7 +49,7 @@ pub trait DepositSol: BaseStakePoolAmm {
         let total_fees = deposit_sol_quote.fee_amount + aft_global_fees.fee;
         let final_out_amount = aft_global_fees.remainder;
         let before_fees = (final_out_amount + total_fees) as f64;
-        // Decimal::from_f64() returns None if infinite / NaN (before_fees = 0)
+        // Decimal::from_f64() returns None if infinite or NaN (before_fees = 0)
         let fee_pct =
             Decimal::from_f64((total_fees as f64) / before_fees).unwrap_or_else(Decimal::zero);
         Quote {

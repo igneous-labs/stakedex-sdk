@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{account::Account, pubkey::Pubkey};
 use stakedex_sdk::Stakedex;
-use stakedex_sdk_common::{bsol, jitosol};
+use stakedex_sdk_common::{bsol, esol, jitosol};
 use std::{collections::HashMap, iter::zip};
 
 lazy_static! {
@@ -43,6 +43,17 @@ fn test_swap_via_stake_jitosol_bsol() {
         .quote_swap_via_stake(&QuoteParams {
             in_amount: 1_000_000_000,
             input_mint: jitosol::ID,
+            output_mint: bsol::ID,
+        })
+        .unwrap();
+}
+
+#[test]
+fn test_swap_via_stake_esol_bsol() {
+    STAKEDEX
+        .quote_swap_via_stake(&QuoteParams {
+            in_amount: 1_000_000_000, // 1_000_000_000_000
+            input_mint: esol::ID,
             output_mint: bsol::ID,
         })
         .unwrap();

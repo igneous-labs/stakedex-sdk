@@ -130,12 +130,18 @@ impl DepositStake for MarinadeStakedex {
             return DepositStakeQuote::default();
         }
         let state = StateWrapper(&self.state);
-        let msol_full = state
-            .calc_msol_from_lamports(withdraw_stake_quote.lamports_out)
-            .unwrap();
-        let msol_to_mint = state
-            .calc_msol_from_lamports(withdraw_stake_quote.lamports_staked)
-            .unwrap();
+        let msol_full = match state.calc_msol_from_lamports(withdraw_stake_quote.lamports_out) {
+            Ok(r) => r,
+            Err(_e) => return DepositStakeQuote::default(),
+        };
+        let msol_to_mint = match state.calc_msol_from_lamports(withdraw_stake_quote.lamports_staked)
+        {
+            Ok(r) => r,
+            Err(_e) => return DepositStakeQuote::default(),
+        };
+        if msol_full < msol_to_mint {
+            return DepositStakeQuote::default();
+        }
         DepositStakeQuote {
             tokens_out: msol_to_mint,
             voter: withdraw_stake_quote.voter,

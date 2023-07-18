@@ -139,7 +139,7 @@ impl DepositStake for UnstakeItStakedex {
             Some(f) => f,
             None => return DepositStakeQuote::default(),
         };
-        let tokens_out = withdraw_stake_quote.lamports_out - fee_amount;
+        let tokens_out = withdraw_stake_quote.lamports_out.saturating_sub(fee_amount);
         DepositStakeQuote {
             tokens_out,
             fee_amount,

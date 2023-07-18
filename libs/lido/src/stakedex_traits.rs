@@ -130,6 +130,9 @@ fn get_quote_for_validator_copied(
     }
 
     let lamports_out = sol_to_withdraw.0;
+    if lamports_out < STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS {
+        return Err(anyhow!("withdrawal too small"));
+    }
     let lamports_staked = lamports_out - STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS;
     Ok(WithdrawStakeQuote {
         lamports_out,
