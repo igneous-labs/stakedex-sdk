@@ -128,10 +128,21 @@ impl DepositSol for SoceanStakePoolStakedex {
         let pool_tokens_user = new_pool_tokens
             .checked_sub(pool_tokens_sol_deposit_fee)
             .ok_or(StakePoolError::CalculationFailure)?;
+        let pool_tokens_referral_fee = self
+            .stake_pool
+            .calc_pool_tokens_sol_referral_fee(pool_tokens_sol_deposit_fee)
+            .ok_or(StakePoolError::CalculationFailure)?;
+        // since we set referrer to the receiving fee_token_acc, referral fee is effectively kicked back to user
+        let out_amount = pool_tokens_user
+            .checked_add(pool_tokens_referral_fee)
+            .ok_or(StakePoolError::CalculationFailure)?;
+        let fee_amount = pool_tokens_sol_deposit_fee
+            .checked_sub(pool_tokens_referral_fee)
+            .ok_or(StakePoolError::CalculationFailure)?;
         Ok(DepositSolQuote {
             in_amount: lamports,
-            out_amount: pool_tokens_user,
-            fee_amount: pool_tokens_sol_deposit_fee,
+            out_amount,
+            fee_amount,
         })
     }
 
@@ -220,10 +231,26 @@ impl DepositStake for SoceanStakePoolStakedex {
             Some(r) => r,
             None => return DepositStakeQuote::default(),
         };
+        // since we set referrer to the receiving fee_token_acc, referral fee is effectively kicked back to user
+        let pool_tokens_referral_fee = match self
+            .stake_pool
+            .calc_pool_tokens_stake_referral_fee(total_fee)
+        {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
+        let tokens_out = match pool_tokens_user.checked_add(pool_tokens_referral_fee) {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
+        let fee_amount = match total_fee.checked_sub(pool_tokens_referral_fee) {
+            Some(r) => r,
+            None => return DepositStakeQuote::default(),
+        };
 
         DepositStakeQuote {
-            tokens_out: pool_tokens_user,
-            fee_amount: total_fee,
+            tokens_out,
+            fee_amount,
             voter: withdraw_stake_quote.voter,
         }
     }
