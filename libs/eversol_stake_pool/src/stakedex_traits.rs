@@ -122,6 +122,8 @@ impl EversolStakePoolStakedex {
             .checked_sub(total_fee)
             .ok_or(StakePoolError::CalculationFailure)?;
 
+        // eversol doesnt support referrer
+
         Ok(DepositStakeQuote {
             tokens_out: pool_tokens_user,
             fee_amount: total_fee,
@@ -271,6 +273,8 @@ impl DepositSol for EversolStakePoolStakedex {
         let pool_tokens_user = new_pool_tokens
             .checked_sub(pool_tokens_sol_deposit_fee)
             .ok_or(StakePoolError::CalculationFailure)?;
+
+        // eversol doesnt support referrer
 
         Ok(DepositSolQuote {
             in_amount: deposit_lamports,
