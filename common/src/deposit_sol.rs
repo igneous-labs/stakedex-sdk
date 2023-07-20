@@ -18,7 +18,6 @@ use spl_token::native_mint;
 use stakedex_interface::{StakeWrappedSolKeys, STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN};
 
 use crate::{
-    fees::apply_global_fee,
     init_from_keyed_account::InitFromKeyedAccount,
     jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META,
     pda::{
@@ -45,9 +44,10 @@ pub trait DepositSol: BaseStakePoolAmm {
     fn virtual_ix(&self) -> Result<Instruction>;
 
     fn convert_quote(&self, deposit_sol_quote: DepositSolQuote) -> Quote {
-        let aft_global_fees = apply_global_fee(deposit_sol_quote.out_amount);
-        let total_fees = deposit_sol_quote.fee_amount + aft_global_fees.fee;
-        let final_out_amount = aft_global_fees.remainder;
+        // global fee has been removed for depositsol
+        //let aft_global_fees = apply_global_fee(deposit_sol_quote.out_amount);
+        let total_fees = deposit_sol_quote.fee_amount; // + aft_global_fees.fee;
+        let final_out_amount = deposit_sol_quote.out_amount; //aft_global_fees.remainder;
         let before_fees = (final_out_amount + total_fees) as f64;
         // Decimal::from_f64() returns None if infinite or NaN (before_fees = 0)
         let fee_pct =
