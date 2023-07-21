@@ -127,7 +127,7 @@ where
         let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
         account_metas.extend(<[AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]>::from(
             &StakeWrappedSolKeys {
-                user: swap_params.token_authority,
+                user: swap_params.token_transfer_authority,
                 wsol_from: swap_params.source_token_account,
                 dest_token_to: swap_params.destination_token_account,
                 wsol_mint: swap_params.source_mint,

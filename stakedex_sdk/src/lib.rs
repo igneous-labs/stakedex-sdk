@@ -368,13 +368,16 @@ impl Stakedex {
         let (withdraw_quote, deposit_quote) =
             first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)?;
         let bridge_stake_seed_le_bytes = bridge_stake_seed.to_le_bytes();
-        let bridge_stake =
-            find_bridge_stake(&swap_params.token_authority, &bridge_stake_seed_le_bytes).0;
+        let bridge_stake = find_bridge_stake(
+            &swap_params.token_transfer_authority,
+            &bridge_stake_seed_le_bytes,
+        )
+        .0;
         let deposit_stake_info = DepositStakeInfo { addr: bridge_stake };
 
         let mut ix = stakedex_interface::swap_via_stake_ix(
             SwapViaStakeKeys {
-                user: swap_params.token_authority,
+                user: swap_params.token_transfer_authority,
                 src_token_from: swap_params.source_token_account,
                 src_token_mint: swap_params.source_mint,
                 dest_token_to: swap_params.destination_token_account,
@@ -431,7 +434,7 @@ impl Stakedex {
 
         let mut ix = stakedex_interface::stake_wrapped_sol_ix(
             StakeWrappedSolKeys {
-                user: swap_params.token_authority,
+                user: swap_params.token_transfer_authority,
                 wsol_from: swap_params.source_token_account,
                 dest_token_to: swap_params.destination_token_account,
                 wsol_mint: swap_params.source_mint,
@@ -493,7 +496,7 @@ impl Stakedex {
         let stake_account = swap_params.source_token_account;
         let mut ix = stakedex_interface::deposit_stake_ix(
             DepositStakeKeys {
-                user: swap_params.token_authority,
+                user: swap_params.token_transfer_authority,
                 stake_account,
                 dest_token_to: swap_params.destination_token_account,
                 dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
