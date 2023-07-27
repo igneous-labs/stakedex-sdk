@@ -10,4 +10,4 @@ pub const SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX: usize = 5;
 
 pub const SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX: usize = 6;
 
-pub const TEMPORARY_JUP_AMM_LABEL: &str = "unstake.it";
+pub const TEMPORARY_JUP_AMM_LABEL: &str = "Unstake.it";
