@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::{anyhow, Result};
 use jupiter_amm_interface::{
     AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapAndAccountMetas, SwapParams,
@@ -222,6 +224,12 @@ where
 
     fn unidirectional(&self) -> bool {
         true
+    }
+
+    fn underlying_liquidities(&self) -> Option<HashSet<Pubkey>> {
+        self.deposit
+            .underlying_liquidity()
+            .map(|ul| HashSet::from([*ul]))
     }
 }
 

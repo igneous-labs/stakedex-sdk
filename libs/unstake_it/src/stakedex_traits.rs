@@ -188,4 +188,8 @@ impl DepositStake for UnstakeItStakedex {
             UnstakeItDepositStakeIxArgs {},
         )?)
     }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&unstake_it_pool::ID)
+    }
 }
