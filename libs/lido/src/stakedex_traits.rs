@@ -193,7 +193,11 @@ impl WithdrawStake for LidoStakedex {
 }
 
 impl DepositSol for LidoStakedex {
-    fn get_deposit_sol_quote(&self, user_lamports: u64) -> Result<DepositSolQuote> {
+    fn can_accept_sol_deposits(&self) -> bool {
+        true
+    }
+
+    fn get_deposit_sol_quote_unchecked(&self, user_lamports: u64) -> Result<DepositSolQuote> {
         let out_amount = self
             .lido_state
             .exchange_rate

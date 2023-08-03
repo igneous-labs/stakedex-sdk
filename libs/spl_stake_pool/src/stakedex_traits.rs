@@ -48,6 +48,10 @@ impl SplStakePoolStakedex {
         self.validator_list = try_from_slice_unchecked::<ValidatorList>(data)?;
         Ok(())
     }
+
+    pub fn is_updated_this_epoch(&self) -> bool {
+        self.stake_pool.last_update_epoch >= self.curr_epoch
+    }
 }
 
 impl InitFromKeyedAccount for SplStakePoolStakedex {
@@ -113,7 +117,11 @@ impl BaseStakePoolAmm for SplStakePoolStakedex {
 }
 
 impl DepositSol for SplStakePoolStakedex {
-    fn get_deposit_sol_quote(&self, lamports: u64) -> Result<DepositSolQuote> {
+    fn can_accept_sol_deposits(&self) -> bool {
+        self.is_updated_this_epoch()
+    }
+
+    fn get_deposit_sol_quote_unchecked(&self, lamports: u64) -> Result<DepositSolQuote> {
         // Reference: https://github.com/solana-labs/solana-program-library/blob/56cdef9ee82877622a074aa74560742264f20591/stake-pool/program/src/processor.rs#L2268
         let new_pool_tokens = self
             .stake_pool
@@ -160,7 +168,7 @@ impl DepositSol for SplStakePoolStakedex {
 
 impl DepositStake for SplStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
-        self.stake_pool.last_update_epoch >= self.curr_epoch
+        self.is_updated_this_epoch()
     }
 
     // TODO: maybe refactor to same style as eversol
