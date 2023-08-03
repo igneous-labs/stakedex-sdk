@@ -23,7 +23,7 @@ use crate::{
     pda::{
         cws_wsol_bridge_in, find_deposit_stake_amm_key, find_fee_token_acc, find_sol_bridge_out,
     },
-    BaseStakePoolAmm, TEMPORARY_JUP_AMM_LABEL,
+    BaseStakePoolAmm, DepositSolQuoteError, TEMPORARY_JUP_AMM_LABEL,
 };
 
 #[derive(Copy, Clone, Debug)]
@@ -38,10 +38,19 @@ pub struct DepositSolQuote {
 }
 
 pub trait DepositSol: BaseStakePoolAmm {
+    fn can_accept_sol_deposits(&self) -> bool;
+
     /// This should only include the stake pool's fees, not stakedex's global fees
-    fn get_deposit_sol_quote(&self, lamports: u64) -> Result<DepositSolQuote>;
+    fn get_deposit_sol_quote_unchecked(&self, lamports: u64) -> Result<DepositSolQuote>;
 
     fn virtual_ix(&self) -> Result<Instruction>;
+
+    fn get_deposit_sol_quote(&self, lamports: u64) -> Result<DepositSolQuote> {
+        if !self.can_accept_sol_deposits() {
+            return Err(DepositSolQuoteError::CannotAcceptSolDeposits.into());
+        }
+        self.get_deposit_sol_quote_unchecked(lamports)
+    }
 
     fn convert_quote(&self, deposit_sol_quote: DepositSolQuote) -> Quote {
         // global fee has been removed for depositsol

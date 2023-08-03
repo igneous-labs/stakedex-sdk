@@ -17,6 +17,12 @@ pub enum WithdrawStakeQuoteErr {
 }
 
 #[derive(thiserror::Error, Copy, Clone, Debug, PartialEq)]
+pub enum DepositSolQuoteError {
+    #[error("Stake pool cannot accept SOL deposits at this time")]
+    CannotAcceptSolDeposits,
+}
+
+#[derive(thiserror::Error, Copy, Clone, Debug, PartialEq)]
 pub enum SwapViaStakeQuoteErr {
     #[error("{0}")]
     Deposit(DepositStakeQuoteErr),

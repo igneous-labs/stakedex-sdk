@@ -58,6 +58,10 @@ impl EversolStakePoolStakedex {
         find_stake_program_address(&eversol_program::ID, voter, &eversol_stake_pool::ID).0
     }
 
+    pub fn is_updated_this_epoch(&self) -> bool {
+        self.stake_pool.last_update_epoch >= self.curr_epoch
+    }
+
     /// Reference (copy-pasta):
     /// https://github.com/everstake/solana-program-library/blob/22534fe3885e698598e92b2fe20da3a8adbfc5ff/stake-pool/program/src/processor.rs#L2309-L2355
     fn get_deposit_stake_quote_copied(
@@ -240,9 +244,13 @@ impl BaseStakePoolAmm for EversolStakePoolStakedex {
 }
 
 impl DepositSol for EversolStakePoolStakedex {
+    fn can_accept_sol_deposits(&self) -> bool {
+        self.is_updated_this_epoch()
+    }
+
     /// Reference (copy-pasta):
     /// https://github.com/everstake/solana-program-library/blob/22534fe3885e698598e92b2fe20da3a8adbfc5ff/stake-pool/program/src/processor.rs#L2309-L2355
-    fn get_deposit_sol_quote(&self, deposit_lamports: u64) -> Result<DepositSolQuote> {
+    fn get_deposit_sol_quote_unchecked(&self, deposit_lamports: u64) -> Result<DepositSolQuote> {
         let new_pool_tokens_wo_idle_fee = self
             .stake_pool
             .convert_amount_of_lamports_to_amount_of_pool_tokens(deposit_lamports)
@@ -299,7 +307,7 @@ impl DepositSol for EversolStakePoolStakedex {
 
 impl DepositStake for EversolStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
-        self.stake_pool.last_update_epoch >= self.curr_epoch
+        self.is_updated_this_epoch()
     }
 
     /// Reference (copy-pasta):
