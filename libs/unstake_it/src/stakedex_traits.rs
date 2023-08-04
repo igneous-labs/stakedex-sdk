@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use anyhow::Result;
 use solana_program::{
     borsh::try_from_slice_unchecked, instruction::Instruction, pubkey::Pubkey, stake,
@@ -11,6 +13,7 @@ use stakedex_sdk_common::{
     jupiter_stakedex_interface::{AccountMap, KeyedAccount},
     unstake_it_pool, unstake_it_program, BaseStakePoolAmm, DepositStake, DepositStakeInfo,
     DepositStakeQuote, InitFromKeyedAccount, WithdrawStakeQuote,
+    ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS,
 };
 use unstake_it_interface::{Fee, FeeEnum, Pool, ProtocolFee};
 
@@ -144,6 +147,17 @@ impl DepositStake for UnstakeItStakedex {
             None => return DepositStakeQuote::default(),
         };
         let tokens_out = withdraw_stake_quote.lamports_out.saturating_sub(fee_amount);
+        match tokens_out.cmp(&self.sol_reserves_lamports) {
+            // not enough liquidity
+            Ordering::Greater => return DepositStakeQuote::default(),
+            Ordering::Less => {
+                // cannot leave reserves below rent-exempt min
+                if self.sol_reserves_lamports - tokens_out < ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS {
+                    return DepositStakeQuote::default();
+                }
+            }
+            Ordering::Equal => (),
+        }
         DepositStakeQuote {
             tokens_out,
             fee_amount,
