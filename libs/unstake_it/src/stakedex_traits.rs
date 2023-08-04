@@ -117,6 +117,10 @@ impl BaseStakePoolAmm for UnstakeItStakedex {
             .data
             .as_ref();
         self.update_protocol_fee(protocol_fee_data)?;
+        self.sol_reserves_lamports = accounts_map
+            .get(&find_pool_sol_reserves().0)
+            .ok_or_else(|| account_missing_err(&find_protocol_fee().0))?
+            .lamports;
         Ok(())
     }
 }
