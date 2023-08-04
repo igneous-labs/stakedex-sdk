@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use anyhow::Result;
 use solana_program::{
     borsh::try_from_slice_unchecked, instruction::Instruction, pubkey::Pubkey, stake,
@@ -145,16 +147,16 @@ impl DepositStake for UnstakeItStakedex {
             None => return DepositStakeQuote::default(),
         };
         let tokens_out = withdraw_stake_quote.lamports_out.saturating_sub(fee_amount);
-        // check if enough liquidity
-        if tokens_out > self.sol_reserves_lamports {
-            return DepositStakeQuote::default();
-        }
-        // cannot leave reserves below rent-exempt min
-        if self.sol_reserves_lamports > ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS
-            && tokens_out < self.sol_reserves_lamports
-            && tokens_out > self.sol_reserves_lamports - ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS
-        {
-            return DepositStakeQuote::default();
+        match tokens_out.cmp(&self.sol_reserves_lamports) {
+            // not enough liquidity
+            Ordering::Greater => return DepositStakeQuote::default(),
+            Ordering::Less => {
+                // cannot leave reserves below rent-exempt min
+                if self.sol_reserves_lamports - tokens_out < ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS {
+                    return DepositStakeQuote::default();
+                }
+            }
+            Ordering::Equal => (),
         }
         DepositStakeQuote {
             tokens_out,
