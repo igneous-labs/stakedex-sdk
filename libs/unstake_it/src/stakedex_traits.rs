@@ -11,6 +11,7 @@ use stakedex_sdk_common::{
     jupiter_stakedex_interface::{AccountMap, KeyedAccount},
     unstake_it_pool, unstake_it_program, BaseStakePoolAmm, DepositStake, DepositStakeInfo,
     DepositStakeQuote, InitFromKeyedAccount, WithdrawStakeQuote,
+    ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS,
 };
 use unstake_it_interface::{Fee, FeeEnum, Pool, ProtocolFee};
 
@@ -144,6 +145,17 @@ impl DepositStake for UnstakeItStakedex {
             None => return DepositStakeQuote::default(),
         };
         let tokens_out = withdraw_stake_quote.lamports_out.saturating_sub(fee_amount);
+        // check if enough liquidity
+        if tokens_out > self.sol_reserves_lamports {
+            return DepositStakeQuote::default();
+        }
+        // cannot leave reserves below rent-exempt min
+        if self.sol_reserves_lamports > ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS
+            && tokens_out < self.sol_reserves_lamports
+            && tokens_out > self.sol_reserves_lamports - ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS
+        {
+            return DepositStakeQuote::default();
+        }
         DepositStakeQuote {
             tokens_out,
             fee_amount,
