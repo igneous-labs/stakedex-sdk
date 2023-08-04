@@ -2,8 +2,9 @@ use jupiter_amm_interface::QuoteParams;
 use lazy_static::lazy_static;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{account::Account, pubkey::Pubkey};
+use spl_token::native_mint;
 use stakedex_sdk::Stakedex;
-use stakedex_sdk_common::{bsol, esol, jitosol};
+use stakedex_sdk_common::{bsol, esol, jitosol, stsol};
 use std::{collections::HashMap, iter::zip};
 
 lazy_static! {
@@ -68,4 +69,16 @@ fn test_swap_via_stake_unknown_token() {
         output_mint: bsol::ID,
     });
     assert!(res.is_err());
+}
+
+#[test]
+fn test_swap_via_stake_stsol_unstakeit() {
+    let res = STAKEDEX
+        .quote_swap_via_stake(&QuoteParams {
+            in_amount: 100_000_000_000,
+            input_mint: stsol::ID,
+            output_mint: native_mint::ID,
+        })
+        .unwrap();
+    println!("{:?}", res);
 }
