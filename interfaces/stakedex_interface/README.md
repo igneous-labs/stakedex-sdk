@@ -1,8 +1,8 @@
 # stakedex_interface
 
-Crate generated using [solores](https://github.com/igneous-labs/solores).
+Crate generated using [solores](https://github.com/igneous-labs/solores) v0.3.0.
 
-To regenerate, run `solores -o interfaces/ interfaces/stakedex_interface/idl.json` in base directory.
+To regenerate, run `solores -o interfaces/ interfaces/stakedex_interface/idl.json -b workspace=true -s workspace=true` in base directory.
 
 IDL is generated using `gen-idl.sh` in the stakedex repo.
 
