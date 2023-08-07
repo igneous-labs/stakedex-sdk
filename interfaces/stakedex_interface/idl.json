@@ -82,9 +82,9 @@
       "accounts": [
         {
           "name": "user",
-          "isMut": false,
+          "isMut": true,
           "isSigner": true,
-          "desc": "The authority of src_token_from"
+          "desc": "The authority of src_token_from. Needs to be mutable to support marinde deposit stake."
         },
         {
           "name": "srcTokenFrom",
@@ -113,12 +113,14 @@
         {
           "name": "srcTokenMint",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "desc": "Input token mint. If this is wrapped SOL, the account can be set to read-only"
         },
         {
           "name": "destTokenMint",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "desc": "Output token mint. If this is wrapped SOL, the account can be set to read-only"
         }
       ],
       "args": [
@@ -252,9 +254,9 @@
       "accounts": [
         {
           "name": "user",
-          "isMut": false,
+          "isMut": true,
           "isSigner": true,
-          "desc": "The withdraw authority of stake_account"
+          "desc": "The withdraw authority of stake_account. Needs to be mutable to support marinade deposit stake."
         },
         {
           "name": "stakeAccount",
@@ -277,7 +279,8 @@
         {
           "name": "destTokenMint",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "desc": "Output token mint. If this is wrapped SOL, the account can be set to read-only"
         }
       ],
       "args": [],
