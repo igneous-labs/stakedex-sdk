@@ -5,14 +5,11 @@ use solana_client::{
     rpc_client::RpcClient,
     rpc_config::{RpcSimulateTransactionAccountsConfig, RpcSimulateTransactionConfig},
 };
-use solana_sdk::{
-    account::Account, message::Message, pubkey::Pubkey, signature::Keypair, signer::Signer,
-    transaction::Transaction,
-};
+use solana_sdk::{account::Account, pubkey::Pubkey, signer::Signer, transaction::Transaction};
 use spl_associated_token_account::get_associated_token_address;
 use spl_token::native_mint;
 use stakedex_sdk::Stakedex;
-use stakedex_sdk_common::{bsol, cogentsol, esol, jitosol, jsol, msol, scnsol, stsol};
+use stakedex_sdk_common::{bsol, esol, jitosol, jsol, msol, stsol};
 use std::{collections::HashMap, iter::zip, str::FromStr};
 
 const WHALE: &str = "9uyDy9VDBw4K7xoSkhmCAm8NAFCwu4pkF6JeHUCtVKcX";
@@ -155,5 +152,70 @@ fn test_swap_via_stake_jsol_msol() {
 
 #[test]
 fn test_jsol_drain_vsa_edge_case() {
-    // WHALE has 350k jSOL, that should be > any individual vsa of jpool
+    // assumes
+    // - jsol has no preferred validator
+    // - marinade should accept any of jpool's vsas
+    // - WHALE has 350k jSOL, that should be > any individual vsa of jpool
+    assert!(STAKEDEX
+        .jpool
+        .stake_pool
+        .preferred_withdraw_validator_vote_address
+        .is_none());
+    let largest_active_stake_vsi = STAKEDEX
+        .jpool
+        .validator_list
+        .validators
+        .iter()
+        .max_by_key(|v| v.active_stake_lamports)
+        .unwrap();
+    let max_withdraw_lamports = largest_active_stake_vsi.active_stake_lamports;
+    let parts_after_fees = (STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.denominator
+        - STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.numerator)
+        as u128;
+    let max_withdraw_lamports_bef_fees = ((max_withdraw_lamports as u128)
+        * (STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.denominator as u128)
+        + parts_after_fees
+        - 1)
+        / parts_after_fees;
+    let max_withdraw_jsol = STAKEDEX
+        .jpool
+        .stake_pool
+        .calc_pool_tokens_for_deposit(max_withdraw_lamports_bef_fees.try_into().unwrap())
+        .unwrap();
+    let max_possible_quote = STAKEDEX
+        .quote_swap_via_stake(&QuoteParams {
+            in_amount: max_withdraw_jsol,
+            input_mint: jsol::ID,
+            output_mint: msol::ID,
+        })
+        .unwrap();
+    let should_fail = STAKEDEX.quote_swap_via_stake(&QuoteParams {
+        in_amount: max_withdraw_jsol + 1,
+        input_mint: jsol::ID,
+        output_mint: msol::ID,
+    });
+    assert!(should_fail.is_err());
+    // try simulating max possible quote
+    let whale_pk = Pubkey::from_str(WHALE).unwrap();
+    let user_source_token_account = get_associated_token_address(&whale_pk, &jsol::ID);
+    let user_destination_token_account = get_associated_token_address(&whale_pk, &msol::ID);
+    let params = SwapParams {
+        jupiter_program_id: &jupiter_program::ID,
+        in_amount: max_possible_quote.in_amount,
+        destination_mint: msol::ID,
+        source_mint: jsol::ID,
+        user_destination_token_account,
+        user_source_token_account,
+        user_transfer_authority: whale_pk,
+        open_order_address: None,
+        quote_mint_to_referrer: None,
+    };
+    let ix = STAKEDEX.swap_via_stake_ix(&params, 0).unwrap();
+    let mut tx = Transaction::new_with_payer(&[ix], Some(&whale_pk));
+    let rbh = RPC.get_latest_blockhash().unwrap();
+    // partial_sign just to add recentblockhash
+    let no_signers: Vec<Box<dyn Signer>> = vec![];
+    tx.partial_sign(&no_signers, rbh);
+    let result = RPC.simulate_transaction(&tx).unwrap();
+    assert!(result.value.err.is_none());
 }

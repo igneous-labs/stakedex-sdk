@@ -30,12 +30,12 @@ use crate::SPL_STAKE_POOL_STATE_TO_LABEL;
 
 #[derive(Clone, Default)]
 pub struct SplStakePoolStakedex {
-    stake_pool_addr: Pubkey,
-    withdraw_authority_addr: Pubkey,
-    stake_pool_label: &'static str,
-    stake_pool: StakePool,
-    validator_list: ValidatorList,
-    curr_epoch: Epoch,
+    pub stake_pool_addr: Pubkey,
+    pub withdraw_authority_addr: Pubkey,
+    pub stake_pool_label: &'static str,
+    pub stake_pool: StakePool,
+    pub validator_list: ValidatorList,
+    pub curr_epoch: Epoch,
 }
 
 impl SplStakePoolStakedex {
