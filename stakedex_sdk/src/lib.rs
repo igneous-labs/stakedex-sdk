@@ -277,7 +277,7 @@ impl Stakedex {
             .map(|(_, ptr)| ptr)
     }
 
-    fn token_to_deposit_stake(&self) -> [(Pubkey, &dyn DepositStake); N_DEPOSIT_STAKE_POOLS] {
+    pub fn token_to_deposit_stake(&self) -> [(Pubkey, &dyn DepositStake); N_DEPOSIT_STAKE_POOLS] {
         [
             (bsol::ID, &self.solblaze),
             (cogentsol::ID, &self.cogent),
@@ -300,7 +300,9 @@ impl Stakedex {
             .map(|(_, ptr)| ptr)
     }
 
-    fn token_to_withdraw_stake(&self) -> [(Pubkey, &dyn WithdrawStake); N_WITHDRAW_STAKE_POOLS] {
+    pub fn token_to_withdraw_stake(
+        &self,
+    ) -> [(Pubkey, &dyn WithdrawStake); N_WITHDRAW_STAKE_POOLS] {
         [
             (bsol::ID, &self.solblaze),
             (cogentsol::ID, &self.cogent),
