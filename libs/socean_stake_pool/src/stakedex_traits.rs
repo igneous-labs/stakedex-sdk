@@ -10,11 +10,11 @@ use spl_stake_pool::{
 };
 use stakedex_deposit_sol_interface::{
     socean_stake_pool_deposit_sol_ix, SoceanStakePoolDepositSolIxArgs,
-    SoceanStakePoolDepositSolKeys,
+    SoceanStakePoolDepositSolKeys, SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN,
 };
 use stakedex_deposit_stake_interface::{
     socean_stake_pool_deposit_stake_ix, SoceanStakePoolDepositStakeIxArgs,
-    SoceanStakePoolDepositStakeKeys,
+    SoceanStakePoolDepositStakeKeys, SOCEAN_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
 };
 use stakedex_sdk_common::{
     account_missing_err,
@@ -25,7 +25,7 @@ use stakedex_sdk_common::{
 };
 use stakedex_withdraw_stake_interface::{
     socean_stake_pool_withdraw_stake_ix, SoceanStakePoolWithdrawStakeIxArgs,
-    SoceanStakePoolWithdrawStakeKeys,
+    SoceanStakePoolWithdrawStakeKeys, SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 
 use crate::SOCEAN_STAKE_POOL_LABEL;
@@ -167,6 +167,10 @@ impl DepositSol for SoceanStakePoolStakedex {
             SoceanStakePoolDepositSolIxArgs {},
         )?)
     }
+
+    fn accounts_len(&self) -> usize {
+        SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN
+    }
 }
 
 impl DepositStake for SoceanStakePoolStakedex {
@@ -286,6 +290,10 @@ impl DepositStake for SoceanStakePoolStakedex {
             SoceanStakePoolDepositStakeIxArgs {},
         )?)
     }
+
+    fn accounts_len(&self) -> usize {
+        SOCEAN_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN
+    }
 }
 
 impl WithdrawStake for SoceanStakePoolStakedex {
@@ -371,5 +379,9 @@ impl WithdrawStake for SoceanStakePoolStakedex {
             },
             SoceanStakePoolWithdrawStakeIxArgs {},
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
     }
 }

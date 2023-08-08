@@ -226,6 +226,10 @@ where
         true
     }
 
+    fn get_accounts_len(&self) -> usize {
+        1 + self.withdraw.accounts_len() + self.deposit.accounts_len()
+    }
+
     fn underlying_liquidities(&self) -> Option<HashSet<Pubkey>> {
         self.deposit
             .underlying_liquidity()
@@ -335,5 +339,10 @@ where
 
     fn program_id(&self) -> Pubkey {
         stakedex_interface::ID
+    }
+
+    fn get_accounts_len(&self) -> usize {
+        // Pick a single direction
+        1 + WithdrawStake::accounts_len(&self.p1) + DepositStake::accounts_len(&self.p2) + 1
     }
 }

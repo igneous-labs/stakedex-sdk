@@ -2,9 +2,11 @@ use anyhow::Result;
 use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
 use stakedex_deposit_sol_interface::{
     marinade_deposit_sol_ix, MarinadeDepositSolIxArgs, MarinadeDepositSolKeys,
+    MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN,
 };
 use stakedex_deposit_stake_interface::{
     marinade_deposit_stake_ix, MarinadeDepositStakeIxArgs, MarinadeDepositStakeKeys,
+    MARINADE_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
 };
 use stakedex_sdk_common::{
     account_missing_err,
@@ -104,6 +106,10 @@ impl DepositSol for MarinadeStakedex {
             MarinadeDepositSolIxArgs {},
         )?)
     }
+
+    fn accounts_len(&self) -> usize {
+        MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN
+    }
 }
 
 impl DepositStake for MarinadeStakedex {
@@ -181,5 +187,9 @@ impl DepositStake for MarinadeStakedex {
             },
             MarinadeDepositStakeIxArgs {},
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        MARINADE_DEPOSIT_STAKE_IX_ACCOUNTS_LEN
     }
 }

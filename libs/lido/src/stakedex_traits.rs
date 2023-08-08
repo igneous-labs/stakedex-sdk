@@ -9,7 +9,7 @@ use solana_program::{
     system_program, sysvar,
 };
 use stakedex_deposit_sol_interface::{
-    lido_deposit_sol_ix, LidoDepositSolIxArgs, LidoDepositSolKeys,
+    lido_deposit_sol_ix, LidoDepositSolIxArgs, LidoDepositSolKeys, LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN,
 };
 use stakedex_sdk_common::{
     account_missing_err,
@@ -19,6 +19,7 @@ use stakedex_sdk_common::{
 };
 use stakedex_withdraw_stake_interface::{
     lido_withdraw_stake_ix, LidoWithdrawStakeIxArgs, LidoWithdrawStakeKeys,
+    LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 use std::ops::Add;
 
@@ -190,6 +191,10 @@ impl WithdrawStake for LidoStakedex {
             LidoWithdrawStakeIxArgs {},
         )?)
     }
+
+    fn accounts_len(&self) -> usize {
+        LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
+    }
 }
 
 impl DepositSol for LidoStakedex {
@@ -225,5 +230,9 @@ impl DepositSol for LidoStakedex {
             },
             LidoDepositSolIxArgs {},
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN
     }
 }

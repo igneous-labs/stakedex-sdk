@@ -10,9 +10,11 @@ use spl_stake_pool::{
 };
 use stakedex_deposit_sol_interface::{
     spl_stake_pool_deposit_sol_ix, SplStakePoolDepositSolIxArgs, SplStakePoolDepositSolKeys,
+    SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN,
 };
 use stakedex_deposit_stake_interface::{
     spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeIxArgs, SplStakePoolDepositStakeKeys,
+    SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
 };
 use stakedex_sdk_common::{
     account_missing_err,
@@ -23,7 +25,7 @@ use stakedex_sdk_common::{
 };
 use stakedex_withdraw_stake_interface::{
     spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeIxArgs,
-    SplStakePoolWithdrawStakeKeys,
+    SplStakePoolWithdrawStakeKeys, SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 
 use crate::SPL_STAKE_POOL_STATE_TO_LABEL;
@@ -164,6 +166,10 @@ impl DepositSol for SplStakePoolStakedex {
             SplStakePoolDepositSolIxArgs {},
         )?)
     }
+
+    fn accounts_len(&self) -> usize {
+        SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN
+    }
 }
 
 impl DepositStake for SplStakePoolStakedex {
@@ -284,6 +290,10 @@ impl DepositStake for SplStakePoolStakedex {
             SplStakePoolDepositStakeIxArgs {},
         )?)
     }
+
+    fn accounts_len(&self) -> usize {
+        SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN
+    }
 }
 
 impl WithdrawStake for SplStakePoolStakedex {
@@ -370,5 +380,9 @@ impl WithdrawStake for SplStakePoolStakedex {
             },
             SplStakePoolWithdrawStakeIxArgs {},
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
     }
 }

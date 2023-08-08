@@ -71,6 +71,8 @@ pub trait DepositSol: BaseStakePoolAmm {
             ..Quote::default()
         }
     }
+
+    fn accounts_len(&self) -> usize;
 }
 
 // newtype pattern in order to impl external trait on internal generic
@@ -158,6 +160,10 @@ where
 
     fn unidirectional(&self) -> bool {
         true
+    }
+
+    fn get_accounts_len(&self) -> usize {
+        1 + STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN + self.0.accounts_len()
     }
 
     fn program_dependencies(&self) -> Vec<(Pubkey, String)> {

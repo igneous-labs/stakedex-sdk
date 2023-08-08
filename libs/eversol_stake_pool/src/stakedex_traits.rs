@@ -11,11 +11,11 @@ use spl_stake_pool::{
 };
 use stakedex_deposit_sol_interface::{
     eversol_stake_pool_deposit_sol_ix, EversolStakePoolDepositSolIxArgs,
-    EversolStakePoolDepositSolKeys,
+    EversolStakePoolDepositSolKeys, EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN,
 };
 use stakedex_deposit_stake_interface::{
     eversol_stake_pool_deposit_stake_ix, EversolStakePoolDepositStakeIxArgs,
-    EversolStakePoolDepositStakeKeys,
+    EversolStakePoolDepositStakeKeys, EVERSOL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
 };
 use stakedex_sdk_common::{
     account_missing_err, esol, eversol_program, eversol_stake_pool,
@@ -26,7 +26,7 @@ use stakedex_sdk_common::{
 };
 use stakedex_withdraw_stake_interface::{
     eversol_stake_pool_withdraw_stake_ix, EversolStakePoolWithdrawStakeIxArgs,
-    EversolStakePoolWithdrawStakeKeys,
+    EversolStakePoolWithdrawStakeKeys, EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 
 use crate::EVERSOL_STAKE_POOL_LABEL;
@@ -304,6 +304,10 @@ impl DepositSol for EversolStakePoolStakedex {
             EversolStakePoolDepositSolIxArgs {},
         )?)
     }
+
+    fn accounts_len(&self) -> usize {
+        EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN
+    }
 }
 
 impl DepositStake for EversolStakePoolStakedex {
@@ -344,6 +348,10 @@ impl DepositStake for EversolStakePoolStakedex {
             EversolStakePoolDepositStakeIxArgs {},
         )?)
     }
+
+    fn accounts_len(&self) -> usize {
+        EVERSOL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN
+    }
 }
 
 impl WithdrawStake for EversolStakePoolStakedex {
@@ -380,5 +388,9 @@ impl WithdrawStake for EversolStakePoolStakedex {
             },
             EversolStakePoolWithdrawStakeIxArgs {},
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
     }
 }
