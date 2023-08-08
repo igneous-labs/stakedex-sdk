@@ -82,3 +82,8 @@ fn test_swap_via_stake_stsol_unstakeit() {
         .unwrap();
     println!("{:?}", res);
 }
+
+#[test]
+fn test_jsol_drain_vsa_edge_case() {
+    // WHALE has 350k jSOL, that should be > any individual vsa of jpool
+}
