@@ -55,18 +55,18 @@ macro_rules! match_same_stakedex {
 
 #[derive(Clone, Default)]
 pub struct Stakedex {
-    cogent: SplStakePoolStakedex,
-    daopool: SplStakePoolStakedex,
-    jito: SplStakePoolStakedex,
-    jpool: SplStakePoolStakedex,
-    laine: SplStakePoolStakedex,
-    risklol: SplStakePoolStakedex,
-    solblaze: SplStakePoolStakedex,
-    socean: SoceanStakePoolStakedex,
-    eversol: EversolStakePoolStakedex,
-    unstakeit: UnstakeItStakedex,
-    marinade: MarinadeStakedex,
-    lido: LidoStakedex,
+    pub cogent: SplStakePoolStakedex,
+    pub daopool: SplStakePoolStakedex,
+    pub jito: SplStakePoolStakedex,
+    pub jpool: SplStakePoolStakedex,
+    pub laine: SplStakePoolStakedex,
+    pub risklol: SplStakePoolStakedex,
+    pub solblaze: SplStakePoolStakedex,
+    pub socean: SoceanStakePoolStakedex,
+    pub eversol: EversolStakePoolStakedex,
+    pub unstakeit: UnstakeItStakedex,
+    pub marinade: MarinadeStakedex,
+    pub lido: LidoStakedex,
 }
 
 fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Result<KeyedAccount> {
