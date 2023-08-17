@@ -20,7 +20,7 @@ use unstake_it_interface::{Fee, FeeEnum, Pool, ProtocolFee};
 
 use crate::{
     apply_fee, find_fee, find_pool_sol_reserves, find_protocol_fee, find_stake_account_record,
-    zero_rational, UNSTAKE_IT_LABEL,
+    zero_rational, SANCTUM_LABEL,
 };
 
 #[derive(Clone)]
@@ -82,7 +82,7 @@ impl InitFromKeyedAccount for UnstakeItStakedex {
 
 impl BaseStakePoolAmm for UnstakeItStakedex {
     fn stake_pool_label(&self) -> &'static str {
-        UNSTAKE_IT_LABEL
+        SANCTUM_LABEL
     }
 
     fn main_state_key(&self) -> Pubkey {
