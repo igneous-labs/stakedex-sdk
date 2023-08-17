@@ -45,9 +45,9 @@ pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     deposit_to: &D,
 ) -> Result<Quote> {
     let (withdraw_quote, deposit_quote) =
-        first_avail_quote(quote_params.in_amount, withdraw_from, deposit_to)?;
+        first_avail_quote(quote_params.amount, withdraw_from, deposit_to)?;
 
-    let in_amount = quote_params.in_amount;
+    let in_amount = quote_params.amount;
     let aft_global_fees = apply_global_fee(deposit_quote.tokens_out);
     let out_amount = aft_global_fees.remainder;
     // total fees is sum of
@@ -61,7 +61,7 @@ pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     // = before_fees * withdraw_fees_in_token / (quote_params.in_amount - withdraw_fees_in_token)
     let out_before_fees = deposit_quote.tokens_out + deposit_quote.fee_amount;
     let denom = quote_params
-        .in_amount
+        .amount
         .checked_sub(withdraw_quote.fee_amount)
         .ok_or_else(|| anyhow!("100% withdrawal fees"))?;
     let approx_withdraw_fees_out_token = (out_before_fees as u128)

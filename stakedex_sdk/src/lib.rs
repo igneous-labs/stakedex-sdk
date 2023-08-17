@@ -416,7 +416,7 @@ impl Stakedex {
                     quote_params.output_mint
                 )
             })?;
-        let deposit_sol_quote = deposit_to.get_deposit_sol_quote(quote_params.in_amount)?;
+        let deposit_sol_quote = deposit_to.get_deposit_sol_quote(quote_params.amount)?;
         let quote = deposit_to.convert_quote(deposit_sol_quote);
         Ok(quote)
     }
@@ -461,9 +461,9 @@ impl Stakedex {
         let (deposit_to, dsq) = self.quote_deposit_stake_dsq(
             &quote_params.output_mint,
             &quote_params.input_mint,
-            quote_params.in_amount,
+            quote_params.amount,
         )?;
-        Ok(deposit_to.convert_deposit_stake_quote(quote_params.in_amount, dsq))
+        Ok(deposit_to.convert_deposit_stake_quote(quote_params.amount, dsq))
     }
 
     /// Inner fn for [`Self::quote_deposit_stake()`].

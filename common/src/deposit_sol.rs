@@ -119,7 +119,7 @@ where
                 quote_params.output_mint
             ));
         }
-        let deposit_sol_quote = self.0.get_deposit_sol_quote(quote_params.in_amount)?;
+        let deposit_sol_quote = self.0.get_deposit_sol_quote(quote_params.amount)?;
         let quote = self.0.convert_quote(deposit_sol_quote);
         Ok(quote)
     }
