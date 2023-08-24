@@ -1577,9 +1577,9 @@ dependencies = [
 
 [[package]]
 name = "jupiter-amm-interface"
-version = "0.2.2"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88d261f1e85b560aa5a8a2943e7f300637250bcabe403288a9cdb2eb7d039a58"
+checksum = "e398aef50f16c631b9871a23f7abc596dcf34eb9a9be8a83ade425cba7968077"
 dependencies = [
  "anyhow",
  "borsh 0.9.3",

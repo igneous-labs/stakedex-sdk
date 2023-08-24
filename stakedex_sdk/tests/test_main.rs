@@ -54,9 +54,10 @@ fn fetch_accounts(accounts_pubkeys: &[Pubkey]) -> HashMap<Pubkey, Account> {
 fn test_swap_via_stake_jitosol_bsol() {
     STAKEDEX
         .quote_swap_via_stake(&QuoteParams {
-            in_amount: 1_000_000_000,
+            amount: 1_000_000_000,
             input_mint: jitosol::ID,
             output_mint: bsol::ID,
+            swap_mode: jupiter_amm_interface::SwapMode::ExactIn,
         })
         .unwrap();
 }
@@ -65,9 +66,10 @@ fn test_swap_via_stake_jitosol_bsol() {
 fn test_swap_via_stake_esol_bsol() {
     STAKEDEX
         .quote_swap_via_stake(&QuoteParams {
-            in_amount: 1_000_000_000, // 1_000_000_000_000
+            amount: 1_000_000_000, // 1_000_000_000_000
             input_mint: esol::ID,
             output_mint: bsol::ID,
+            swap_mode: jupiter_amm_interface::SwapMode::ExactIn,
         })
         .unwrap();
 }
@@ -76,9 +78,10 @@ fn test_swap_via_stake_esol_bsol() {
 fn test_swap_via_stake_unknown_token() {
     let unknown_token = Pubkey::new_unique();
     let res = STAKEDEX.quote_swap_via_stake(&QuoteParams {
-        in_amount: 1_000_000_000,
+        amount: 1_000_000_000,
         input_mint: unknown_token,
         output_mint: bsol::ID,
+        swap_mode: jupiter_amm_interface::SwapMode::ExactIn,
     });
     assert!(res.is_err());
 }
@@ -184,9 +187,10 @@ fn test_jsol_drain_vsa_edge_case() {
         .unwrap();
     let max_possible_quote = STAKEDEX
         .quote_swap_via_stake(&QuoteParams {
-            in_amount: max_withdraw_jsol,
-            input_mint: jsol::ID,
-            output_mint: msol::ID,
+            amount: 100_000_000_000,
+            input_mint: stsol::ID,
+            output_mint: native_mint::ID,
+            swap_mode: jupiter_amm_interface::SwapMode::ExactIn,
         })
         .unwrap();
     let should_fail = STAKEDEX.quote_swap_via_stake(&QuoteParams {
