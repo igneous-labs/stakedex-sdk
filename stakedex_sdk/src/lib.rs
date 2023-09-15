@@ -699,6 +699,7 @@ pub mod test_utils {
         marinade_program, marinade_state, socean_program, socean_stake_pool, unstake_it_pool,
     };
     pub use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
+    pub use stakedex_spl_stake_pool as spl_stake_pool;
     pub use stakedex_spl_stake_pool::SplStakePoolStakedex;
     pub use stakedex_unstake_it::UnstakeItStakedex;
 }

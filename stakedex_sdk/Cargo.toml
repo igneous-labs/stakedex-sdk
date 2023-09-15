@@ -27,5 +27,5 @@ stakedex_unstake_it = { workspace = true }
 itertools = "0.10.5"
 
 [dev-dependencies]
-solana-client.workspace = true
-lazy_static.workspace = true
+solana-client = { workspace = true }
+lazy_static = { workspace = true }

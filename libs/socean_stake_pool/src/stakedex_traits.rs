@@ -54,7 +54,7 @@ impl SoceanStakePoolStakedex {
 
     /// Find and return validator stake account
     pub fn vsa(voter: &Pubkey) -> Pubkey {
-        find_stake_program_address(&socean_program::ID, voter, &socean_stake_pool::ID).0
+        find_stake_program_address(&socean_program::ID, voter, &socean_stake_pool::ID, None).0
     }
 
     pub fn is_updated_this_epoch(&self) -> bool {
@@ -340,9 +340,6 @@ impl WithdrawStake for SoceanStakePoolStakedex {
             Some(r) => r,
             None => return WithdrawStakeQuote::default(),
         };
-        // according to https://github.com/solana-labs/solana-program-library/blob/58c1226a513d3d8bb2de8ec67586a679be7fd2d4/stake-pool/program/src/state.rs#L536C1-L542
-        // `active_stake_lamports` = delegation.stake - MIN_ACTIVE_STAKE_LAMPORTS.
-        // Withdrawals must leave at least MIN_ACTIVE_STAKE_LAMPORTS active stake in vsa
         if withdraw_lamports > validator_list_entry.active_stake_lamports {
             return WithdrawStakeQuote::default();
         }

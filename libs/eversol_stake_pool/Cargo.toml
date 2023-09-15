@@ -10,7 +10,7 @@ anyhow = { workspace = true }
 bincode = { workspace = true }
 borsh = { workspace = true }
 solana-program = { workspace = true }
-spl-stake-pool = { git = "https://github.com/everstake/solana-program-library", rev = "22534fe3885e698598e92b2fe20da3a8adbfc5ff"}
+eversol-spl-stake-pool = { git = "https://github.com/jup-ag/solana-program-library", rev = "a29f1173d93c937dc32e75e36ad3ce9ef91c2293" }
 spl-token = { workspace = true }
 stakedex_deposit_sol_interface = { workspace = true }
 stakedex_deposit_stake_interface = { workspace = true }

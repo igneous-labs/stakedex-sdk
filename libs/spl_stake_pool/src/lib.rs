@@ -7,6 +7,7 @@ use stakedex_sdk_common::{
 use std::collections::HashMap;
 
 mod stakedex_traits;
+pub use spl_stake_pool::ID;
 pub use stakedex_traits::*;
 
 lazy_static! {

@@ -1,13 +1,13 @@
 use anyhow::Result;
-use solana_program::{
-    borsh::try_from_slice_unchecked, clock::Clock, instruction::Instruction, native_token,
-    pubkey::Pubkey, stake, stake_history::Epoch, system_program, sysvar,
-};
-use spl_stake_pool::{
+use eversol_spl_stake_pool::{
     error::StakePoolError,
     find_stake_program_address, find_withdraw_authority_program_address,
     state::{StakePool, StakeStatus, ValidatorList},
     MINIMUM_ACTIVE_STAKE,
+};
+use solana_program::{
+    borsh::try_from_slice_unchecked, clock::Clock, instruction::Instruction, native_token,
+    pubkey::Pubkey, stake, stake_history::Epoch, system_program, sysvar,
 };
 use stakedex_deposit_sol_interface::{
     eversol_stake_pool_deposit_sol_ix, EversolStakePoolDepositSolIxArgs,
