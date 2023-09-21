@@ -19,24 +19,24 @@ use stakedex_sdk_common::{
     bsol, cogent_stake_pool, cogentsol, cws_wsol_bridge_in, daopool_stake_pool, daosol, esol,
     eversol_stake_pool, find_bridge_stake, find_fee_token_acc, find_sol_bridge_out,
     first_avail_quote, jito_stake_pool, jitosol, jpool_stake_pool, jsol, laine_stake_pool,
-    lainesol, lido_state, marinade_state, msol, quote_pool_pair, risklol_stake_pool, risksol,
-    scnsol, socean_stake_pool, solblaze_stake_pool, stsol, BaseStakePoolAmm, DepositSol,
-    DepositSolWrapper, DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount,
-    OneWayPoolPair, TwoWayPoolPair, WithdrawStake, WithdrawStakeQuote,
-    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    lainesol, lido_state, lst, marinade_state, mrgn_stake_pool, msol, quote_pool_pair,
+    risklol_stake_pool, risksol, scnsol, socean_stake_pool, solblaze_stake_pool, stsol,
+    BaseStakePoolAmm, DepositSol, DepositSolWrapper, DepositStake, DepositStakeInfo,
+    DepositStakeQuote, InitFromKeyedAccount, OneWayPoolPair, TwoWayPoolPair, WithdrawStake,
+    WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::UnstakeItStakedex;
 
-pub const N_POOLS: usize = 12;
+pub const N_POOLS: usize = 13;
 
-pub const N_DEPOSIT_SOL_POOLS: usize = 11;
+pub const N_DEPOSIT_SOL_POOLS: usize = 12;
 
-pub const N_DEPOSIT_STAKE_POOLS: usize = 11;
+pub const N_DEPOSIT_STAKE_POOLS: usize = 12;
 
-pub const N_WITHDRAW_STAKE_POOLS: usize = 10;
+pub const N_WITHDRAW_STAKE_POOLS: usize = 11;
 
 #[macro_export]
 macro_rules! match_stakedexes {
@@ -60,6 +60,7 @@ pub struct Stakedex {
     pub jito: SplStakePoolStakedex,
     pub jpool: SplStakePoolStakedex,
     pub laine: SplStakePoolStakedex,
+    pub mrgn: SplStakePoolStakedex,
     pub risklol: SplStakePoolStakedex,
     pub solblaze: SplStakePoolStakedex,
     pub socean: SoceanStakePoolStakedex,
@@ -98,6 +99,7 @@ impl Stakedex {
             jito_stake_pool::ID,
             jpool_stake_pool::ID,
             laine_stake_pool::ID,
+            mrgn_stake_pool::ID,
             risklol_stake_pool::ID,
             solblaze_stake_pool::ID,
             socean_stake_pool::ID,
@@ -149,6 +151,7 @@ impl Stakedex {
             jito_stake_pool::ID,
             jpool_stake_pool::ID,
             laine_stake_pool::ID,
+            mrgn_stake_pool::ID,
             risklol_stake_pool::ID,
             solblaze_stake_pool::ID,
         ]
@@ -168,6 +171,7 @@ impl Stakedex {
                 jito: spl_stake_pools_iter.next().unwrap(),
                 jpool: spl_stake_pools_iter.next().unwrap(),
                 laine: spl_stake_pools_iter.next().unwrap(),
+                mrgn: spl_stake_pools_iter.next().unwrap(),
                 risklol: spl_stake_pools_iter.next().unwrap(),
                 solblaze: spl_stake_pools_iter.next().unwrap(),
                 socean,
@@ -187,6 +191,7 @@ impl Stakedex {
             &self.jito,
             &self.jpool,
             &self.laine,
+            &self.mrgn,
             &self.risklol,
             &self.solblaze,
             &self.socean,
@@ -204,6 +209,7 @@ impl Stakedex {
             &mut self.jito,
             &mut self.jpool,
             &mut self.laine,
+            &mut self.mrgn,
             &mut self.risklol,
             &mut self.solblaze,
             &mut self.socean,
@@ -262,6 +268,7 @@ impl Stakedex {
             (jitosol::ID, &self.jito),
             (jsol::ID, &self.jpool),
             (lainesol::ID, &self.laine),
+            (lst::ID, &self.mrgn),
             (risksol::ID, &self.risklol),
             (scnsol::ID, &self.socean),
             (esol::ID, &self.eversol),
@@ -285,6 +292,7 @@ impl Stakedex {
             (jitosol::ID, &self.jito),
             (jsol::ID, &self.jpool),
             (lainesol::ID, &self.laine),
+            (lst::ID, &self.mrgn),
             (risksol::ID, &self.risklol),
             (scnsol::ID, &self.socean),
             (esol::ID, &self.eversol),
@@ -310,6 +318,7 @@ impl Stakedex {
             (jitosol::ID, &self.jito),
             (jsol::ID, &self.jpool),
             (lainesol::ID, &self.laine),
+            (lst::ID, &self.mrgn),
             (risksol::ID, &self.risklol),
             (scnsol::ID, &self.socean),
             (esol::ID, &self.eversol),
@@ -526,6 +535,7 @@ impl Stakedex {
             Stakedex::SplStakePool(self.jito.clone()),
             Stakedex::SplStakePool(self.jpool.clone()),
             Stakedex::SplStakePool(self.laine.clone()),
+            Stakedex::SplStakePool(self.mrgn.clone()),
             Stakedex::SplStakePool(self.risklol.clone()),
             Stakedex::SplStakePool(self.solblaze.clone()),
             Stakedex::Socean(self.socean.clone()),

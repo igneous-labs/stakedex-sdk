@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use solana_program::pubkey::Pubkey;
 use stakedex_sdk_common::{
     cogent_stake_pool, daopool_stake_pool, jito_stake_pool, jpool_stake_pool, laine_stake_pool,
-    risklol_stake_pool, solblaze_stake_pool,
+    mrgn_stake_pool, risklol_stake_pool, solblaze_stake_pool,
 };
 use std::collections::HashMap;
 
@@ -19,6 +19,7 @@ lazy_static! {
         m.insert(laine_stake_pool::ID, "Laine");
         m.insert(risklol_stake_pool::ID, "Risk.lol");
         m.insert(solblaze_stake_pool::ID, "SolBlaze");
+        m.insert(mrgn_stake_pool::ID, "mrgn");
         m
     };
 }
