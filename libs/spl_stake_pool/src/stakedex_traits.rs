@@ -270,8 +270,13 @@ impl DepositStake for SplStakePoolStakedex {
         quote: &DepositStakeQuote,
         _deposit_stake_info: &DepositStakeInfo,
     ) -> Result<Instruction> {
-        let deposit_stake_validator_stake =
-            find_stake_program_address(&spl_stake_pool::ID, &quote.voter, &self.stake_pool_addr).0;
+        let deposit_stake_validator_stake = find_stake_program_address(
+            &spl_stake_pool::ID,
+            &quote.voter,
+            &self.stake_pool_addr,
+            None,
+        )
+        .0;
         Ok(spl_stake_pool_deposit_stake_ix(
             SplStakePoolDepositStakeKeys {
                 spl_stake_pool_program: spl_stake_pool::ID,
@@ -339,7 +344,7 @@ impl WithdrawStake for SplStakePoolStakedex {
             Some(r) => r,
             None => return WithdrawStakeQuote::default(),
         };
-        if withdraw_lamports > validator_list_entry.active_stake_lamports {
+        if withdraw_lamports > u64::from(validator_list_entry.active_stake_lamports) {
             return WithdrawStakeQuote::default();
         }
         let lamports_staked =
@@ -360,8 +365,13 @@ impl WithdrawStake for SplStakePoolStakedex {
     }
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {
-        let withdraw_stake_stake_to_split =
-            find_stake_program_address(&spl_stake_pool::ID, &quote.voter, &self.stake_pool_addr).0;
+        let withdraw_stake_stake_to_split = find_stake_program_address(
+            &spl_stake_pool::ID,
+            &quote.voter,
+            &self.stake_pool_addr,
+            None,
+        )
+        .0;
         Ok(spl_stake_pool_withdraw_stake_ix(
             SplStakePoolWithdrawStakeKeys {
                 spl_stake_pool_program: spl_stake_pool::ID,

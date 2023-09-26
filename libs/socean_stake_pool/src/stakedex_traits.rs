@@ -340,7 +340,7 @@ impl WithdrawStake for SoceanStakePoolStakedex {
             Some(r) => r,
             None => return WithdrawStakeQuote::default(),
         };
-        if withdraw_lamports > validator_list_entry.active_stake_lamports {
+        if withdraw_lamports > u64::from(validator_list_entry.active_stake_lamports) {
             return WithdrawStakeQuote::default();
         }
         let lamports_staked =
