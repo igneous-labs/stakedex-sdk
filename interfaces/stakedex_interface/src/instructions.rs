@@ -362,7 +362,7 @@ impl From<&SwapViaStakeAccounts<'_, '_>> for SwapViaStakeKeys {
 impl From<&SwapViaStakeKeys> for [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] {
     fn from(keys: &SwapViaStakeKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.user, true),
+            AccountMeta::new(keys.user, false),
             AccountMeta::new(keys.src_token_from, false),
             AccountMeta::new(keys.dest_token_to, false),
             AccountMeta::new(keys.bridge_stake, false),

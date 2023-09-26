@@ -1,4 +1,4 @@
-use jupiter_amm_interface::{QuoteParams, SwapParams};
+use jupiter_amm_interface::{QuoteParams, SwapMode, SwapParams};
 use lazy_static::lazy_static;
 use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
@@ -89,9 +89,10 @@ fn test_swap_via_stake_unknown_token() {
 fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey) {
     let whale_pk = Pubkey::from_str(WHALE).unwrap();
     let res = STAKEDEX.quote_swap_via_stake(&QuoteParams {
-        in_amount: 100_000_000_000,
+        amount: 100_000_000_000,
         input_mint,
         output_mint,
+        swap_mode: SwapMode::ExactIn,
     });
     match res {
         Err(err) => assert!(err.to_string() == "No route found between pools"),
@@ -104,11 +105,12 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey) {
                     &SwapParams {
                         jupiter_program_id: &jupiter_program::ID,
                         in_amount: quote.in_amount,
+                        out_amount: 0,
                         destination_mint: output_mint,
                         source_mint: input_mint,
-                        user_destination_token_account: destination_token_account,
-                        user_source_token_account: source_token_account,
-                        user_transfer_authority: whale_pk,
+                        source_token_account,
+                        destination_token_account,
+                        token_transfer_authority: whale_pk,
                         open_order_address: None,
                         quote_mint_to_referrer: None,
                     },
@@ -169,13 +171,13 @@ fn test_jsol_drain_vsa_edge_case() {
         .validator_list
         .validators
         .iter()
-        .max_by_key(|v| v.active_stake_lamports)
+        .max_by_key(|v| u64::from(v.active_stake_lamports))
         .unwrap();
     let max_withdraw_lamports = largest_active_stake_vsi.active_stake_lamports;
     let parts_after_fees = (STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.denominator
         - STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.numerator)
         as u128;
-    let max_withdraw_lamports_bef_fees = ((max_withdraw_lamports as u128)
+    let max_withdraw_lamports_bef_fees = (u128::from(u64::from(max_withdraw_lamports))
         * (STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.denominator as u128)
         + parts_after_fees
         - 1)
@@ -194,23 +196,25 @@ fn test_jsol_drain_vsa_edge_case() {
         })
         .unwrap();
     let should_fail = STAKEDEX.quote_swap_via_stake(&QuoteParams {
-        in_amount: max_withdraw_jsol + 1,
+        amount: max_withdraw_jsol + 1,
         input_mint: jsol::ID,
         output_mint: msol::ID,
+        swap_mode: SwapMode::ExactIn,
     });
     assert!(should_fail.is_err());
     // try simulating max possible quote
     let whale_pk = Pubkey::from_str(WHALE).unwrap();
-    let user_source_token_account = get_associated_token_address(&whale_pk, &jsol::ID);
-    let user_destination_token_account = get_associated_token_address(&whale_pk, &msol::ID);
+    let source_token_account = get_associated_token_address(&whale_pk, &jsol::ID);
+    let destination_token_account = get_associated_token_address(&whale_pk, &msol::ID);
     let params = SwapParams {
         jupiter_program_id: &jupiter_program::ID,
         in_amount: max_possible_quote.in_amount,
+        out_amount: 0,
         destination_mint: msol::ID,
         source_mint: jsol::ID,
-        user_destination_token_account,
-        user_source_token_account,
-        user_transfer_authority: whale_pk,
+        source_token_account,
+        destination_token_account,
+        token_transfer_authority: whale_pk,
         open_order_address: None,
         quote_mint_to_referrer: None,
     };
