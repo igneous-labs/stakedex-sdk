@@ -385,4 +385,8 @@ impl WithdrawStake for SoceanStakePoolStakedex {
     fn accounts_len(&self) -> usize {
         SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
     }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&socean_stake_pool::ID)
+    }
 }

@@ -199,6 +199,10 @@ impl WithdrawStake for LidoStakedex {
     fn accounts_len(&self) -> usize {
         LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
     }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&lido_state::ID)
+    }
 }
 
 impl DepositSol for LidoStakedex {

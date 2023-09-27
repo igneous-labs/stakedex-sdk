@@ -397,4 +397,8 @@ impl WithdrawStake for EversolStakePoolStakedex {
     fn accounts_len(&self) -> usize {
         EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
     }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&eversol_stake_pool::ID)
+    }
 }

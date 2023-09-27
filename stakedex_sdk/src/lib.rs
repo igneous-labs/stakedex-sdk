@@ -572,109 +572,49 @@ impl Stakedex {
         for (first_stakedex, second_stakedex) in stakedexes.into_iter().tuple_combinations() {
             match (first_stakedex, second_stakedex) {
                 (Stakedex::SplStakePool(p1), Stakedex::SplStakePool(p2)) => {
-                    amms.push(Box::new(TwoWayPoolPair {
-                        p1,
-                        p2,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(TwoWayPoolPair::new(p1, p2)));
                 }
                 match_stakedexes!(SplStakePool, Socean, p1, p2) => {
-                    amms.push(Box::new(TwoWayPoolPair {
-                        p1,
-                        p2,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(TwoWayPoolPair::new(p1, p2)));
                 }
                 match_stakedexes!(SplStakePool, Eversol, p1, p2) => {
-                    amms.push(Box::new(TwoWayPoolPair {
-                        p1,
-                        p2,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(TwoWayPoolPair::new(p1, p2)));
                 }
                 match_stakedexes!(SplStakePool, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(SplStakePool, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Socean, Eversol, p1, p2) => {
-                    amms.push(Box::new(TwoWayPoolPair {
-                        p1,
-                        p2,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(TwoWayPoolPair::new(p1, p2)));
                 }
                 match_stakedexes!(Socean, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Socean, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Eversol, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Eversol, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Lido, SplStakePool, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Lido, Socean, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Lido, Eversol, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Lido, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Lido, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Marinade, UnstakeIt, _, _) => (), // Cannot do anything with those two
                 match_same_stakedex!(Socean)

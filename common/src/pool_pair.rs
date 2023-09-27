@@ -125,6 +125,22 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     Ok(metas)
 }
 
+fn prepare_underlying_liquidities(
+    underlying_liquidities: &[Option<&Pubkey>],
+) -> Option<HashSet<Pubkey>> {
+    let uls = HashSet::from_iter(
+        underlying_liquidities
+            .into_iter()
+            .filter_map(|ul| *ul)
+            .cloned(),
+    );
+    if uls.len() > 0 {
+        None
+    } else {
+        Some(uls)
+    }
+}
+
 #[derive(Clone)]
 pub struct OneWayPoolPair<
     W: WithdrawStake + Clone + Send + Sync + 'static,
@@ -132,7 +148,27 @@ pub struct OneWayPoolPair<
 > {
     pub withdraw: W,
     pub deposit: D,
-    pub clock: Clock,
+    clock: Clock,
+    underlying_liquidities: Option<HashSet<Pubkey>>,
+}
+
+impl<W, D> OneWayPoolPair<W, D>
+where
+    W: WithdrawStake + Clone + Send + Sync,
+    D: DepositStake + Clone + Send + Sync,
+{
+    pub fn new(withdraw: W, deposit: D) -> Self {
+        let underlying_liquidities = prepare_underlying_liquidities(&[
+            withdraw.underlying_liquidity(),
+            deposit.underlying_liquidity(),
+        ]);
+        Self {
+            withdraw,
+            deposit,
+            clock: Clock::default(),
+            underlying_liquidities,
+        }
+    }
 }
 
 impl<W, D> Amm for OneWayPoolPair<W, D>
@@ -231,9 +267,7 @@ where
     }
 
     fn underlying_liquidities(&self) -> Option<HashSet<Pubkey>> {
-        self.deposit
-            .underlying_liquidity()
-            .map(|ul| HashSet::from([*ul]))
+        self.underlying_liquidities.clone()
     }
 
     fn program_dependencies(&self) -> Vec<(Pubkey, String)> {
@@ -257,7 +291,29 @@ pub struct TwoWayPoolPair<
 > {
     pub p1: P1,
     pub p2: P2,
-    pub clock: Clock,
+    clock: Clock,
+    underlying_liquidities: Option<HashSet<Pubkey>>,
+}
+
+impl<P1, P2> TwoWayPoolPair<P1, P2>
+where
+    P1: DepositStake + WithdrawStake + Clone + Send + Sync,
+    P2: DepositStake + WithdrawStake + Clone + Send + Sync,
+{
+    pub fn new(p1: P1, p2: P2) -> Self {
+        let underlying_liquidities = prepare_underlying_liquidities(&[
+            DepositStake::underlying_liquidity(&p1),
+            WithdrawStake::underlying_liquidity(&p1),
+            DepositStake::underlying_liquidity(&p2),
+            WithdrawStake::underlying_liquidity(&p2),
+        ]);
+        Self {
+            p1,
+            p2,
+            clock: Clock::default(),
+            underlying_liquidities,
+        }
+    }
 }
 
 impl<P1, P2> Amm for TwoWayPoolPair<P1, P2>
@@ -357,6 +413,10 @@ where
     fn get_accounts_len(&self) -> usize {
         // Pick a single direction
         1 + WithdrawStake::accounts_len(&self.p1) + DepositStake::accounts_len(&self.p2) + 1
+    }
+
+    fn underlying_liquidities(&self) -> Option<HashSet<Pubkey>> {
+        self.underlying_liquidities.clone()
     }
 
     fn program_dependencies(&self) -> Vec<(Pubkey, String)> {

@@ -147,5 +147,9 @@ pub trait WithdrawStake: BaseStakePoolAmm {
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction>;
 
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        None
+    }
+
     fn accounts_len(&self) -> usize;
 }
