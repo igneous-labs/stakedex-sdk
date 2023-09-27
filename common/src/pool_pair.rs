@@ -235,6 +235,19 @@ where
             .underlying_liquidity()
             .map(|ul| HashSet::from([*ul]))
     }
+
+    fn program_dependencies(&self) -> Vec<(Pubkey, String)> {
+        vec![
+            (
+                self.withdraw.program_id(),
+                self.withdraw.stake_pool_label().to_lowercase(),
+            ),
+            (
+                self.deposit.program_id(),
+                self.deposit.stake_pool_label().to_lowercase(),
+            ),
+        ]
+    }
 }
 
 #[derive(Clone)]
@@ -344,5 +357,18 @@ where
     fn get_accounts_len(&self) -> usize {
         // Pick a single direction
         1 + WithdrawStake::accounts_len(&self.p1) + DepositStake::accounts_len(&self.p2) + 1
+    }
+
+    fn program_dependencies(&self) -> Vec<(Pubkey, String)> {
+        vec![
+            (
+                self.p1.program_id(),
+                self.p1.stake_pool_label().to_lowercase(),
+            ),
+            (
+                self.p2.program_id(),
+                self.p2.stake_pool_label().to_lowercase(),
+            ),
+        ]
     }
 }

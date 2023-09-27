@@ -32,6 +32,10 @@ impl InitFromKeyedAccount for MarinadeStakedex {
 }
 
 impl BaseStakePoolAmm for MarinadeStakedex {
+    fn program_id(&self) -> Pubkey {
+        marinade_program::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         MARINADE_LABEL
     }

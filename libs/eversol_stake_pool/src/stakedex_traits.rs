@@ -200,6 +200,10 @@ impl InitFromKeyedAccount for EversolStakePoolStakedex {
 }
 
 impl BaseStakePoolAmm for EversolStakePoolStakedex {
+    fn program_id(&self) -> Pubkey {
+        eversol_program::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         EVERSOL_STAKE_POOL_LABEL
     }

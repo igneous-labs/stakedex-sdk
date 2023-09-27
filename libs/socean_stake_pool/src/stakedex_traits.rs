@@ -74,6 +74,10 @@ impl InitFromKeyedAccount for SoceanStakePoolStakedex {
 }
 
 impl BaseStakePoolAmm for SoceanStakePoolStakedex {
+    fn program_id(&self) -> Pubkey {
+        socean_program::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         SOCEAN_STAKE_POOL_LABEL
     }

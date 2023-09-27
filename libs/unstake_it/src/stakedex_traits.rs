@@ -81,6 +81,10 @@ impl InitFromKeyedAccount for UnstakeItStakedex {
 }
 
 impl BaseStakePoolAmm for UnstakeItStakedex {
+    fn program_id(&self) -> Pubkey {
+        unstake_it_program::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         SANCTUM_LABEL
     }

@@ -37,6 +37,10 @@ impl InitFromKeyedAccount for LidoStakedex {
 }
 
 impl BaseStakePoolAmm for LidoStakedex {
+    fn program_id(&self) -> Pubkey {
+        lido_program::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         LIDO_LABEL
     }
