@@ -3737,24 +3737,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spl-token-2022"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0043b590232c400bad5ee9eb983ced003d15163c4c5d56b090ac6d9a57457b47"
-dependencies = [
- "arrayref",
- "bytemuck",
- "num-derive",
- "num-traits",
- "num_enum",
- "solana-program",
- "solana-zk-token-sdk 1.14.16",
- "spl-memo",
- "spl-token 3.5.0",
- "thiserror",
-]
-
-[[package]]
 name = "stakedex_deposit_sol_interface"
 version = "0.1.0"
 dependencies = [
@@ -3838,7 +3820,6 @@ dependencies = [
  "solana-sdk",
  "spl-associated-token-account 1.1.2",
  "spl-token 3.5.0",
- "spl-token-2022 0.6.1",
  "stakedex_eversol_stake_pool",
  "stakedex_interface",
  "stakedex_lido",

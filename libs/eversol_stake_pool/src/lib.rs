@@ -12,7 +12,7 @@ mod tests {
     fn test_wrapper_impls_amm_correctly_compile_time() {
         // DepositSolWrapper<SplStakePoolDepositSol>
         // impls Amm
-        let sp = DepositSolWrapper(EversolStakePoolStakedex::default());
+        let _sp = DepositSolWrapper(EversolStakePoolStakedex::default());
         // sp.clone_amm();
     }
 }

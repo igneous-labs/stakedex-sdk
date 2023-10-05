@@ -696,6 +696,9 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
         || output_mint.eq(&lainesol::ID)
         || input_mint.eq(&risksol::ID)
         || output_mint.eq(&risksol::ID)
+        // invalid inputs / output mints
+        || input_mint.eq(&msol::ID)
+        || output_mint.eq(&stsol::ID)
     {
         return;
     }
@@ -795,11 +798,11 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
             );
 
             let after_source_amount =
-                spl_token_2022::state::Account::unpack(&decoded_source_account.data)
+                spl_token::state::Account::unpack(&decoded_source_account.data)
                     .unwrap()
                     .amount;
             let after_destination_amount =
-                spl_token_2022::state::Account::unpack(&decoded_destination_account.data)
+                spl_token::state::Account::unpack(&decoded_destination_account.data)
                     .unwrap()
                     .amount;
 
