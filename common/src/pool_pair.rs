@@ -15,7 +15,7 @@ use crate::{
     find_stake_pool_pair_amm_key,
     jupiter_stakedex_interface::{Swap, STAKEDEX_ACCOUNT_META},
     DepositStake, DepositStakeInfo, DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake,
-    WithdrawStakeQuote, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
+    WithdrawStakeQuote, WithdrawStakeQuoteErr, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
     SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX, TEMPORARY_JUP_AMM_LABEL,
 };
 
@@ -24,8 +24,11 @@ pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     withdraw_from: &W,
     deposit_to: &D,
 ) -> Result<(WithdrawStakeQuote, DepositStakeQuote), SwapViaStakeQuoteErr> {
-    let mut withdraw_quote_iter = withdraw_from.withdraw_stake_quote_iter(withdraw_amount);
-    while let Some(wsq) = withdraw_quote_iter.next(withdraw_from)? {
+    if !withdraw_from.can_accept_stake_withdrawals() {
+        return Err(WithdrawStakeQuoteErr::CannotAcceptStakeWithdrawals.into());
+    }
+    let withdraw_quote_iter = withdraw_from.withdraw_stake_quote_iter_dyn(withdraw_amount);
+    for wsq in withdraw_quote_iter {
         if wsq.is_zero_out() {
             continue;
         }

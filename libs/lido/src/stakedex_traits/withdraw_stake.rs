@@ -5,79 +5,18 @@ use lido::{
     MINIMUM_STAKE_ACCOUNT_BALANCE,
 };
 use solana_program::{
-    instruction::Instruction, native_token::LAMPORTS_PER_SOL, pubkey::Pubkey, stake,
-    system_program, sysvar,
-};
-use stakedex_deposit_sol_interface::{
-    lido_deposit_sol_ix, LidoDepositSolIxArgs, LidoDepositSolKeys,
+    instruction::Instruction, native_token::LAMPORTS_PER_SOL, stake, system_program, sysvar,
 };
 use stakedex_sdk_common::{
-    account_missing_err,
-    jupiter_stakedex_interface::{AccountMap, KeyedAccount},
-    lido_program, lido_state, stsol, BaseStakePoolAmm, DepositSol, DepositSolQuote,
-    InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    lido_program, lido_state, WithdrawStakeBase, WithdrawStakeIter, WithdrawStakeQuote,
+    STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 use stakedex_withdraw_stake_interface::{
     lido_withdraw_stake_ix, LidoWithdrawStakeIxArgs, LidoWithdrawStakeKeys,
 };
 use std::ops::Add;
 
-use crate::{LidoStakedex, LIDO_LABEL};
-
-impl InitFromKeyedAccount for LidoStakedex {
-    /// Initialize from lido
-    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
-        let mut res = Self::default();
-        res.update_lido_state(&keyed_account.account.data)?;
-        // NOTE: validator_list is not initialized until self.update() is
-        // called for the first time with fetched on-chain data
-        Ok(res)
-    }
-}
-
-impl BaseStakePoolAmm for LidoStakedex {
-    fn stake_pool_label(&self) -> &'static str {
-        LIDO_LABEL
-    }
-
-    fn main_state_key(&self) -> Pubkey {
-        lido_state::ID
-    }
-
-    fn staked_sol_mint(&self) -> Pubkey {
-        stsol::ID
-    }
-
-    fn get_accounts_to_update(&self) -> Vec<Pubkey> {
-        vec![
-            lido_state::ID,
-            self.lido_state.validator_list,
-            sysvar::clock::ID,
-        ]
-    }
-
-    fn update(&mut self, accounts_map: &AccountMap) -> Result<()> {
-        let state_data = accounts_map
-            .get(&lido_state::ID)
-            .ok_or_else(|| account_missing_err(&lido_state::ID))?
-            .data
-            .as_ref();
-        self.update_lido_state(state_data)?;
-        let validator_list_data = accounts_map
-            .get(&self.lido_state.validator_list)
-            .ok_or_else(|| account_missing_err(&self.lido_state.validator_list))?
-            .data
-            .as_ref();
-        self.update_validator_list(validator_list_data)?;
-        let clock_data = accounts_map
-            .get(&sysvar::clock::ID)
-            .ok_or_else(|| account_missing_err(&sysvar::clock::ID))?
-            .data
-            .as_ref();
-        self.update_curr_epoch(clock_data)?;
-        Ok(())
-    }
-}
+use crate::LidoStakedex;
 
 // Ref: https://github.com/lidofinance/solido/blob/2e017631bdd4a87f19fb0f168cce30b6748031b8/program/src/processor.rs#L916
 fn get_quote_for_validator_copied(
@@ -142,21 +81,55 @@ fn get_quote_for_validator_copied(
     })
 }
 
-impl WithdrawStake for LidoStakedex {
-    fn is_validator_index_out_of_bounds(&self, validator_index: usize) -> bool {
-        validator_index >= self.validator_list.len()
-    }
+// Lido only allows withdrawing from largest validator
 
+pub struct WithdrawStakeQuoteIter<'a> {
+    pool: &'a LidoStakedex,
+    withdraw_amount: u64,
+    has_checked_largest_validator: bool,
+}
+
+impl<'a> Iterator for WithdrawStakeQuoteIter<'a> {
+    type Item = WithdrawStakeQuote;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.has_checked_largest_validator {
+            return None;
+        }
+
+        let (maximum_stake_validator_index, _) = self
+            .pool
+            .validator_list
+            .iter()
+            .enumerate()
+            .max_by_key(|(_, v)| v.effective_stake_balance)?;
+        let wsq = get_quote_for_validator_copied(
+            self.pool,
+            maximum_stake_validator_index,
+            self.withdraw_amount,
+        )
+        .ok()?;
+
+        self.has_checked_largest_validator = true;
+        Some(wsq)
+    }
+}
+
+impl WithdrawStakeIter for LidoStakedex {
+    type Iter<'me> = WithdrawStakeQuoteIter<'me>;
+
+    fn withdraw_stake_quote_iter(&self, withdraw_amount: u64) -> Self::Iter<'_> {
+        WithdrawStakeQuoteIter {
+            pool: self,
+            withdraw_amount,
+            has_checked_largest_validator: false,
+        }
+    }
+}
+
+impl WithdrawStakeBase for LidoStakedex {
     fn can_accept_stake_withdrawals(&self) -> bool {
         self.lido_state.exchange_rate.computed_in_epoch >= self.curr_epoch
-    }
-
-    fn get_quote_for_validator_unchecked(
-        &self,
-        validator_index: usize,
-        withdraw_amount: u64,
-    ) -> WithdrawStakeQuote {
-        get_quote_for_validator_copied(self, validator_index, withdraw_amount).unwrap_or_default()
     }
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {
@@ -188,42 +161,6 @@ impl WithdrawStake for LidoStakedex {
                 token_program: spl_token::ID,
             },
             LidoWithdrawStakeIxArgs {},
-        )?)
-    }
-}
-
-impl DepositSol for LidoStakedex {
-    fn can_accept_sol_deposits(&self) -> bool {
-        true
-    }
-
-    fn get_deposit_sol_quote_unchecked(&self, user_lamports: u64) -> Result<DepositSolQuote> {
-        let out_amount = self
-            .lido_state
-            .exchange_rate
-            .exchange_sol(Lamports(user_lamports))
-            .map_err(|_| anyhow!("math error get_deposit_sol"))?
-            .0;
-        Ok(DepositSolQuote {
-            in_amount: user_lamports,
-            out_amount,
-            fee_amount: 0,
-        })
-    }
-
-    fn virtual_ix(&self) -> Result<Instruction> {
-        Ok(lido_deposit_sol_ix(
-            LidoDepositSolKeys {
-                lido_program: lido_program::ID,
-                solido: lido_state::ID,
-                lido_reserve: self
-                    .lido_state
-                    .get_reserve_account(&lido_program::ID, &lido_state::ID)?,
-                stsol_mint_authority: self
-                    .lido_state
-                    .get_mint_authority(&lido_program::ID, &lido_state::ID)?,
-            },
-            LidoDepositSolIxArgs {},
         )?)
     }
 }
