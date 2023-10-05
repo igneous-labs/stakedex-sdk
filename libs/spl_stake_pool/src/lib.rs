@@ -55,7 +55,7 @@ impl SplStakePoolStakedex {
         self.stake_pool.last_update_epoch >= self.curr_epoch
     }
 
-    fn get_quote_for_validator_copied(
+    fn get_withdraw_stake_quote_for_validator_copied(
         &self,
         validator_index: usize,
         withdraw_amount: u64,

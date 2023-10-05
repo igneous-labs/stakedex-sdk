@@ -124,7 +124,7 @@ impl EversolStakePoolStakedex {
 
     /// Reference (copy-pasta):
     /// https://github.com/everstake/solana-program-library/blob/22534fe3885e698598e92b2fe20da3a8adbfc5ff/stake-pool/program/src/processor.rs#L2476-L2489
-    fn get_quote_for_validator_copied(
+    fn get_withdraw_stake_quote_for_validator_copied(
         &self,
         validator_index: usize,
         pool_tokens: u64,

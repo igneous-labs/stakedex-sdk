@@ -30,7 +30,7 @@ impl<'a> WithdrawStakeQuoteIter<'a> {
     ) -> Option<(WithdrawStakeQuote, WithdrawStakeQuoteIterState)> {
         let wsq = self
             .pool
-            .get_quote_for_validator_copied(curr_index, self.withdraw_amount)
+            .get_withdraw_stake_quote_for_validator_copied(curr_index, self.withdraw_amount)
             .unwrap_or_default();
         let next_state = if curr_index >= self.pool.validator_list.validators.len() - 1 {
             WithdrawStakeQuoteIterState::Ended
@@ -63,7 +63,7 @@ impl<'a> WithdrawStakeQuoteIter<'a> {
         }
         match self
             .pool
-            .get_quote_for_validator_copied(preferred_index, self.withdraw_amount)
+            .get_withdraw_stake_quote_for_validator_copied(preferred_index, self.withdraw_amount)
         {
             Ok(wsq) => Some((wsq, WithdrawStakeQuoteIterState::Ended)),
             Err(_) => None, // preferred can still service withdrawals but this withdraw amt too much: end iteration

@@ -19,7 +19,7 @@ use std::ops::Add;
 use crate::LidoStakedex;
 
 // Ref: https://github.com/lidofinance/solido/blob/2e017631bdd4a87f19fb0f168cce30b6748031b8/program/src/processor.rs#L916
-fn get_quote_for_validator_copied(
+fn get_withdraw_stake_quote_for_validator_copied(
     lido: &LidoStakedex,
     validator_index: usize,
     withdraw_amount: u64,
@@ -103,7 +103,7 @@ impl<'a> Iterator for WithdrawStakeQuoteIter<'a> {
             .iter()
             .enumerate()
             .max_by_key(|(_, v)| v.effective_stake_balance)?;
-        let wsq = get_quote_for_validator_copied(
+        let wsq = get_withdraw_stake_quote_for_validator_copied(
             self.pool,
             maximum_stake_validator_index,
             self.withdraw_amount,
