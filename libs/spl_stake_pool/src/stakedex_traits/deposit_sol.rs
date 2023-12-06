@@ -10,6 +10,9 @@ use crate::SplStakePoolStakedex;
 
 impl DepositSol for SplStakePoolStakedex {
     fn can_accept_sol_deposits(&self) -> bool {
+        if self.stake_pool.sol_deposit_authority.is_some() {
+            return false;
+        }
         self.is_updated_this_epoch()
     }
 
