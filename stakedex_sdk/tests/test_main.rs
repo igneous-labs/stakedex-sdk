@@ -258,7 +258,7 @@ pub fn sim_swap_via_stake(
             amount,
             input_mint,
             output_mint,
-            swap_mode: SwapMode::default(),
+            swap_mode: SwapMode::ExactIn,
         })
         .unwrap();
     // println!("{:?}", quote);
