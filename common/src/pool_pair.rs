@@ -46,9 +46,9 @@ pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     deposit_to: &D,
 ) -> Result<Quote> {
     let (withdraw_quote, deposit_quote) =
-        first_avail_quote(quote_params.in_amount, withdraw_from, deposit_to)?;
+        first_avail_quote(quote_params.amount, withdraw_from, deposit_to)?;
 
-    let in_amount = quote_params.in_amount;
+    let in_amount = quote_params.amount;
     let aft_global_fees = apply_global_fee(deposit_quote.tokens_out);
     let out_amount = aft_global_fees.remainder;
     // total fees is sum of
@@ -56,13 +56,13 @@ pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     // - deposit_to's deposit stake fees (output mint)
     // - stakedex's global fees (output mint)
     let mut total_fees = aft_global_fees.fee + deposit_quote.fee_amount;
-    // withdraw fees pct = withdraw_fees_in_token / quote_params.in_amount
+    // withdraw fees pct = withdraw_fees_in_token / quote_params.amount
     // approx withdraw fees in terms of out tokens
     // = before_fees * (withdraw fees pct / (1.0 - withdraw fees pct))
-    // = before_fees * withdraw_fees_in_token / (quote_params.in_amount - withdraw_fees_in_token)
+    // = before_fees * withdraw_fees_in_token / (quote_params.amount - withdraw_fees_in_token)
     let out_before_fees = deposit_quote.tokens_out + deposit_quote.fee_amount;
     let denom = quote_params
-        .in_amount
+        .amount
         .checked_sub(withdraw_quote.fee_amount)
         .ok_or_else(|| anyhow!("100% withdrawal fees"))?;
     let approx_withdraw_fees_out_token = (out_before_fees as u128)
@@ -95,17 +95,17 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
         first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)?;
     let bridge_stake_seed_le_bytes = bridge_stake_seed.to_le_bytes();
     let bridge_stake = find_bridge_stake(
-        &swap_params.user_transfer_authority,
+        &swap_params.token_transfer_authority,
         &bridge_stake_seed_le_bytes,
     )
     .0;
     let deposit_stake_info = DepositStakeInfo { addr: bridge_stake };
     let mut metas = Vec::from(<[AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]>::from(
         &SwapViaStakeKeys {
-            user: swap_params.user_transfer_authority,
-            src_token_from: swap_params.user_source_token_account,
+            user: swap_params.token_transfer_authority,
+            src_token_from: swap_params.source_token_account,
             src_token_mint: swap_params.source_mint,
-            dest_token_to: swap_params.user_destination_token_account,
+            dest_token_to: swap_params.destination_token_account,
             dest_token_mint: swap_params.destination_mint,
             dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
             bridge_stake,

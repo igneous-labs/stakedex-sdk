@@ -1,4 +1,4 @@
-use jupiter_amm_interface::{QuoteParams, SwapParams};
+use jupiter_amm_interface::{QuoteParams, SwapMode, SwapParams};
 use lazy_static::lazy_static;
 use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
@@ -58,9 +58,10 @@ fn fetch_accounts(accounts_pubkeys: &[Pubkey]) -> HashMap<Pubkey, Account> {
 fn test_quote_swap_via_stake_jitosol_bsol() {
     STAKEDEX
         .quote_swap_via_stake(&QuoteParams {
-            in_amount: 1_000_000_000,
+            amount: 1_000_000_000,
             input_mint: jitosol::ID,
             output_mint: bsol::ID,
+            swap_mode: SwapMode::default(),
         })
         .unwrap();
 }
@@ -69,9 +70,10 @@ fn test_quote_swap_via_stake_jitosol_bsol() {
 fn test_quote_swap_via_stake_esol_bsol() {
     STAKEDEX
         .quote_swap_via_stake(&QuoteParams {
-            in_amount: 1_000_000_000, // 1_000_000_000_000
+            amount: 1_000_000_000, // 1_000_000_000_000
             input_mint: esol::ID,
             output_mint: bsol::ID,
+            swap_mode: SwapMode::default(),
         })
         .unwrap();
 }
@@ -80,9 +82,10 @@ fn test_quote_swap_via_stake_esol_bsol() {
 fn test_quote_swap_via_stake_unknown_token() {
     let unknown_token = Pubkey::new_unique();
     let res = STAKEDEX.quote_swap_via_stake(&QuoteParams {
-        in_amount: 1_000_000_000,
+        amount: 1_000_000_000,
         input_mint: unknown_token,
         output_mint: bsol::ID,
+        swap_mode: SwapMode::default(),
     });
     assert!(res.is_err());
 }
@@ -108,7 +111,7 @@ fn test_swap_via_stake_jitosol_bsol() {
         &STAKEDEX,
         &RPC,
         TestSwapViaStakeArgs {
-            in_amount: 100_000_000,
+            amount: 100_000_000,
             input_mint: jitosol::ID,
             output_mint: bsol::ID,
             signer,
@@ -128,7 +131,7 @@ fn test_swap_via_stake_bsol_jitosol() {
         &STAKEDEX,
         &RPC,
         TestSwapViaStakeArgs {
-            in_amount: 100_000_000,
+            amount: 100_000_000,
             input_mint: bsol::ID,
             output_mint: jitosol::ID,
             signer,
@@ -173,15 +176,17 @@ fn test_jsol_drain_vsa_edge_case() {
         .unwrap();
     let max_possible_quote = STAKEDEX
         .quote_swap_via_stake(&QuoteParams {
-            in_amount: max_withdraw_jsol,
+            amount: max_withdraw_jsol,
             input_mint: jsol::ID,
             output_mint: msol::ID,
+            swap_mode: SwapMode::default(),
         })
         .unwrap();
     let should_fail = STAKEDEX.quote_swap_via_stake(&QuoteParams {
-        in_amount: max_withdraw_jsol + 1,
+        amount: max_withdraw_jsol + 1,
         input_mint: jsol::ID,
         output_mint: msol::ID,
+        swap_mode: SwapMode::default(),
     });
     assert!(should_fail.is_err());
     // try simulating max possible quote
@@ -189,7 +194,7 @@ fn test_jsol_drain_vsa_edge_case() {
         &STAKEDEX,
         &RPC,
         TestSwapViaStakeArgs {
-            in_amount: max_possible_quote.in_amount,
+            amount: max_possible_quote.in_amount,
             input_mint: jsol::ID,
             output_mint: msol::ID,
             signer: whale::ID,
@@ -201,7 +206,7 @@ fn test_jsol_drain_vsa_edge_case() {
 }
 
 pub struct TestSwapViaStakeArgs {
-    pub in_amount: u64,
+    pub amount: u64,
     pub input_mint: Pubkey,
     pub output_mint: Pubkey,
     pub signer: Pubkey,
@@ -219,7 +224,7 @@ pub fn sim_swap_via_stake_with_whale(
         stakedex,
         rpc,
         TestSwapViaStakeArgs {
-            in_amount: 100_000_000_000,
+            amount: 100_000_000_000,
             input_mint,
             output_mint,
             signer: whale::ID,
@@ -240,7 +245,7 @@ pub fn sim_swap_via_stake(
     stakedex: &Stakedex,
     rpc: &RpcClient,
     TestSwapViaStakeArgs {
-        in_amount,
+        amount,
         input_mint,
         output_mint,
         signer,
@@ -250,9 +255,10 @@ pub fn sim_swap_via_stake(
 ) -> Response<RpcSimulateTransactionResult> {
     let quote = stakedex
         .quote_swap_via_stake(&QuoteParams {
-            in_amount,
+            amount,
             input_mint,
             output_mint,
+            swap_mode: SwapMode::ExactIn,
         })
         .unwrap();
     // println!("{:?}", quote);
@@ -261,11 +267,12 @@ pub fn sim_swap_via_stake(
             &SwapParams {
                 jupiter_program_id: &jupiter_program::ID,
                 in_amount: quote.in_amount,
+                out_amount: quote.out_amount,
                 destination_mint: output_mint,
                 source_mint: input_mint,
-                user_destination_token_account: dst_token_acc,
-                user_source_token_account: src_token_acc,
-                user_transfer_authority: signer,
+                destination_token_account: dst_token_acc,
+                source_token_account: src_token_acc,
+                token_transfer_authority: signer,
                 open_order_address: None,
                 quote_mint_to_referrer: None,
             },
