@@ -21,7 +21,7 @@ impl DepositStake for SplStakePoolStakedex {
     }
 
     // TODO: maybe refactor to same style as eversol
-    // (_copy() function that returns Result and can copy pasta from on-chain src directly)
+    // (_copied() function that returns Result and can copy pasta from on-chain src directly)
     fn get_deposit_stake_quote_unchecked(
         &self,
         withdraw_stake_quote: WithdrawStakeQuote,

@@ -20,7 +20,6 @@ solana-sdk = "^1.9"
 spl-token = "^3.0"
 stakedex_deposit_sol_interface = { path = "./interfaces/stakedex_deposit_sol_interface" }
 stakedex_deposit_stake_interface = { path = "./interfaces/stakedex_deposit_stake_interface" }
-stakedex_eversol_stake_pool = { path = "./libs/eversol_stake_pool" }
 stakedex_interface = { path = "./interfaces/stakedex_interface" }
 stakedex_lido = { path = "./libs/lido" }
 stakedex_marinade = { path = "./libs/marinade" }

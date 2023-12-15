@@ -66,10 +66,8 @@
       ],
       "args": [
         {
-          "name": "stakeWrappedSolArgs",
-          "type": {
-            "defined": "StakeWrappedSolArgs"
-          }
+          "name": "amount",
+          "type": "u64"
         }
       ],
       "discriminant": {
@@ -125,10 +123,12 @@
       ],
       "args": [
         {
-          "name": "swapViaStakeArgs",
-          "type": {
-            "defined": "SwapViaStakeArgs"
-          }
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "bridgeStakeSeed",
+          "type": "u32"
         }
       ],
       "discriminant": {
@@ -290,40 +290,85 @@
       }
     }
   ],
-  "types": [
+  "errors": [
     {
-      "name": "StakeWrappedSolArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "amount",
-            "type": "u64"
-          }
-        ]
-      }
+      "code": 0,
+      "name": "WrongWsolBridgeIn",
+      "msg": "Wrong wsol_bridge_in account"
     },
     {
-      "name": "SwapViaStakeArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "bridgeStakeSeed",
-            "type": "u32"
-          }
-        ]
-      }
+      "code": 1,
+      "name": "WrongSolBridgeOut",
+      "msg": "Wrong sol_bridge_out account"
+    },
+    {
+      "code": 2,
+      "name": "WrongFeeTokenAccount",
+      "msg": "Wrong fee token account"
+    },
+    {
+      "code": 3,
+      "name": "WrongTokenProgram",
+      "msg": "Wrong token program"
+    },
+    {
+      "code": 4,
+      "name": "NotSystemAccount",
+      "msg": "Not system account"
+    },
+    {
+      "code": 5,
+      "name": "NotWsolMint",
+      "msg": "Not wSOL mint"
+    },
+    {
+      "code": 6,
+      "name": "WrongStakePoolProgram",
+      "msg": "Wrong stake pool program"
+    },
+    {
+      "code": 7,
+      "name": "WrongBridgeStake",
+      "msg": "Wrong bridge stake account"
+    },
+    {
+      "code": 8,
+      "name": "WrongAdmin",
+      "msg": "Wrong admin authority"
+    },
+    {
+      "code": 9,
+      "name": "StakeAccInactive",
+      "msg": "Stake account has no voter"
+    },
+    {
+      "code": 10,
+      "name": "ValidatorNotPartOfStakePool",
+      "msg": "Validator not part of stake pool"
+    },
+    {
+      "code": 11,
+      "name": "NotSignedByAdmin",
+      "msg": "Not signed by admin"
+    },
+    {
+      "code": 12,
+      "name": "NumericalError",
+      "msg": "Numerical error"
+    },
+    {
+      "code": 13,
+      "name": "UnsupportedProgram",
+      "msg": "Unsupported stake pool program"
+    },
+    {
+      "code": 14,
+      "name": "UnreachableError",
+      "msg": "If you see this, there's a serious bug somewhere"
     }
   ],
   "metadata": {
     "origin": "shank",
-    "address": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
-    "binaryVersion": "0.0.11",
-    "libVersion": "0.0.11"
+    "address": "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq"
   }
 }
