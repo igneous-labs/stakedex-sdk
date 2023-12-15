@@ -3,36 +3,6 @@
   "name": "stakedex_deposit_sol",
   "instructions": [
     {
-      "name": "LidoDepositSol",
-      "accounts": [
-        {
-          "name": "lidoProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "solido",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "lidoReserve",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stsolMintAuthority",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [],
-      "discriminant": {
-        "type": "u8",
-        "value": 0
-      }
-    },
-    {
       "name": "MarinadeDepositSol",
       "accounts": [
         {
@@ -74,7 +44,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 1
+        "value": 0
       }
     },
     {
@@ -114,7 +84,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 2
+        "value": 1
       }
     },
     {
@@ -149,7 +119,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 3
+        "value": 2
       }
     }
   ],

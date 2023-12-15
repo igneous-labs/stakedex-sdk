@@ -1,4 +1,3 @@
-use crate::*;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::AccountInfo,
@@ -8,68 +7,59 @@ use solana_program::{
     program_error::ProgramError,
     pubkey::Pubkey,
 };
+use std::io::Read;
 #[derive(Clone, Debug, PartialEq)]
 pub enum StakedexProgramIx {
     StakeWrappedSol(StakeWrappedSolIxArgs),
     SwapViaStake(SwapViaStakeIxArgs),
-    CreateFeeTokenAccount(CreateFeeTokenAccountIxArgs),
-    CloseFeeTokenAccount(CloseFeeTokenAccountIxArgs),
-    WithdrawFees(WithdrawFeesIxArgs),
-    DepositStake(DepositStakeIxArgs),
-}
-impl BorshSerialize for StakedexProgramIx {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        match self {
-            Self::StakeWrappedSol(args) => {
-                STAKE_WRAPPED_SOL_IX_DISCM.serialize(writer)?;
-                args.serialize(writer)
-            }
-            Self::SwapViaStake(args) => {
-                SWAP_VIA_STAKE_IX_DISCM.serialize(writer)?;
-                args.serialize(writer)
-            }
-            Self::CreateFeeTokenAccount(args) => {
-                CREATE_FEE_TOKEN_ACCOUNT_IX_DISCM.serialize(writer)?;
-                args.serialize(writer)
-            }
-            Self::CloseFeeTokenAccount(args) => {
-                CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM.serialize(writer)?;
-                args.serialize(writer)
-            }
-            Self::WithdrawFees(args) => {
-                WITHDRAW_FEES_IX_DISCM.serialize(writer)?;
-                args.serialize(writer)
-            }
-            Self::DepositStake(args) => {
-                DEPOSIT_STAKE_IX_DISCM.serialize(writer)?;
-                args.serialize(writer)
-            }
-        }
-    }
+    CreateFeeTokenAccount,
+    CloseFeeTokenAccount,
+    WithdrawFees,
+    DepositStake,
 }
 impl StakedexProgramIx {
-    pub fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
-        let maybe_discm = u8::deserialize(buf)?;
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
         match maybe_discm {
             STAKE_WRAPPED_SOL_IX_DISCM => Ok(Self::StakeWrappedSol(
-                StakeWrappedSolIxArgs::deserialize(buf)?,
+                StakeWrappedSolIxArgs::deserialize(&mut reader)?,
             )),
-            SWAP_VIA_STAKE_IX_DISCM => {
-                Ok(Self::SwapViaStake(SwapViaStakeIxArgs::deserialize(buf)?))
-            }
-            CREATE_FEE_TOKEN_ACCOUNT_IX_DISCM => Ok(Self::CreateFeeTokenAccount(
-                CreateFeeTokenAccountIxArgs::deserialize(buf)?,
-            )),
-            CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM => Ok(Self::CloseFeeTokenAccount(
-                CloseFeeTokenAccountIxArgs::deserialize(buf)?,
-            )),
-            WITHDRAW_FEES_IX_DISCM => Ok(Self::WithdrawFees(WithdrawFeesIxArgs::deserialize(buf)?)),
-            DEPOSIT_STAKE_IX_DISCM => Ok(Self::DepositStake(DepositStakeIxArgs::deserialize(buf)?)),
+            SWAP_VIA_STAKE_IX_DISCM => Ok(Self::SwapViaStake(SwapViaStakeIxArgs::deserialize(
+                &mut reader,
+            )?)),
+            CREATE_FEE_TOKEN_ACCOUNT_IX_DISCM => Ok(Self::CreateFeeTokenAccount),
+            CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM => Ok(Self::CloseFeeTokenAccount),
+            WITHDRAW_FEES_IX_DISCM => Ok(Self::WithdrawFees),
+            DEPOSIT_STAKE_IX_DISCM => Ok(Self::DepositStake),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!("discm {:?} not found", maybe_discm),
             )),
         }
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        match self {
+            Self::StakeWrappedSol(args) => {
+                writer.write_all(&[STAKE_WRAPPED_SOL_IX_DISCM])?;
+                args.serialize(&mut writer)
+            }
+            Self::SwapViaStake(args) => {
+                writer.write_all(&[SWAP_VIA_STAKE_IX_DISCM])?;
+                args.serialize(&mut writer)
+            }
+            Self::CreateFeeTokenAccount => writer.write_all(&[CREATE_FEE_TOKEN_ACCOUNT_IX_DISCM]),
+            Self::CloseFeeTokenAccount => writer.write_all(&[CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM]),
+            Self::WithdrawFees => writer.write_all(&[WITHDRAW_FEES_IX_DISCM]),
+            Self::DepositStake => writer.write_all(&[DEPOSIT_STAKE_IX_DISCM]),
+        }
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
 pub const STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN: usize = 10;
@@ -115,8 +105,8 @@ pub struct StakeWrappedSolKeys {
     pub token_program: Pubkey,
     pub system_program: Pubkey,
 }
-impl From<&StakeWrappedSolAccounts<'_, '_>> for StakeWrappedSolKeys {
-    fn from(accounts: &StakeWrappedSolAccounts) -> Self {
+impl From<StakeWrappedSolAccounts<'_, '_>> for StakeWrappedSolKeys {
+    fn from(accounts: StakeWrappedSolAccounts) -> Self {
         Self {
             user: *accounts.user.key,
             wsol_from: *accounts.wsol_from.key,
@@ -131,19 +121,59 @@ impl From<&StakeWrappedSolAccounts<'_, '_>> for StakeWrappedSolKeys {
         }
     }
 }
-impl From<&StakeWrappedSolKeys> for [AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] {
-    fn from(keys: &StakeWrappedSolKeys) -> Self {
+impl From<StakeWrappedSolKeys> for [AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] {
+    fn from(keys: StakeWrappedSolKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.user, true),
-            AccountMeta::new(keys.wsol_from, false),
-            AccountMeta::new(keys.dest_token_to, false),
-            AccountMeta::new(keys.wsol_bridge_in, false),
-            AccountMeta::new(keys.sol_bridge_out, false),
-            AccountMeta::new(keys.dest_token_fee_token_account, false),
-            AccountMeta::new(keys.dest_token_mint, false),
-            AccountMeta::new_readonly(keys.wsol_mint, false),
-            AccountMeta::new_readonly(keys.token_program, false),
-            AccountMeta::new_readonly(keys.system_program, false),
+            AccountMeta {
+                pubkey: keys.user,
+                is_signer: true,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.wsol_from,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_to,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.wsol_bridge_in,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.sol_bridge_out,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_fee_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_mint,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.wsol_mint,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
@@ -163,10 +193,10 @@ impl From<[Pubkey; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]> for StakeWrappedSolKeys {
         }
     }
 }
-impl<'info> From<&StakeWrappedSolAccounts<'_, 'info>>
+impl<'info> From<StakeWrappedSolAccounts<'_, 'info>>
     for [AccountInfo<'info>; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &StakeWrappedSolAccounts<'_, 'info>) -> Self {
+    fn from(accounts: StakeWrappedSolAccounts<'_, 'info>) -> Self {
         [
             accounts.user.clone(),
             accounts.wsol_from.clone(),
@@ -199,28 +229,25 @@ impl<'me, 'info> From<&'me [AccountInfo<'info>; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LE
         }
     }
 }
+pub const STAKE_WRAPPED_SOL_IX_DISCM: u8 = 0u8;
 #[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StakeWrappedSolIxArgs {
-    pub stake_wrapped_sol_args: StakeWrappedSolArgs,
+    pub amount: u64,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct StakeWrappedSolIxData(pub StakeWrappedSolIxArgs);
-pub const STAKE_WRAPPED_SOL_IX_DISCM: u8 = 0u8;
 impl From<StakeWrappedSolIxArgs> for StakeWrappedSolIxData {
     fn from(args: StakeWrappedSolIxArgs) -> Self {
         Self(args)
     }
 }
-impl BorshSerialize for StakeWrappedSolIxData {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[STAKE_WRAPPED_SOL_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
 impl StakeWrappedSolIxData {
-    pub fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
-        let maybe_discm = u8::deserialize(buf)?;
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
         if maybe_discm != STAKE_WRAPPED_SOL_IX_DISCM {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -230,7 +257,16 @@ impl StakeWrappedSolIxData {
                 ),
             ));
         }
-        Ok(Self(StakeWrappedSolIxArgs::deserialize(buf)?))
+        Ok(Self(StakeWrappedSolIxArgs::deserialize(&mut reader)?))
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[STAKE_WRAPPED_SOL_IX_DISCM])?;
+        self.0.serialize(&mut writer)
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
 pub fn stake_wrapped_sol_ix<K: Into<StakeWrappedSolKeys>, A: Into<StakeWrappedSolIxArgs>>(
@@ -238,7 +274,7 @@ pub fn stake_wrapped_sol_ix<K: Into<StakeWrappedSolKeys>, A: Into<StakeWrappedSo
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: StakeWrappedSolKeys = accounts.into();
-    let metas: [AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
+    let metas: [AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN] = keys.into();
     let args_full: StakeWrappedSolIxArgs = args.into();
     let data: StakeWrappedSolIxData = args_full.into();
     Ok(Instruction {
@@ -248,7 +284,7 @@ pub fn stake_wrapped_sol_ix<K: Into<StakeWrappedSolKeys>, A: Into<StakeWrappedSo
     })
 }
 pub fn stake_wrapped_sol_invoke<'info, A: Into<StakeWrappedSolIxArgs>>(
-    accounts: &StakeWrappedSolAccounts<'_, 'info>,
+    accounts: StakeWrappedSolAccounts<'_, 'info>,
     args: A,
 ) -> ProgramResult {
     let ix = stake_wrapped_sol_ix(accounts, args)?;
@@ -256,7 +292,7 @@ pub fn stake_wrapped_sol_invoke<'info, A: Into<StakeWrappedSolIxArgs>>(
     invoke(&ix, &account_info)
 }
 pub fn stake_wrapped_sol_invoke_signed<'info, A: Into<StakeWrappedSolIxArgs>>(
-    accounts: &StakeWrappedSolAccounts<'_, 'info>,
+    accounts: StakeWrappedSolAccounts<'_, 'info>,
     args: A,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
@@ -265,8 +301,8 @@ pub fn stake_wrapped_sol_invoke_signed<'info, A: Into<StakeWrappedSolIxArgs>>(
     invoke_signed(&ix, &account_info, seeds)
 }
 pub fn stake_wrapped_sol_verify_account_keys(
-    accounts: &StakeWrappedSolAccounts<'_, '_>,
-    keys: &StakeWrappedSolKeys,
+    accounts: StakeWrappedSolAccounts<'_, '_>,
+    keys: StakeWrappedSolKeys,
 ) -> Result<(), (Pubkey, Pubkey)> {
     for (actual, expected) in [
         (accounts.user.key, &keys.user),
@@ -289,9 +325,9 @@ pub fn stake_wrapped_sol_verify_account_keys(
     }
     Ok(())
 }
-pub fn stake_wrapped_sol_verify_account_privileges(
-    accounts: &StakeWrappedSolAccounts<'_, '_>,
-) -> Result<(), ProgramError> {
+pub fn stake_wrapped_sol_verify_account_privileges<'me, 'info>(
+    accounts: StakeWrappedSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
         accounts.wsol_from,
         accounts.dest_token_to,
@@ -301,12 +337,12 @@ pub fn stake_wrapped_sol_verify_account_privileges(
         accounts.dest_token_mint,
     ] {
         if !should_be_writable.is_writable {
-            return Err(ProgramError::InvalidAccountData);
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
     for should_be_signer in [accounts.user] {
         if !should_be_signer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
         }
     }
     Ok(())
@@ -346,8 +382,8 @@ pub struct SwapViaStakeKeys {
     ///Output token mint. If this is wrapped SOL, the account can be set to read-only
     pub dest_token_mint: Pubkey,
 }
-impl From<&SwapViaStakeAccounts<'_, '_>> for SwapViaStakeKeys {
-    fn from(accounts: &SwapViaStakeAccounts) -> Self {
+impl From<SwapViaStakeAccounts<'_, '_>> for SwapViaStakeKeys {
+    fn from(accounts: SwapViaStakeAccounts) -> Self {
         Self {
             user: *accounts.user.key,
             src_token_from: *accounts.src_token_from.key,
@@ -359,16 +395,44 @@ impl From<&SwapViaStakeAccounts<'_, '_>> for SwapViaStakeKeys {
         }
     }
 }
-impl From<&SwapViaStakeKeys> for [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] {
-    fn from(keys: &SwapViaStakeKeys) -> Self {
+impl From<SwapViaStakeKeys> for [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] {
+    fn from(keys: SwapViaStakeKeys) -> Self {
         [
-            AccountMeta::new(keys.user, true),
-            AccountMeta::new(keys.src_token_from, false),
-            AccountMeta::new(keys.dest_token_to, false),
-            AccountMeta::new(keys.bridge_stake, false),
-            AccountMeta::new(keys.dest_token_fee_token_account, false),
-            AccountMeta::new(keys.src_token_mint, false),
-            AccountMeta::new(keys.dest_token_mint, false),
+            AccountMeta {
+                pubkey: keys.user,
+                is_signer: true,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.src_token_from,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_to,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.bridge_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_fee_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.src_token_mint,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_mint,
+                is_signer: false,
+                is_writable: true,
+            },
         ]
     }
 }
@@ -385,10 +449,10 @@ impl From<[Pubkey; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]> for SwapViaStakeKeys {
         }
     }
 }
-impl<'info> From<&SwapViaStakeAccounts<'_, 'info>>
+impl<'info> From<SwapViaStakeAccounts<'_, 'info>>
     for [AccountInfo<'info>; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &SwapViaStakeAccounts<'_, 'info>) -> Self {
+    fn from(accounts: SwapViaStakeAccounts<'_, 'info>) -> Self {
         [
             accounts.user.clone(),
             accounts.src_token_from.clone(),
@@ -415,28 +479,26 @@ impl<'me, 'info> From<&'me [AccountInfo<'info>; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]>
         }
     }
 }
+pub const SWAP_VIA_STAKE_IX_DISCM: u8 = 1u8;
 #[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SwapViaStakeIxArgs {
-    pub swap_via_stake_args: SwapViaStakeArgs,
+    pub amount: u64,
+    pub bridge_stake_seed: u32,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct SwapViaStakeIxData(pub SwapViaStakeIxArgs);
-pub const SWAP_VIA_STAKE_IX_DISCM: u8 = 1u8;
 impl From<SwapViaStakeIxArgs> for SwapViaStakeIxData {
     fn from(args: SwapViaStakeIxArgs) -> Self {
         Self(args)
     }
 }
-impl BorshSerialize for SwapViaStakeIxData {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[SWAP_VIA_STAKE_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
 impl SwapViaStakeIxData {
-    pub fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
-        let maybe_discm = u8::deserialize(buf)?;
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
         if maybe_discm != SWAP_VIA_STAKE_IX_DISCM {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -446,7 +508,16 @@ impl SwapViaStakeIxData {
                 ),
             ));
         }
-        Ok(Self(SwapViaStakeIxArgs::deserialize(buf)?))
+        Ok(Self(SwapViaStakeIxArgs::deserialize(&mut reader)?))
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SWAP_VIA_STAKE_IX_DISCM])?;
+        self.0.serialize(&mut writer)
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
 pub fn swap_via_stake_ix<K: Into<SwapViaStakeKeys>, A: Into<SwapViaStakeIxArgs>>(
@@ -454,7 +525,7 @@ pub fn swap_via_stake_ix<K: Into<SwapViaStakeKeys>, A: Into<SwapViaStakeIxArgs>>
     args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SwapViaStakeKeys = accounts.into();
-    let metas: [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
+    let metas: [AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     let args_full: SwapViaStakeIxArgs = args.into();
     let data: SwapViaStakeIxData = args_full.into();
     Ok(Instruction {
@@ -464,7 +535,7 @@ pub fn swap_via_stake_ix<K: Into<SwapViaStakeKeys>, A: Into<SwapViaStakeIxArgs>>
     })
 }
 pub fn swap_via_stake_invoke<'info, A: Into<SwapViaStakeIxArgs>>(
-    accounts: &SwapViaStakeAccounts<'_, 'info>,
+    accounts: SwapViaStakeAccounts<'_, 'info>,
     args: A,
 ) -> ProgramResult {
     let ix = swap_via_stake_ix(accounts, args)?;
@@ -472,7 +543,7 @@ pub fn swap_via_stake_invoke<'info, A: Into<SwapViaStakeIxArgs>>(
     invoke(&ix, &account_info)
 }
 pub fn swap_via_stake_invoke_signed<'info, A: Into<SwapViaStakeIxArgs>>(
-    accounts: &SwapViaStakeAccounts<'_, 'info>,
+    accounts: SwapViaStakeAccounts<'_, 'info>,
     args: A,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
@@ -481,8 +552,8 @@ pub fn swap_via_stake_invoke_signed<'info, A: Into<SwapViaStakeIxArgs>>(
     invoke_signed(&ix, &account_info, seeds)
 }
 pub fn swap_via_stake_verify_account_keys(
-    accounts: &SwapViaStakeAccounts<'_, '_>,
-    keys: &SwapViaStakeKeys,
+    accounts: SwapViaStakeAccounts<'_, '_>,
+    keys: SwapViaStakeKeys,
 ) -> Result<(), (Pubkey, Pubkey)> {
     for (actual, expected) in [
         (accounts.user.key, &keys.user),
@@ -502,9 +573,9 @@ pub fn swap_via_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn swap_via_stake_verify_account_privileges(
-    accounts: &SwapViaStakeAccounts<'_, '_>,
-) -> Result<(), ProgramError> {
+pub fn swap_via_stake_verify_account_privileges<'me, 'info>(
+    accounts: SwapViaStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
         accounts.user,
         accounts.src_token_from,
@@ -515,12 +586,12 @@ pub fn swap_via_stake_verify_account_privileges(
         accounts.dest_token_mint,
     ] {
         if !should_be_writable.is_writable {
-            return Err(ProgramError::InvalidAccountData);
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
     for should_be_signer in [accounts.user] {
         if !should_be_signer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
         }
     }
     Ok(())
@@ -546,8 +617,8 @@ pub struct CreateFeeTokenAccountKeys {
     pub token_program: Pubkey,
     pub system_program: Pubkey,
 }
-impl From<&CreateFeeTokenAccountAccounts<'_, '_>> for CreateFeeTokenAccountKeys {
-    fn from(accounts: &CreateFeeTokenAccountAccounts) -> Self {
+impl From<CreateFeeTokenAccountAccounts<'_, '_>> for CreateFeeTokenAccountKeys {
+    fn from(accounts: CreateFeeTokenAccountAccounts) -> Self {
         Self {
             payer: *accounts.payer.key,
             fee_token_account: *accounts.fee_token_account.key,
@@ -557,14 +628,34 @@ impl From<&CreateFeeTokenAccountAccounts<'_, '_>> for CreateFeeTokenAccountKeys 
         }
     }
 }
-impl From<&CreateFeeTokenAccountKeys> for [AccountMeta; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] {
-    fn from(keys: &CreateFeeTokenAccountKeys) -> Self {
+impl From<CreateFeeTokenAccountKeys> for [AccountMeta; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] {
+    fn from(keys: CreateFeeTokenAccountKeys) -> Self {
         [
-            AccountMeta::new(keys.payer, true),
-            AccountMeta::new(keys.fee_token_account, false),
-            AccountMeta::new_readonly(keys.mint, false),
-            AccountMeta::new_readonly(keys.token_program, false),
-            AccountMeta::new_readonly(keys.system_program, false),
+            AccountMeta {
+                pubkey: keys.payer,
+                is_signer: true,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.fee_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.mint,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
@@ -579,10 +670,10 @@ impl From<[Pubkey; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN]> for CreateFeeToken
         }
     }
 }
-impl<'info> From<&CreateFeeTokenAccountAccounts<'_, 'info>>
+impl<'info> From<CreateFeeTokenAccountAccounts<'_, 'info>>
     for [AccountInfo<'info>; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &CreateFeeTokenAccountAccounts<'_, 'info>) -> Self {
+    fn from(accounts: CreateFeeTokenAccountAccounts<'_, 'info>) -> Self {
         [
             accounts.payer.clone(),
             accounts.fee_token_account.clone(),
@@ -605,26 +696,15 @@ impl<'me, 'info> From<&'me [AccountInfo<'info>; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCO
         }
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CreateFeeTokenAccountIxArgs {}
-#[derive(Clone, Debug, PartialEq)]
-pub struct CreateFeeTokenAccountIxData(pub CreateFeeTokenAccountIxArgs);
 pub const CREATE_FEE_TOKEN_ACCOUNT_IX_DISCM: u8 = 2u8;
-impl From<CreateFeeTokenAccountIxArgs> for CreateFeeTokenAccountIxData {
-    fn from(args: CreateFeeTokenAccountIxArgs) -> Self {
-        Self(args)
-    }
-}
-impl BorshSerialize for CreateFeeTokenAccountIxData {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[CREATE_FEE_TOKEN_ACCOUNT_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
+#[derive(Clone, Debug, PartialEq)]
+pub struct CreateFeeTokenAccountIxData;
 impl CreateFeeTokenAccountIxData {
-    pub fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
-        let maybe_discm = u8::deserialize(buf)?;
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
         if maybe_discm != CREATE_FEE_TOKEN_ACCOUNT_IX_DISCM {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -634,48 +714,48 @@ impl CreateFeeTokenAccountIxData {
                 ),
             ));
         }
-        Ok(Self(CreateFeeTokenAccountIxArgs::deserialize(buf)?))
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[CREATE_FEE_TOKEN_ACCOUNT_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn create_fee_token_account_ix<
-    K: Into<CreateFeeTokenAccountKeys>,
-    A: Into<CreateFeeTokenAccountIxArgs>,
->(
+pub fn create_fee_token_account_ix<K: Into<CreateFeeTokenAccountKeys>>(
     accounts: K,
-    args: A,
 ) -> std::io::Result<Instruction> {
     let keys: CreateFeeTokenAccountKeys = accounts.into();
-    let metas: [AccountMeta; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: CreateFeeTokenAccountIxArgs = args.into();
-    let data: CreateFeeTokenAccountIxData = args_full.into();
+    let metas: [AccountMeta; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: CreateFeeTokenAccountIxData.try_to_vec()?,
     })
 }
-pub fn create_fee_token_account_invoke<'info, A: Into<CreateFeeTokenAccountIxArgs>>(
-    accounts: &CreateFeeTokenAccountAccounts<'_, 'info>,
-    args: A,
+pub fn create_fee_token_account_invoke<'info>(
+    accounts: CreateFeeTokenAccountAccounts<'_, 'info>,
 ) -> ProgramResult {
-    let ix = create_fee_token_account_ix(accounts, args)?;
+    let ix = create_fee_token_account_ix(accounts)?;
     let account_info: [AccountInfo<'info>; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn create_fee_token_account_invoke_signed<'info, A: Into<CreateFeeTokenAccountIxArgs>>(
-    accounts: &CreateFeeTokenAccountAccounts<'_, 'info>,
-    args: A,
+pub fn create_fee_token_account_invoke_signed<'info>(
+    accounts: CreateFeeTokenAccountAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = create_fee_token_account_ix(accounts, args)?;
+    let ix = create_fee_token_account_ix(accounts)?;
     let account_info: [AccountInfo<'info>; CREATE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
 pub fn create_fee_token_account_verify_account_keys(
-    accounts: &CreateFeeTokenAccountAccounts<'_, '_>,
-    keys: &CreateFeeTokenAccountKeys,
+    accounts: CreateFeeTokenAccountAccounts<'_, '_>,
+    keys: CreateFeeTokenAccountKeys,
 ) -> Result<(), (Pubkey, Pubkey)> {
     for (actual, expected) in [
         (accounts.payer.key, &keys.payer),
@@ -690,17 +770,17 @@ pub fn create_fee_token_account_verify_account_keys(
     }
     Ok(())
 }
-pub fn create_fee_token_account_verify_account_privileges(
-    accounts: &CreateFeeTokenAccountAccounts<'_, '_>,
-) -> Result<(), ProgramError> {
+pub fn create_fee_token_account_verify_account_privileges<'me, 'info>(
+    accounts: CreateFeeTokenAccountAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [accounts.payer, accounts.fee_token_account] {
         if !should_be_writable.is_writable {
-            return Err(ProgramError::InvalidAccountData);
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
     for should_be_signer in [accounts.payer] {
         if !should_be_signer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
         }
     }
     Ok(())
@@ -728,8 +808,8 @@ pub struct CloseFeeTokenAccountKeys {
     pub mint: Pubkey,
     pub token_program: Pubkey,
 }
-impl From<&CloseFeeTokenAccountAccounts<'_, '_>> for CloseFeeTokenAccountKeys {
-    fn from(accounts: &CloseFeeTokenAccountAccounts) -> Self {
+impl From<CloseFeeTokenAccountAccounts<'_, '_>> for CloseFeeTokenAccountKeys {
+    fn from(accounts: CloseFeeTokenAccountAccounts) -> Self {
         Self {
             admin: *accounts.admin.key,
             fee_token_account: *accounts.fee_token_account.key,
@@ -739,14 +819,34 @@ impl From<&CloseFeeTokenAccountAccounts<'_, '_>> for CloseFeeTokenAccountKeys {
         }
     }
 }
-impl From<&CloseFeeTokenAccountKeys> for [AccountMeta; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] {
-    fn from(keys: &CloseFeeTokenAccountKeys) -> Self {
+impl From<CloseFeeTokenAccountKeys> for [AccountMeta; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] {
+    fn from(keys: CloseFeeTokenAccountKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.admin, true),
-            AccountMeta::new(keys.fee_token_account, false),
-            AccountMeta::new(keys.close_to, false),
-            AccountMeta::new_readonly(keys.mint, false),
-            AccountMeta::new_readonly(keys.token_program, false),
+            AccountMeta {
+                pubkey: keys.admin,
+                is_signer: true,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.fee_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.close_to,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.mint,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
@@ -761,10 +861,10 @@ impl From<[Pubkey; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN]> for CloseFeeTokenAc
         }
     }
 }
-impl<'info> From<&CloseFeeTokenAccountAccounts<'_, 'info>>
+impl<'info> From<CloseFeeTokenAccountAccounts<'_, 'info>>
     for [AccountInfo<'info>; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &CloseFeeTokenAccountAccounts<'_, 'info>) -> Self {
+    fn from(accounts: CloseFeeTokenAccountAccounts<'_, 'info>) -> Self {
         [
             accounts.admin.clone(),
             accounts.fee_token_account.clone(),
@@ -787,26 +887,15 @@ impl<'me, 'info> From<&'me [AccountInfo<'info>; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOU
         }
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CloseFeeTokenAccountIxArgs {}
-#[derive(Clone, Debug, PartialEq)]
-pub struct CloseFeeTokenAccountIxData(pub CloseFeeTokenAccountIxArgs);
 pub const CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM: u8 = 3u8;
-impl From<CloseFeeTokenAccountIxArgs> for CloseFeeTokenAccountIxData {
-    fn from(args: CloseFeeTokenAccountIxArgs) -> Self {
-        Self(args)
-    }
-}
-impl BorshSerialize for CloseFeeTokenAccountIxData {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
+#[derive(Clone, Debug, PartialEq)]
+pub struct CloseFeeTokenAccountIxData;
 impl CloseFeeTokenAccountIxData {
-    pub fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
-        let maybe_discm = u8::deserialize(buf)?;
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
         if maybe_discm != CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -816,48 +905,48 @@ impl CloseFeeTokenAccountIxData {
                 ),
             ));
         }
-        Ok(Self(CloseFeeTokenAccountIxArgs::deserialize(buf)?))
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn close_fee_token_account_ix<
-    K: Into<CloseFeeTokenAccountKeys>,
-    A: Into<CloseFeeTokenAccountIxArgs>,
->(
+pub fn close_fee_token_account_ix<K: Into<CloseFeeTokenAccountKeys>>(
     accounts: K,
-    args: A,
 ) -> std::io::Result<Instruction> {
     let keys: CloseFeeTokenAccountKeys = accounts.into();
-    let metas: [AccountMeta; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: CloseFeeTokenAccountIxArgs = args.into();
-    let data: CloseFeeTokenAccountIxData = args_full.into();
+    let metas: [AccountMeta; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: CloseFeeTokenAccountIxData.try_to_vec()?,
     })
 }
-pub fn close_fee_token_account_invoke<'info, A: Into<CloseFeeTokenAccountIxArgs>>(
-    accounts: &CloseFeeTokenAccountAccounts<'_, 'info>,
-    args: A,
+pub fn close_fee_token_account_invoke<'info>(
+    accounts: CloseFeeTokenAccountAccounts<'_, 'info>,
 ) -> ProgramResult {
-    let ix = close_fee_token_account_ix(accounts, args)?;
+    let ix = close_fee_token_account_ix(accounts)?;
     let account_info: [AccountInfo<'info>; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn close_fee_token_account_invoke_signed<'info, A: Into<CloseFeeTokenAccountIxArgs>>(
-    accounts: &CloseFeeTokenAccountAccounts<'_, 'info>,
-    args: A,
+pub fn close_fee_token_account_invoke_signed<'info>(
+    accounts: CloseFeeTokenAccountAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = close_fee_token_account_ix(accounts, args)?;
+    let ix = close_fee_token_account_ix(accounts)?;
     let account_info: [AccountInfo<'info>; CLOSE_FEE_TOKEN_ACCOUNT_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
 pub fn close_fee_token_account_verify_account_keys(
-    accounts: &CloseFeeTokenAccountAccounts<'_, '_>,
-    keys: &CloseFeeTokenAccountKeys,
+    accounts: CloseFeeTokenAccountAccounts<'_, '_>,
+    keys: CloseFeeTokenAccountKeys,
 ) -> Result<(), (Pubkey, Pubkey)> {
     for (actual, expected) in [
         (accounts.admin.key, &keys.admin),
@@ -872,17 +961,17 @@ pub fn close_fee_token_account_verify_account_keys(
     }
     Ok(())
 }
-pub fn close_fee_token_account_verify_account_privileges(
-    accounts: &CloseFeeTokenAccountAccounts<'_, '_>,
-) -> Result<(), ProgramError> {
+pub fn close_fee_token_account_verify_account_privileges<'me, 'info>(
+    accounts: CloseFeeTokenAccountAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [accounts.fee_token_account, accounts.close_to] {
         if !should_be_writable.is_writable {
-            return Err(ProgramError::InvalidAccountData);
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
     for should_be_signer in [accounts.admin] {
         if !should_be_signer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
         }
     }
     Ok(())
@@ -910,8 +999,8 @@ pub struct WithdrawFeesKeys {
     pub mint: Pubkey,
     pub token_program: Pubkey,
 }
-impl From<&WithdrawFeesAccounts<'_, '_>> for WithdrawFeesKeys {
-    fn from(accounts: &WithdrawFeesAccounts) -> Self {
+impl From<WithdrawFeesAccounts<'_, '_>> for WithdrawFeesKeys {
+    fn from(accounts: WithdrawFeesAccounts) -> Self {
         Self {
             admin: *accounts.admin.key,
             fee_token_account: *accounts.fee_token_account.key,
@@ -921,14 +1010,34 @@ impl From<&WithdrawFeesAccounts<'_, '_>> for WithdrawFeesKeys {
         }
     }
 }
-impl From<&WithdrawFeesKeys> for [AccountMeta; WITHDRAW_FEES_IX_ACCOUNTS_LEN] {
-    fn from(keys: &WithdrawFeesKeys) -> Self {
+impl From<WithdrawFeesKeys> for [AccountMeta; WITHDRAW_FEES_IX_ACCOUNTS_LEN] {
+    fn from(keys: WithdrawFeesKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.admin, true),
-            AccountMeta::new(keys.fee_token_account, false),
-            AccountMeta::new(keys.withdraw_to, false),
-            AccountMeta::new_readonly(keys.mint, false),
-            AccountMeta::new_readonly(keys.token_program, false),
+            AccountMeta {
+                pubkey: keys.admin,
+                is_signer: true,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.fee_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_to,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.mint,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
@@ -943,10 +1052,10 @@ impl From<[Pubkey; WITHDRAW_FEES_IX_ACCOUNTS_LEN]> for WithdrawFeesKeys {
         }
     }
 }
-impl<'info> From<&WithdrawFeesAccounts<'_, 'info>>
+impl<'info> From<WithdrawFeesAccounts<'_, 'info>>
     for [AccountInfo<'info>; WITHDRAW_FEES_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &WithdrawFeesAccounts<'_, 'info>) -> Self {
+    fn from(accounts: WithdrawFeesAccounts<'_, 'info>) -> Self {
         [
             accounts.admin.clone(),
             accounts.fee_token_account.clone(),
@@ -969,26 +1078,15 @@ impl<'me, 'info> From<&'me [AccountInfo<'info>; WITHDRAW_FEES_IX_ACCOUNTS_LEN]>
         }
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct WithdrawFeesIxArgs {}
-#[derive(Clone, Debug, PartialEq)]
-pub struct WithdrawFeesIxData(pub WithdrawFeesIxArgs);
 pub const WITHDRAW_FEES_IX_DISCM: u8 = 4u8;
-impl From<WithdrawFeesIxArgs> for WithdrawFeesIxData {
-    fn from(args: WithdrawFeesIxArgs) -> Self {
-        Self(args)
-    }
-}
-impl BorshSerialize for WithdrawFeesIxData {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[WITHDRAW_FEES_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
+#[derive(Clone, Debug, PartialEq)]
+pub struct WithdrawFeesIxData;
 impl WithdrawFeesIxData {
-    pub fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
-        let maybe_discm = u8::deserialize(buf)?;
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
         if maybe_discm != WITHDRAW_FEES_IX_DISCM {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -998,43 +1096,42 @@ impl WithdrawFeesIxData {
                 ),
             ));
         }
-        Ok(Self(WithdrawFeesIxArgs::deserialize(buf)?))
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[WITHDRAW_FEES_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn withdraw_fees_ix<K: Into<WithdrawFeesKeys>, A: Into<WithdrawFeesIxArgs>>(
-    accounts: K,
-    args: A,
-) -> std::io::Result<Instruction> {
+pub fn withdraw_fees_ix<K: Into<WithdrawFeesKeys>>(accounts: K) -> std::io::Result<Instruction> {
     let keys: WithdrawFeesKeys = accounts.into();
-    let metas: [AccountMeta; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: WithdrawFeesIxArgs = args.into();
-    let data: WithdrawFeesIxData = args_full.into();
+    let metas: [AccountMeta; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: WithdrawFeesIxData.try_to_vec()?,
     })
 }
-pub fn withdraw_fees_invoke<'info, A: Into<WithdrawFeesIxArgs>>(
-    accounts: &WithdrawFeesAccounts<'_, 'info>,
-    args: A,
-) -> ProgramResult {
-    let ix = withdraw_fees_ix(accounts, args)?;
+pub fn withdraw_fees_invoke<'info>(accounts: WithdrawFeesAccounts<'_, 'info>) -> ProgramResult {
+    let ix = withdraw_fees_ix(accounts)?;
     let account_info: [AccountInfo<'info>; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn withdraw_fees_invoke_signed<'info, A: Into<WithdrawFeesIxArgs>>(
-    accounts: &WithdrawFeesAccounts<'_, 'info>,
-    args: A,
+pub fn withdraw_fees_invoke_signed<'info>(
+    accounts: WithdrawFeesAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = withdraw_fees_ix(accounts, args)?;
+    let ix = withdraw_fees_ix(accounts)?;
     let account_info: [AccountInfo<'info>; WITHDRAW_FEES_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
 pub fn withdraw_fees_verify_account_keys(
-    accounts: &WithdrawFeesAccounts<'_, '_>,
-    keys: &WithdrawFeesKeys,
+    accounts: WithdrawFeesAccounts<'_, '_>,
+    keys: WithdrawFeesKeys,
 ) -> Result<(), (Pubkey, Pubkey)> {
     for (actual, expected) in [
         (accounts.admin.key, &keys.admin),
@@ -1049,17 +1146,17 @@ pub fn withdraw_fees_verify_account_keys(
     }
     Ok(())
 }
-pub fn withdraw_fees_verify_account_privileges(
-    accounts: &WithdrawFeesAccounts<'_, '_>,
-) -> Result<(), ProgramError> {
+pub fn withdraw_fees_verify_account_privileges<'me, 'info>(
+    accounts: WithdrawFeesAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [accounts.fee_token_account, accounts.withdraw_to] {
         if !should_be_writable.is_writable {
-            return Err(ProgramError::InvalidAccountData);
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
     for should_be_signer in [accounts.admin] {
         if !should_be_signer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
         }
     }
     Ok(())
@@ -1091,8 +1188,8 @@ pub struct DepositStakeKeys {
     ///Output token mint. If this is wrapped SOL, the account can be set to read-only
     pub dest_token_mint: Pubkey,
 }
-impl From<&DepositStakeAccounts<'_, '_>> for DepositStakeKeys {
-    fn from(accounts: &DepositStakeAccounts) -> Self {
+impl From<DepositStakeAccounts<'_, '_>> for DepositStakeKeys {
+    fn from(accounts: DepositStakeAccounts) -> Self {
         Self {
             user: *accounts.user.key,
             stake_account: *accounts.stake_account.key,
@@ -1102,14 +1199,34 @@ impl From<&DepositStakeAccounts<'_, '_>> for DepositStakeKeys {
         }
     }
 }
-impl From<&DepositStakeKeys> for [AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] {
-    fn from(keys: &DepositStakeKeys) -> Self {
+impl From<DepositStakeKeys> for [AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] {
+    fn from(keys: DepositStakeKeys) -> Self {
         [
-            AccountMeta::new(keys.user, true),
-            AccountMeta::new(keys.stake_account, false),
-            AccountMeta::new(keys.dest_token_to, false),
-            AccountMeta::new(keys.dest_token_fee_token_account, false),
-            AccountMeta::new(keys.dest_token_mint, false),
+            AccountMeta {
+                pubkey: keys.user,
+                is_signer: true,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.stake_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_to,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_fee_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_mint,
+                is_signer: false,
+                is_writable: true,
+            },
         ]
     }
 }
@@ -1124,10 +1241,10 @@ impl From<[Pubkey; DEPOSIT_STAKE_IX_ACCOUNTS_LEN]> for DepositStakeKeys {
         }
     }
 }
-impl<'info> From<&DepositStakeAccounts<'_, 'info>>
+impl<'info> From<DepositStakeAccounts<'_, 'info>>
     for [AccountInfo<'info>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &DepositStakeAccounts<'_, 'info>) -> Self {
+    fn from(accounts: DepositStakeAccounts<'_, 'info>) -> Self {
         [
             accounts.user.clone(),
             accounts.stake_account.clone(),
@@ -1150,26 +1267,15 @@ impl<'me, 'info> From<&'me [AccountInfo<'info>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN]>
         }
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DepositStakeIxArgs {}
-#[derive(Clone, Debug, PartialEq)]
-pub struct DepositStakeIxData(pub DepositStakeIxArgs);
 pub const DEPOSIT_STAKE_IX_DISCM: u8 = 5u8;
-impl From<DepositStakeIxArgs> for DepositStakeIxData {
-    fn from(args: DepositStakeIxArgs) -> Self {
-        Self(args)
-    }
-}
-impl BorshSerialize for DepositStakeIxData {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[DEPOSIT_STAKE_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
+#[derive(Clone, Debug, PartialEq)]
+pub struct DepositStakeIxData;
 impl DepositStakeIxData {
-    pub fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
-        let maybe_discm = u8::deserialize(buf)?;
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
         if maybe_discm != DEPOSIT_STAKE_IX_DISCM {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -1179,43 +1285,42 @@ impl DepositStakeIxData {
                 ),
             ));
         }
-        Ok(Self(DepositStakeIxArgs::deserialize(buf)?))
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[DEPOSIT_STAKE_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn deposit_stake_ix<K: Into<DepositStakeKeys>, A: Into<DepositStakeIxArgs>>(
-    accounts: K,
-    args: A,
-) -> std::io::Result<Instruction> {
+pub fn deposit_stake_ix<K: Into<DepositStakeKeys>>(accounts: K) -> std::io::Result<Instruction> {
     let keys: DepositStakeKeys = accounts.into();
-    let metas: [AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: DepositStakeIxArgs = args.into();
-    let data: DepositStakeIxData = args_full.into();
+    let metas: [AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: DepositStakeIxData.try_to_vec()?,
     })
 }
-pub fn deposit_stake_invoke<'info, A: Into<DepositStakeIxArgs>>(
-    accounts: &DepositStakeAccounts<'_, 'info>,
-    args: A,
-) -> ProgramResult {
-    let ix = deposit_stake_ix(accounts, args)?;
+pub fn deposit_stake_invoke<'info>(accounts: DepositStakeAccounts<'_, 'info>) -> ProgramResult {
+    let ix = deposit_stake_ix(accounts)?;
     let account_info: [AccountInfo<'info>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn deposit_stake_invoke_signed<'info, A: Into<DepositStakeIxArgs>>(
-    accounts: &DepositStakeAccounts<'_, 'info>,
-    args: A,
+pub fn deposit_stake_invoke_signed<'info>(
+    accounts: DepositStakeAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = deposit_stake_ix(accounts, args)?;
+    let ix = deposit_stake_ix(accounts)?;
     let account_info: [AccountInfo<'info>; DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
 pub fn deposit_stake_verify_account_keys(
-    accounts: &DepositStakeAccounts<'_, '_>,
-    keys: &DepositStakeKeys,
+    accounts: DepositStakeAccounts<'_, '_>,
+    keys: DepositStakeKeys,
 ) -> Result<(), (Pubkey, Pubkey)> {
     for (actual, expected) in [
         (accounts.user.key, &keys.user),
@@ -1233,9 +1338,9 @@ pub fn deposit_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn deposit_stake_verify_account_privileges(
-    accounts: &DepositStakeAccounts<'_, '_>,
-) -> Result<(), ProgramError> {
+pub fn deposit_stake_verify_account_privileges<'me, 'info>(
+    accounts: DepositStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
         accounts.user,
         accounts.stake_account,
@@ -1244,12 +1349,12 @@ pub fn deposit_stake_verify_account_privileges(
         accounts.dest_token_mint,
     ] {
         if !should_be_writable.is_writable {
-            return Err(ProgramError::InvalidAccountData);
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
     for should_be_signer in [accounts.user] {
         if !should_be_signer.is_signer {
-            return Err(ProgramError::MissingRequiredSignature);
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
         }
     }
     Ok(())

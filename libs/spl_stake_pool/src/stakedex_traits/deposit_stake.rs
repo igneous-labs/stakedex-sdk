@@ -4,7 +4,7 @@ use spl_stake_pool::{
     find_deposit_authority_program_address, find_stake_program_address, state::StakeStatus,
 };
 use stakedex_deposit_stake_interface::{
-    spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeIxArgs, SplStakePoolDepositStakeKeys,
+    spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeKeys,
 };
 use stakedex_sdk_common::{DepositStake, DepositStakeInfo, DepositStakeQuote, WithdrawStakeQuote};
 
@@ -130,7 +130,6 @@ impl DepositStake for SplStakePoolStakedex {
                 token_program: spl_token::ID,
                 stake_program: stake::program::ID,
             },
-            SplStakePoolDepositStakeIxArgs {},
         )?)
     }
 }

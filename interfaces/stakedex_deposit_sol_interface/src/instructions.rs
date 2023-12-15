@@ -1,236 +1,61 @@
-use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::AccountInfo,
     entrypoint::ProgramResult,
     instruction::{AccountMeta, Instruction},
     program::{invoke, invoke_signed},
+    program_error::ProgramError,
     pubkey::Pubkey,
 };
-pub const EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 5usize;
-#[derive(Copy, Clone, Debug)]
-pub struct EversolStakePoolDepositSolAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me>
-{
-    pub eversol_stake_pool_program: &'me AccountInfo<'a0>,
-    pub stake_pool: &'me AccountInfo<'a1>,
-    pub stake_pool_withdraw_authority: &'me AccountInfo<'a2>,
-    pub stake_pool_reserve_stake: &'me AccountInfo<'a3>,
-    pub stake_pool_manager_fee: &'me AccountInfo<'a4>,
+use std::io::Read;
+#[derive(Clone, Debug, PartialEq)]
+pub enum StakedexDepositSolProgramIx {
+    MarinadeDepositSol,
+    SoceanStakePoolDepositSol,
+    SplStakePoolDepositSol,
 }
-#[derive(Copy, Clone, Debug)]
-pub struct EversolStakePoolDepositSolKeys {
-    pub eversol_stake_pool_program: Pubkey,
-    pub stake_pool: Pubkey,
-    pub stake_pool_withdraw_authority: Pubkey,
-    pub stake_pool_reserve_stake: Pubkey,
-    pub stake_pool_manager_fee: Pubkey,
-}
-impl<'me> From<&EversolStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_>>
-    for EversolStakePoolDepositSolKeys
-{
-    fn from(accounts: &EversolStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_>) -> Self {
-        Self {
-            eversol_stake_pool_program: *accounts.eversol_stake_pool_program.key,
-            stake_pool: *accounts.stake_pool.key,
-            stake_pool_withdraw_authority: *accounts.stake_pool_withdraw_authority.key,
-            stake_pool_reserve_stake: *accounts.stake_pool_reserve_stake.key,
-            stake_pool_manager_fee: *accounts.stake_pool_manager_fee.key,
+impl StakedexDepositSolProgramIx {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        match maybe_discm {
+            MARINADE_DEPOSIT_SOL_IX_DISCM => Ok(Self::MarinadeDepositSol),
+            SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_DISCM => Ok(Self::SoceanStakePoolDepositSol),
+            SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM => Ok(Self::SplStakePoolDepositSol),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("discm {:?} not found", maybe_discm),
+            )),
         }
     }
-}
-impl From<&EversolStakePoolDepositSolKeys>
-    for [AccountMeta; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
-{
-    fn from(keys: &EversolStakePoolDepositSolKeys) -> Self {
-        [
-            AccountMeta::new_readonly(keys.eversol_stake_pool_program, false),
-            AccountMeta::new(keys.stake_pool, false),
-            AccountMeta::new_readonly(keys.stake_pool_withdraw_authority, false),
-            AccountMeta::new(keys.stake_pool_reserve_stake, false),
-            AccountMeta::new(keys.stake_pool_manager_fee, false),
-        ]
-    }
-}
-impl<'a> From<&EversolStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
-{
-    fn from(accounts: &EversolStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>) -> Self {
-        [
-            accounts.eversol_stake_pool_program.clone(),
-            accounts.stake_pool.clone(),
-            accounts.stake_pool_withdraw_authority.clone(),
-            accounts.stake_pool_reserve_stake.clone(),
-            accounts.stake_pool_manager_fee.clone(),
-        ]
-    }
-}
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct EversolStakePoolDepositSolIxArgs {}
-#[derive(Copy, Clone, Debug)]
-pub struct EversolStakePoolDepositSolIxData<'me>(pub &'me EversolStakePoolDepositSolIxArgs);
-pub const EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM: u8 = 0u8;
-impl<'me> From<&'me EversolStakePoolDepositSolIxArgs> for EversolStakePoolDepositSolIxData<'me> {
-    fn from(args: &'me EversolStakePoolDepositSolIxArgs) -> Self {
-        Self(args)
-    }
-}
-impl BorshSerialize for EversolStakePoolDepositSolIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
-pub fn eversol_stake_pool_deposit_sol_ix<
-    K: Into<EversolStakePoolDepositSolKeys>,
-    A: Into<EversolStakePoolDepositSolIxArgs>,
->(
-    accounts: K,
-    args: A,
-) -> std::io::Result<Instruction> {
-    let keys: EversolStakePoolDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: EversolStakePoolDepositSolIxArgs = args.into();
-    let data: EversolStakePoolDepositSolIxData = (&args_full).into();
-    Ok(Instruction {
-        program_id: crate::ID,
-        accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
-    })
-}
-pub fn eversol_stake_pool_deposit_sol_invoke<'a, A: Into<EversolStakePoolDepositSolIxArgs>>(
-    accounts: &EversolStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
-) -> ProgramResult {
-    let ix = eversol_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
-}
-pub fn eversol_stake_pool_deposit_sol_invoke_signed<
-    'a,
-    A: Into<EversolStakePoolDepositSolIxArgs>,
->(
-    accounts: &EversolStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
-    seeds: &[&[&[u8]]],
-) -> ProgramResult {
-    let ix = eversol_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; EVERSOL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
-}
-pub const LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 4usize;
-#[derive(Copy, Clone, Debug)]
-pub struct LidoDepositSolAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me> {
-    pub lido_program: &'me AccountInfo<'a0>,
-    pub solido: &'me AccountInfo<'a1>,
-    pub lido_reserve: &'me AccountInfo<'a2>,
-    pub stsol_mint_authority: &'me AccountInfo<'a3>,
-}
-#[derive(Copy, Clone, Debug)]
-pub struct LidoDepositSolKeys {
-    pub lido_program: Pubkey,
-    pub solido: Pubkey,
-    pub lido_reserve: Pubkey,
-    pub stsol_mint_authority: Pubkey,
-}
-impl<'me> From<&LidoDepositSolAccounts<'me, '_, '_, '_, '_>> for LidoDepositSolKeys {
-    fn from(accounts: &LidoDepositSolAccounts<'me, '_, '_, '_, '_>) -> Self {
-        Self {
-            lido_program: *accounts.lido_program.key,
-            solido: *accounts.solido.key,
-            lido_reserve: *accounts.lido_reserve.key,
-            stsol_mint_authority: *accounts.stsol_mint_authority.key,
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        match self {
+            Self::MarinadeDepositSol => writer.write_all(&[MARINADE_DEPOSIT_SOL_IX_DISCM]),
+            Self::SoceanStakePoolDepositSol => {
+                writer.write_all(&[SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_DISCM])
+            }
+            Self::SplStakePoolDepositSol => {
+                writer.write_all(&[SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM])
+            }
         }
     }
-}
-impl From<&LidoDepositSolKeys> for [AccountMeta; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN] {
-    fn from(keys: &LidoDepositSolKeys) -> Self {
-        [
-            AccountMeta::new_readonly(keys.lido_program, false),
-            AccountMeta::new(keys.solido, false),
-            AccountMeta::new(keys.lido_reserve, false),
-            AccountMeta::new_readonly(keys.stsol_mint_authority, false),
-        ]
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-impl<'a> From<&LidoDepositSolAccounts<'_, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
-{
-    fn from(accounts: &LidoDepositSolAccounts<'_, 'a, 'a, 'a, 'a>) -> Self {
-        [
-            accounts.lido_program.clone(),
-            accounts.solido.clone(),
-            accounts.lido_reserve.clone(),
-            accounts.stsol_mint_authority.clone(),
-        ]
-    }
-}
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct LidoDepositSolIxArgs {}
+pub const MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 7;
 #[derive(Copy, Clone, Debug)]
-pub struct LidoDepositSolIxData<'me>(pub &'me LidoDepositSolIxArgs);
-pub const LIDO_DEPOSIT_SOL_IX_DISCM: u8 = 1u8;
-impl<'me> From<&'me LidoDepositSolIxArgs> for LidoDepositSolIxData<'me> {
-    fn from(args: &'me LidoDepositSolIxArgs) -> Self {
-        Self(args)
-    }
-}
-impl BorshSerialize for LidoDepositSolIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[LIDO_DEPOSIT_SOL_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
-pub fn lido_deposit_sol_ix<K: Into<LidoDepositSolKeys>, A: Into<LidoDepositSolIxArgs>>(
-    accounts: K,
-    args: A,
-) -> std::io::Result<Instruction> {
-    let keys: LidoDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: LidoDepositSolIxArgs = args.into();
-    let data: LidoDepositSolIxData = (&args_full).into();
-    Ok(Instruction {
-        program_id: crate::ID,
-        accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
-    })
-}
-pub fn lido_deposit_sol_invoke<'a, A: Into<LidoDepositSolIxArgs>>(
-    accounts: &LidoDepositSolAccounts<'_, 'a, 'a, 'a, 'a>,
-    args: A,
-) -> ProgramResult {
-    let ix = lido_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
-    invoke(&ix, &account_info)
-}
-pub fn lido_deposit_sol_invoke_signed<'a, A: Into<LidoDepositSolIxArgs>>(
-    accounts: &LidoDepositSolAccounts<'_, 'a, 'a, 'a, 'a>,
-    args: A,
-    seeds: &[&[&[u8]]],
-) -> ProgramResult {
-    let ix = lido_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; LIDO_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
-}
-pub const MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 7usize;
-#[derive(Copy, Clone, Debug)]
-pub struct MarinadeDepositSolAccounts<
-    'me,
-    'a0: 'me,
-    'a1: 'me,
-    'a2: 'me,
-    'a3: 'me,
-    'a4: 'me,
-    'a5: 'me,
-    'a6: 'me,
-> {
-    pub marinade_program: &'me AccountInfo<'a0>,
-    pub marinade_state: &'me AccountInfo<'a1>,
-    pub marinade_liq_pool_sol_leg: &'me AccountInfo<'a2>,
-    pub marinade_liq_pool_msol_leg: &'me AccountInfo<'a3>,
-    pub marinade_liq_pool_msol_leg_auth: &'me AccountInfo<'a4>,
-    pub marinade_reserve: &'me AccountInfo<'a5>,
-    pub msol_mint_authority: &'me AccountInfo<'a6>,
+pub struct MarinadeDepositSolAccounts<'me, 'info> {
+    pub marinade_program: &'me AccountInfo<'info>,
+    pub marinade_state: &'me AccountInfo<'info>,
+    pub marinade_liq_pool_sol_leg: &'me AccountInfo<'info>,
+    pub marinade_liq_pool_msol_leg: &'me AccountInfo<'info>,
+    pub marinade_liq_pool_msol_leg_auth: &'me AccountInfo<'info>,
+    pub marinade_reserve: &'me AccountInfo<'info>,
+    pub msol_mint_authority: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct MarinadeDepositSolKeys {
@@ -242,10 +67,8 @@ pub struct MarinadeDepositSolKeys {
     pub marinade_reserve: Pubkey,
     pub msol_mint_authority: Pubkey,
 }
-impl<'me> From<&MarinadeDepositSolAccounts<'me, '_, '_, '_, '_, '_, '_, '_>>
-    for MarinadeDepositSolKeys
-{
-    fn from(accounts: &MarinadeDepositSolAccounts<'me, '_, '_, '_, '_, '_, '_, '_>) -> Self {
+impl From<MarinadeDepositSolAccounts<'_, '_>> for MarinadeDepositSolKeys {
+    fn from(accounts: MarinadeDepositSolAccounts) -> Self {
         Self {
             marinade_program: *accounts.marinade_program.key,
             marinade_state: *accounts.marinade_state.key,
@@ -257,23 +80,64 @@ impl<'me> From<&MarinadeDepositSolAccounts<'me, '_, '_, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&MarinadeDepositSolKeys> for [AccountMeta; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] {
-    fn from(keys: &MarinadeDepositSolKeys) -> Self {
+impl From<MarinadeDepositSolKeys> for [AccountMeta; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] {
+    fn from(keys: MarinadeDepositSolKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.marinade_program, false),
-            AccountMeta::new(keys.marinade_state, false),
-            AccountMeta::new(keys.marinade_liq_pool_sol_leg, false),
-            AccountMeta::new(keys.marinade_liq_pool_msol_leg, false),
-            AccountMeta::new_readonly(keys.marinade_liq_pool_msol_leg_auth, false),
-            AccountMeta::new(keys.marinade_reserve, false),
-            AccountMeta::new_readonly(keys.msol_mint_authority, false),
+            AccountMeta {
+                pubkey: keys.marinade_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.marinade_state,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.marinade_liq_pool_sol_leg,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.marinade_liq_pool_msol_leg,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.marinade_liq_pool_msol_leg_auth,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.marinade_reserve,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.msol_mint_authority,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
-impl<'a> From<&MarinadeDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+impl From<[Pubkey; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN]> for MarinadeDepositSolKeys {
+    fn from(pubkeys: [Pubkey; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            marinade_program: pubkeys[0],
+            marinade_state: pubkeys[1],
+            marinade_liq_pool_sol_leg: pubkeys[2],
+            marinade_liq_pool_msol_leg: pubkeys[3],
+            marinade_liq_pool_msol_leg_auth: pubkeys[4],
+            marinade_reserve: pubkeys[5],
+            msol_mint_authority: pubkeys[6],
+        }
+    }
+}
+impl<'info> From<MarinadeDepositSolAccounts<'_, 'info>>
+    for [AccountInfo<'info>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &MarinadeDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
+    fn from(accounts: MarinadeDepositSolAccounts<'_, 'info>) -> Self {
         [
             accounts.marinade_program.clone(),
             accounts.marinade_state.clone(),
@@ -285,73 +149,128 @@ impl<'a> From<&MarinadeDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
         ]
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct MarinadeDepositSolIxArgs {}
-#[derive(Copy, Clone, Debug)]
-pub struct MarinadeDepositSolIxData<'me>(pub &'me MarinadeDepositSolIxArgs);
-pub const MARINADE_DEPOSIT_SOL_IX_DISCM: u8 = 2u8;
-impl<'me> From<&'me MarinadeDepositSolIxArgs> for MarinadeDepositSolIxData<'me> {
-    fn from(args: &'me MarinadeDepositSolIxArgs) -> Self {
-        Self(args)
+impl<'me, 'info> From<&'me [AccountInfo<'info>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN]>
+    for MarinadeDepositSolAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            marinade_program: &arr[0],
+            marinade_state: &arr[1],
+            marinade_liq_pool_sol_leg: &arr[2],
+            marinade_liq_pool_msol_leg: &arr[3],
+            marinade_liq_pool_msol_leg_auth: &arr[4],
+            marinade_reserve: &arr[5],
+            msol_mint_authority: &arr[6],
+        }
     }
 }
-impl BorshSerialize for MarinadeDepositSolIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[MARINADE_DEPOSIT_SOL_IX_DISCM])?;
-        self.0.serialize(writer)
+pub const MARINADE_DEPOSIT_SOL_IX_DISCM: u8 = 0u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct MarinadeDepositSolIxData;
+impl MarinadeDepositSolIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != MARINADE_DEPOSIT_SOL_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    MARINADE_DEPOSIT_SOL_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[MARINADE_DEPOSIT_SOL_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn marinade_deposit_sol_ix<
-    K: Into<MarinadeDepositSolKeys>,
-    A: Into<MarinadeDepositSolIxArgs>,
->(
+pub fn marinade_deposit_sol_ix<K: Into<MarinadeDepositSolKeys>>(
     accounts: K,
-    args: A,
 ) -> std::io::Result<Instruction> {
     let keys: MarinadeDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: MarinadeDepositSolIxArgs = args.into();
-    let data: MarinadeDepositSolIxData = (&args_full).into();
+    let metas: [AccountMeta; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: MarinadeDepositSolIxData.try_to_vec()?,
     })
 }
-pub fn marinade_deposit_sol_invoke<'a, A: Into<MarinadeDepositSolIxArgs>>(
-    accounts: &MarinadeDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn marinade_deposit_sol_invoke<'info>(
+    accounts: MarinadeDepositSolAccounts<'_, 'info>,
 ) -> ProgramResult {
-    let ix = marinade_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
+    let ix = marinade_deposit_sol_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn marinade_deposit_sol_invoke_signed<'a, A: Into<MarinadeDepositSolIxArgs>>(
-    accounts: &MarinadeDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn marinade_deposit_sol_invoke_signed<'info>(
+    accounts: MarinadeDepositSolAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = marinade_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
+    let ix = marinade_deposit_sol_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; MARINADE_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
-pub const SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 6usize;
+pub fn marinade_deposit_sol_verify_account_keys(
+    accounts: MarinadeDepositSolAccounts<'_, '_>,
+    keys: MarinadeDepositSolKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (accounts.marinade_program.key, &keys.marinade_program),
+        (accounts.marinade_state.key, &keys.marinade_state),
+        (
+            accounts.marinade_liq_pool_sol_leg.key,
+            &keys.marinade_liq_pool_sol_leg,
+        ),
+        (
+            accounts.marinade_liq_pool_msol_leg.key,
+            &keys.marinade_liq_pool_msol_leg,
+        ),
+        (
+            accounts.marinade_liq_pool_msol_leg_auth.key,
+            &keys.marinade_liq_pool_msol_leg_auth,
+        ),
+        (accounts.marinade_reserve.key, &keys.marinade_reserve),
+        (accounts.msol_mint_authority.key, &keys.msol_mint_authority),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn marinade_deposit_sol_verify_account_privileges<'me, 'info>(
+    accounts: MarinadeDepositSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.marinade_state,
+        accounts.marinade_liq_pool_sol_leg,
+        accounts.marinade_liq_pool_msol_leg,
+        accounts.marinade_reserve,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub const SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 6;
 #[derive(Copy, Clone, Debug)]
-pub struct SoceanStakePoolDepositSolAccounts<
-    'me,
-    'a0: 'me,
-    'a1: 'me,
-    'a2: 'me,
-    'a3: 'me,
-    'a4: 'me,
-    'a5: 'me,
-> {
-    pub socean_stake_pool_program: &'me AccountInfo<'a0>,
-    pub stake_pool: &'me AccountInfo<'a1>,
-    pub stake_pool_withdraw_authority: &'me AccountInfo<'a2>,
-    pub stake_pool_reserve_stake: &'me AccountInfo<'a3>,
-    pub stake_pool_manager_fee: &'me AccountInfo<'a4>,
-    pub clock: &'me AccountInfo<'a5>,
+pub struct SoceanStakePoolDepositSolAccounts<'me, 'info> {
+    pub socean_stake_pool_program: &'me AccountInfo<'info>,
+    pub stake_pool: &'me AccountInfo<'info>,
+    pub stake_pool_withdraw_authority: &'me AccountInfo<'info>,
+    pub stake_pool_reserve_stake: &'me AccountInfo<'info>,
+    pub stake_pool_manager_fee: &'me AccountInfo<'info>,
+    pub clock: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct SoceanStakePoolDepositSolKeys {
@@ -362,10 +281,8 @@ pub struct SoceanStakePoolDepositSolKeys {
     pub stake_pool_manager_fee: Pubkey,
     pub clock: Pubkey,
 }
-impl<'me> From<&SoceanStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_, '_>>
-    for SoceanStakePoolDepositSolKeys
-{
-    fn from(accounts: &SoceanStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_, '_>) -> Self {
+impl From<SoceanStakePoolDepositSolAccounts<'_, '_>> for SoceanStakePoolDepositSolKeys {
+    fn from(accounts: SoceanStakePoolDepositSolAccounts) -> Self {
         Self {
             socean_stake_pool_program: *accounts.socean_stake_pool_program.key,
             stake_pool: *accounts.stake_pool.key,
@@ -376,24 +293,62 @@ impl<'me> From<&SoceanStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&SoceanStakePoolDepositSolKeys>
+impl From<SoceanStakePoolDepositSolKeys>
     for [AccountMeta; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
 {
-    fn from(keys: &SoceanStakePoolDepositSolKeys) -> Self {
+    fn from(keys: SoceanStakePoolDepositSolKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.socean_stake_pool_program, false),
-            AccountMeta::new(keys.stake_pool, false),
-            AccountMeta::new_readonly(keys.stake_pool_withdraw_authority, false),
-            AccountMeta::new(keys.stake_pool_reserve_stake, false),
-            AccountMeta::new(keys.stake_pool_manager_fee, false),
-            AccountMeta::new_readonly(keys.clock, false),
+            AccountMeta {
+                pubkey: keys.socean_stake_pool_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_withdraw_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_reserve_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_manager_fee,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
-impl<'a> From<&SoceanStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+impl From<[Pubkey; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]>
+    for SoceanStakePoolDepositSolKeys
 {
-    fn from(accounts: &SoceanStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>) -> Self {
+    fn from(pubkeys: [Pubkey; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            socean_stake_pool_program: pubkeys[0],
+            stake_pool: pubkeys[1],
+            stake_pool_withdraw_authority: pubkeys[2],
+            stake_pool_reserve_stake: pubkeys[3],
+            stake_pool_manager_fee: pubkeys[4],
+            clock: pubkeys[5],
+        }
+    }
+}
+impl<'info> From<SoceanStakePoolDepositSolAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: SoceanStakePoolDepositSolAccounts<'_, 'info>) -> Self {
         [
             accounts.socean_stake_pool_program.clone(),
             accounts.stake_pool.clone(),
@@ -404,66 +359,129 @@ impl<'a> From<&SoceanStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>>
         ]
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct SoceanStakePoolDepositSolIxArgs {}
-#[derive(Copy, Clone, Debug)]
-pub struct SoceanStakePoolDepositSolIxData<'me>(pub &'me SoceanStakePoolDepositSolIxArgs);
-pub const SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_DISCM: u8 = 3u8;
-impl<'me> From<&'me SoceanStakePoolDepositSolIxArgs> for SoceanStakePoolDepositSolIxData<'me> {
-    fn from(args: &'me SoceanStakePoolDepositSolIxArgs) -> Self {
-        Self(args)
+impl<'me, 'info> From<&'me [AccountInfo<'info>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]>
+    for SoceanStakePoolDepositSolAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            socean_stake_pool_program: &arr[0],
+            stake_pool: &arr[1],
+            stake_pool_withdraw_authority: &arr[2],
+            stake_pool_reserve_stake: &arr[3],
+            stake_pool_manager_fee: &arr[4],
+            clock: &arr[5],
+        }
     }
 }
-impl BorshSerialize for SoceanStakePoolDepositSolIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_DISCM])?;
-        self.0.serialize(writer)
+pub const SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_DISCM: u8 = 1u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct SoceanStakePoolDepositSolIxData;
+impl SoceanStakePoolDepositSolIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn socean_stake_pool_deposit_sol_ix<
-    K: Into<SoceanStakePoolDepositSolKeys>,
-    A: Into<SoceanStakePoolDepositSolIxArgs>,
->(
+pub fn socean_stake_pool_deposit_sol_ix<K: Into<SoceanStakePoolDepositSolKeys>>(
     accounts: K,
-    args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SoceanStakePoolDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: SoceanStakePoolDepositSolIxArgs = args.into();
-    let data: SoceanStakePoolDepositSolIxData = (&args_full).into();
+    let metas: [AccountMeta; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: SoceanStakePoolDepositSolIxData.try_to_vec()?,
     })
 }
-pub fn socean_stake_pool_deposit_sol_invoke<'a, A: Into<SoceanStakePoolDepositSolIxArgs>>(
-    accounts: &SoceanStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn socean_stake_pool_deposit_sol_invoke<'info>(
+    accounts: SoceanStakePoolDepositSolAccounts<'_, 'info>,
 ) -> ProgramResult {
-    let ix = socean_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+    let ix = socean_stake_pool_deposit_sol_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn socean_stake_pool_deposit_sol_invoke_signed<'a, A: Into<SoceanStakePoolDepositSolIxArgs>>(
-    accounts: &SoceanStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn socean_stake_pool_deposit_sol_invoke_signed<'info>(
+    accounts: SoceanStakePoolDepositSolAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = socean_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+    let ix = socean_stake_pool_deposit_sol_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; SOCEAN_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
-pub const SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 5usize;
+pub fn socean_stake_pool_deposit_sol_verify_account_keys(
+    accounts: SoceanStakePoolDepositSolAccounts<'_, '_>,
+    keys: SoceanStakePoolDepositSolKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (
+            accounts.socean_stake_pool_program.key,
+            &keys.socean_stake_pool_program,
+        ),
+        (accounts.stake_pool.key, &keys.stake_pool),
+        (
+            accounts.stake_pool_withdraw_authority.key,
+            &keys.stake_pool_withdraw_authority,
+        ),
+        (
+            accounts.stake_pool_reserve_stake.key,
+            &keys.stake_pool_reserve_stake,
+        ),
+        (
+            accounts.stake_pool_manager_fee.key,
+            &keys.stake_pool_manager_fee,
+        ),
+        (accounts.clock.key, &keys.clock),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn socean_stake_pool_deposit_sol_verify_account_privileges<'me, 'info>(
+    accounts: SoceanStakePoolDepositSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.stake_pool,
+        accounts.stake_pool_reserve_stake,
+        accounts.stake_pool_manager_fee,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub const SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 5;
 #[derive(Copy, Clone, Debug)]
-pub struct SplStakePoolDepositSolAccounts<'me, 'a0: 'me, 'a1: 'me, 'a2: 'me, 'a3: 'me, 'a4: 'me> {
-    pub spl_stake_pool_program: &'me AccountInfo<'a0>,
-    pub stake_pool: &'me AccountInfo<'a1>,
-    pub stake_pool_withdraw_authority: &'me AccountInfo<'a2>,
-    pub stake_pool_reserve_stake: &'me AccountInfo<'a3>,
-    pub stake_pool_manager_fee: &'me AccountInfo<'a4>,
+pub struct SplStakePoolDepositSolAccounts<'me, 'info> {
+    pub spl_stake_pool_program: &'me AccountInfo<'info>,
+    pub stake_pool: &'me AccountInfo<'info>,
+    pub stake_pool_withdraw_authority: &'me AccountInfo<'info>,
+    pub stake_pool_reserve_stake: &'me AccountInfo<'info>,
+    pub stake_pool_manager_fee: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct SplStakePoolDepositSolKeys {
@@ -473,10 +491,8 @@ pub struct SplStakePoolDepositSolKeys {
     pub stake_pool_reserve_stake: Pubkey,
     pub stake_pool_manager_fee: Pubkey,
 }
-impl<'me> From<&SplStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_>>
-    for SplStakePoolDepositSolKeys
-{
-    fn from(accounts: &SplStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_>) -> Self {
+impl From<SplStakePoolDepositSolAccounts<'_, '_>> for SplStakePoolDepositSolKeys {
+    fn from(accounts: SplStakePoolDepositSolAccounts) -> Self {
         Self {
             spl_stake_pool_program: *accounts.spl_stake_pool_program.key,
             stake_pool: *accounts.stake_pool.key,
@@ -486,23 +502,54 @@ impl<'me> From<&SplStakePoolDepositSolAccounts<'me, '_, '_, '_, '_, '_>>
         }
     }
 }
-impl From<&SplStakePoolDepositSolKeys>
+impl From<SplStakePoolDepositSolKeys>
     for [AccountMeta; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
 {
-    fn from(keys: &SplStakePoolDepositSolKeys) -> Self {
+    fn from(keys: SplStakePoolDepositSolKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.spl_stake_pool_program, false),
-            AccountMeta::new(keys.stake_pool, false),
-            AccountMeta::new_readonly(keys.stake_pool_withdraw_authority, false),
-            AccountMeta::new(keys.stake_pool_reserve_stake, false),
-            AccountMeta::new(keys.stake_pool_manager_fee, false),
+            AccountMeta {
+                pubkey: keys.spl_stake_pool_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_withdraw_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_reserve_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_manager_fee,
+                is_signer: false,
+                is_writable: true,
+            },
         ]
     }
 }
-impl<'a> From<&SplStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+impl From<[Pubkey; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]> for SplStakePoolDepositSolKeys {
+    fn from(pubkeys: [Pubkey; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            spl_stake_pool_program: pubkeys[0],
+            stake_pool: pubkeys[1],
+            stake_pool_withdraw_authority: pubkeys[2],
+            stake_pool_reserve_stake: pubkeys[3],
+            stake_pool_manager_fee: pubkeys[4],
+        }
+    }
+}
+impl<'info> From<SplStakePoolDepositSolAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
 {
-    fn from(accounts: &SplStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>) -> Self {
+    fn from(accounts: SplStakePoolDepositSolAccounts<'_, 'info>) -> Self {
         [
             accounts.spl_stake_pool_program.clone(),
             accounts.stake_pool.clone(),
@@ -512,55 +559,116 @@ impl<'a> From<&SplStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>>
         ]
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct SplStakePoolDepositSolIxArgs {}
-#[derive(Copy, Clone, Debug)]
-pub struct SplStakePoolDepositSolIxData<'me>(pub &'me SplStakePoolDepositSolIxArgs);
-pub const SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM: u8 = 4u8;
-impl<'me> From<&'me SplStakePoolDepositSolIxArgs> for SplStakePoolDepositSolIxData<'me> {
-    fn from(args: &'me SplStakePoolDepositSolIxArgs) -> Self {
-        Self(args)
+impl<'me, 'info> From<&'me [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]>
+    for SplStakePoolDepositSolAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            spl_stake_pool_program: &arr[0],
+            stake_pool: &arr[1],
+            stake_pool_withdraw_authority: &arr[2],
+            stake_pool_reserve_stake: &arr[3],
+            stake_pool_manager_fee: &arr[4],
+        }
     }
 }
-impl BorshSerialize for SplStakePoolDepositSolIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM])?;
-        self.0.serialize(writer)
+pub const SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM: u8 = 2u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct SplStakePoolDepositSolIxData;
+impl SplStakePoolDepositSolIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn spl_stake_pool_deposit_sol_ix<
-    K: Into<SplStakePoolDepositSolKeys>,
-    A: Into<SplStakePoolDepositSolIxArgs>,
->(
+pub fn spl_stake_pool_deposit_sol_ix<K: Into<SplStakePoolDepositSolKeys>>(
     accounts: K,
-    args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SplStakePoolDepositSolKeys = accounts.into();
-    let metas: [AccountMeta; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: SplStakePoolDepositSolIxArgs = args.into();
-    let data: SplStakePoolDepositSolIxData = (&args_full).into();
+    let metas: [AccountMeta; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: SplStakePoolDepositSolIxData.try_to_vec()?,
     })
 }
-pub fn spl_stake_pool_deposit_sol_invoke<'a, A: Into<SplStakePoolDepositSolIxArgs>>(
-    accounts: &SplStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn spl_stake_pool_deposit_sol_invoke<'info>(
+    accounts: SplStakePoolDepositSolAccounts<'_, 'info>,
 ) -> ProgramResult {
-    let ix = spl_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+    let ix = spl_stake_pool_deposit_sol_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn spl_stake_pool_deposit_sol_invoke_signed<'a, A: Into<SplStakePoolDepositSolIxArgs>>(
-    accounts: &SplStakePoolDepositSolAccounts<'_, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn spl_stake_pool_deposit_sol_invoke_signed<'info>(
+    accounts: SplStakePoolDepositSolAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = spl_stake_pool_deposit_sol_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+    let ix = spl_stake_pool_deposit_sol_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke_signed(&ix, &account_info, seeds)
+}
+pub fn spl_stake_pool_deposit_sol_verify_account_keys(
+    accounts: SplStakePoolDepositSolAccounts<'_, '_>,
+    keys: SplStakePoolDepositSolKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (
+            accounts.spl_stake_pool_program.key,
+            &keys.spl_stake_pool_program,
+        ),
+        (accounts.stake_pool.key, &keys.stake_pool),
+        (
+            accounts.stake_pool_withdraw_authority.key,
+            &keys.stake_pool_withdraw_authority,
+        ),
+        (
+            accounts.stake_pool_reserve_stake.key,
+            &keys.stake_pool_reserve_stake,
+        ),
+        (
+            accounts.stake_pool_manager_fee.key,
+            &keys.stake_pool_manager_fee,
+        ),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn spl_stake_pool_deposit_sol_verify_account_privileges<'me, 'info>(
+    accounts: SplStakePoolDepositSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.stake_pool,
+        accounts.stake_pool_reserve_stake,
+        accounts.stake_pool_manager_fee,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
 }

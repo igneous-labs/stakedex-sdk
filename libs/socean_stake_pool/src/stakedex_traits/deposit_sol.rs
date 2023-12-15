@@ -2,8 +2,7 @@ use anyhow::Result;
 use solana_program::{instruction::Instruction, sysvar};
 use spl_stake_pool::error::StakePoolError;
 use stakedex_deposit_sol_interface::{
-    socean_stake_pool_deposit_sol_ix, SoceanStakePoolDepositSolIxArgs,
-    SoceanStakePoolDepositSolKeys,
+    socean_stake_pool_deposit_sol_ix, SoceanStakePoolDepositSolKeys,
 };
 use stakedex_sdk_common::{socean_program, socean_stake_pool, DepositSol, DepositSolQuote};
 
@@ -55,7 +54,6 @@ impl DepositSol for SoceanStakePoolStakedex {
                 stake_pool_manager_fee: self.stake_pool.manager_fee_account,
                 stake_pool_reserve_stake: self.stake_pool.reserve_stake,
             },
-            SoceanStakePoolDepositSolIxArgs {},
         )?)
     }
 }

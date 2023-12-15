@@ -1,8 +1,6 @@
 use anyhow::Result;
 use solana_program::{instruction::Instruction, stake, system_program, sysvar};
-use stakedex_deposit_stake_interface::{
-    marinade_deposit_stake_ix, MarinadeDepositStakeIxArgs, MarinadeDepositStakeKeys,
-};
+use stakedex_deposit_stake_interface::{marinade_deposit_stake_ix, MarinadeDepositStakeKeys};
 use stakedex_sdk_common::{
     marinade_program, marinade_state, DepositStake, DepositStakeInfo, DepositStakeQuote,
     WithdrawStakeQuote,
@@ -62,28 +60,25 @@ impl DepositStake for MarinadeStakedex {
         quote: &DepositStakeQuote,
         _deposit_stake_info: &DepositStakeInfo,
     ) -> Result<Instruction> {
-        Ok(marinade_deposit_stake_ix(
-            MarinadeDepositStakeKeys {
-                marinade_program: marinade_program::ID,
-                deposit_stake_marinade_state: marinade_state::ID,
-                deposit_stake_validator_list: self.state.validator_system.validator_list.account,
-                deposit_stake_stake_list: self.state.stake_system.stake_list.account,
-                deposit_stake_duplication_flag: ValidatorRecordWrapper::find_duplication_flag(
-                    &marinade_state::ID,
-                    &quote.voter,
-                )
-                .0,
-                deposit_stake_msol_mint_auth: StateWrapper::find_msol_mint_authority(
-                    &marinade_state::ID,
-                )
-                .0,
-                clock: sysvar::clock::ID,
-                rent: sysvar::rent::ID,
-                system_program: system_program::ID,
-                token_program: spl_token::ID,
-                stake_program: stake::program::ID,
-            },
-            MarinadeDepositStakeIxArgs {},
-        )?)
+        Ok(marinade_deposit_stake_ix(MarinadeDepositStakeKeys {
+            marinade_program: marinade_program::ID,
+            deposit_stake_marinade_state: marinade_state::ID,
+            deposit_stake_validator_list: self.state.validator_system.validator_list.account,
+            deposit_stake_stake_list: self.state.stake_system.stake_list.account,
+            deposit_stake_duplication_flag: ValidatorRecordWrapper::find_duplication_flag(
+                &marinade_state::ID,
+                &quote.voter,
+            )
+            .0,
+            deposit_stake_msol_mint_auth: StateWrapper::find_msol_mint_authority(
+                &marinade_state::ID,
+            )
+            .0,
+            clock: sysvar::clock::ID,
+            rent: sysvar::rent::ID,
+            system_program: system_program::ID,
+            token_program: spl_token::ID,
+            stake_program: stake::program::ID,
+        })?)
     }
 }

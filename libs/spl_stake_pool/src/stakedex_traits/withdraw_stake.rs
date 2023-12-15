@@ -3,8 +3,7 @@ use solana_program::{instruction::Instruction, stake, system_program, sysvar};
 use spl_stake_pool::{find_stake_program_address, MINIMUM_ACTIVE_STAKE};
 use stakedex_sdk_common::{WithdrawStakeBase, WithdrawStakeIter, WithdrawStakeQuote};
 use stakedex_withdraw_stake_interface::{
-    spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeIxArgs,
-    SplStakePoolWithdrawStakeKeys,
+    spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeKeys,
 };
 
 use crate::SplStakePoolStakedex;
@@ -119,7 +118,6 @@ impl WithdrawStakeBase for SplStakePoolStakedex {
                 stake_program: stake::program::ID,
                 system_program: system_program::ID,
             },
-            SplStakePoolWithdrawStakeIxArgs {},
         )?)
     }
 }

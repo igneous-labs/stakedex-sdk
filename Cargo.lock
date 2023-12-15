@@ -3547,6 +3547,7 @@ name = "stakedex_deposit_sol_interface"
 version = "0.1.0"
 dependencies = [
  "borsh 0.9.3",
+ "serde",
  "solana-program",
 ]
 
@@ -3555,6 +3556,7 @@ name = "stakedex_deposit_stake_interface"
 version = "0.1.0"
 dependencies = [
  "borsh 0.9.3",
+ "serde",
  "solana-program",
 ]
 
@@ -3563,8 +3565,11 @@ name = "stakedex_interface"
 version = "0.1.0"
 dependencies = [
  "borsh 0.9.3",
+ "num-derive",
+ "num-traits",
  "serde",
  "solana-program",
+ "thiserror",
 ]
 
 [[package]]
@@ -3686,6 +3691,7 @@ name = "stakedex_withdraw_stake_interface"
 version = "0.1.0"
 dependencies = [
  "borsh 0.9.3",
+ "serde",
  "solana-program",
 ]
 

@@ -2,8 +2,7 @@ use anyhow::Result;
 use solana_program::{instruction::Instruction, stake, sysvar};
 use spl_stake_pool::state::StakeStatus;
 use stakedex_deposit_stake_interface::{
-    socean_stake_pool_deposit_stake_ix, SoceanStakePoolDepositStakeIxArgs,
-    SoceanStakePoolDepositStakeKeys,
+    socean_stake_pool_deposit_stake_ix, SoceanStakePoolDepositStakeKeys,
 };
 use stakedex_sdk_common::{
     socean_program, socean_stake_pool, DepositStake, DepositStakeInfo, DepositStakeQuote,
@@ -126,7 +125,6 @@ impl DepositStake for SoceanStakePoolStakedex {
                 token_program: spl_token::ID,
                 stake_program: stake::program::ID,
             },
-            SoceanStakePoolDepositStakeIxArgs {},
         )?)
     }
 }

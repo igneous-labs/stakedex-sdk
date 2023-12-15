@@ -9,8 +9,8 @@ use solana_sdk::{
 use spl_token::native_mint;
 pub use stakedex_interface::ID as stakedex_program_id;
 use stakedex_interface::{
-    DepositStakeIxArgs, DepositStakeKeys, StakeWrappedSolArgs, StakeWrappedSolIxArgs,
-    StakeWrappedSolKeys, SwapViaStakeArgs, SwapViaStakeIxArgs, SwapViaStakeKeys,
+    DepositStakeKeys, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeIxArgs,
+    SwapViaStakeKeys,
 };
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
@@ -30,7 +30,7 @@ use stakedex_unstake_it::UnstakeItStakedex;
 
 pub const N_POOLS: usize = 12;
 
-pub const N_DEPOSIT_SOL_POOLS: usize = 11;
+pub const N_DEPOSIT_SOL_POOLS: usize = 10;
 
 pub const N_DEPOSIT_STAKE_POOLS: usize = 11;
 
@@ -259,7 +259,6 @@ impl Stakedex {
             (risksol::ID, &self.risklol),
             (scnsol::ID, &self.socean),
             (msol::ID, &self.marinade),
-            (stsol::ID, &self.lido),
         ]
     }
 
@@ -370,10 +369,8 @@ impl Stakedex {
                 bridge_stake,
             },
             SwapViaStakeIxArgs {
-                swap_via_stake_args: SwapViaStakeArgs {
-                    amount: swap_params.in_amount,
-                    bridge_stake_seed,
-                },
+                amount: swap_params.in_amount,
+                bridge_stake_seed,
             },
         )?;
         for mint_idx in [
@@ -430,9 +427,7 @@ impl Stakedex {
                 dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
             },
             StakeWrappedSolIxArgs {
-                stake_wrapped_sol_args: StakeWrappedSolArgs {
-                    amount: swap_params.in_amount,
-                },
+                amount: swap_params.in_amount,
             },
         )?;
         let deposit_sol_virtual_ix = deposit_to.virtual_ix()?;
@@ -478,16 +473,13 @@ impl Stakedex {
             swap_params.in_amount,
         )?;
         let stake_account = swap_params.source_token_account;
-        let mut ix = stakedex_interface::deposit_stake_ix(
-            DepositStakeKeys {
-                user: swap_params.token_transfer_authority,
-                stake_account,
-                dest_token_to: swap_params.destination_token_account,
-                dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
-                dest_token_mint: swap_params.destination_mint,
-            },
-            DepositStakeIxArgs {},
-        )?;
+        let mut ix = stakedex_interface::deposit_stake_ix(DepositStakeKeys {
+            user: swap_params.token_transfer_authority,
+            stake_account,
+            dest_token_to: swap_params.destination_token_account,
+            dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
+            dest_token_mint: swap_params.destination_mint,
+        })?;
         let deposit_to_virtual_ix = deposit_to.virtual_ix(
             &dsq,
             &DepositStakeInfo {
@@ -534,11 +526,12 @@ impl Stakedex {
                     amms.push(Box::new(DepositSolWrapper(spl_stake_pool.clone())))
                 }
                 Stakedex::Socean(socean) => amms.push(Box::new(DepositSolWrapper(socean.clone()))),
-                Stakedex::UnstakeIt(_) => (),
                 Stakedex::Marinade(marinade) => {
                     amms.push(Box::new(DepositSolWrapper(marinade.clone())))
                 }
-                Stakedex::Lido(lido) => amms.push(Box::new(DepositSolWrapper(lido.clone()))),
+                // non-DepositSol
+                Stakedex::UnstakeIt(_) => (),
+                Stakedex::Lido(_) => (),
             }
         }
 
