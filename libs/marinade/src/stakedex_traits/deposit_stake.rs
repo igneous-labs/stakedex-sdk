@@ -70,10 +70,7 @@ impl DepositStake for MarinadeStakedex {
                 &quote.voter,
             )
             .0,
-            deposit_stake_msol_mint_auth: StateWrapper::find_msol_mint_authority(
-                &marinade_state::ID,
-            )
-            .0,
+            deposit_stake_msol_mint_auth: marinade_program::MSOL_MINT_AUTH_ID,
             clock: sysvar::clock::ID,
             rent: sysvar::rent::ID,
             system_program: system_program::ID,

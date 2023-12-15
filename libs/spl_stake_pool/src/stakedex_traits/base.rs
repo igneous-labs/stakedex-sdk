@@ -14,6 +14,7 @@ impl InitFromKeyedAccount for SplStakePoolStakedex {
     fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
         let mut res = Self::default();
         res.stake_pool_addr = keyed_account.key;
+        // Assumes all SPL stake pools are permissionless, i.e. using the default withdraw authority
         res.withdraw_authority_addr =
             find_withdraw_authority_program_address(&spl_stake_pool::ID, &res.stake_pool_addr).0;
         res.stake_pool_label = SPL_STAKE_POOL_STATE_TO_LABEL

@@ -15,14 +15,15 @@ use stakedex_interface::{
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
 use stakedex_sdk_common::{
-    bsol, cogent_stake_pool, cogentsol, cws_wsol_bridge_in, daopool_stake_pool, daosol,
-    find_bridge_stake, find_fee_token_acc, find_sol_bridge_out, first_avail_quote, jito_stake_pool,
-    jitosol, jpool_stake_pool, jsol, laine_stake_pool, lainesol, lido_state, lst, marinade_state,
-    mrgn_stake_pool, msol, quote_pool_pair, risklol_stake_pool, risksol, scnsol, socean_stake_pool,
-    solblaze_stake_pool, stsol, BaseStakePoolAmm, DepositSol, DepositSolWrapper, DepositStake,
-    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, OneWayPoolPair, TwoWayPoolPair,
-    WithdrawStake, WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    bsol, cogent_stake_pool, cogentsol, daopool_stake_pool, daosol, find_bridge_stake,
+    find_fee_token_acc, first_avail_quote, jito_stake_pool, jitosol, jpool_stake_pool, jsol,
+    laine_stake_pool, lainesol, lido_state, lst, marinade_state, mrgn_stake_pool, msol,
+    quote_pool_pair, risklol_stake_pool, risksol, scnsol, socean_stake_pool, solblaze_stake_pool,
+    stakedex_program, stsol, unstake_it_program, wsol_bridge_in, BaseStakePoolAmm, DepositSol,
+    DepositSolWrapper, DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount,
+    OneWayPoolPair, TwoWayPoolPair, WithdrawStake, WithdrawStakeQuote,
+    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
@@ -100,7 +101,7 @@ impl Stakedex {
             risklol_stake_pool::ID,
             solblaze_stake_pool::ID,
             socean_stake_pool::ID,
-            stakedex_unstake_it::find_pool_sol_reserves().0,
+            unstake_it_program::SOL_RESERVES_ID,
             marinade_state::ID,
             lido_state::ID,
         ]
@@ -118,12 +119,11 @@ impl Stakedex {
                 SoceanStakePoolStakedex::default()
             });
 
-        let unstakeit =
-            init_from_keyed_account(accounts, &stakedex_unstake_it::find_pool_sol_reserves().0)
-                .unwrap_or_else(|e| {
-                    errs.push(e);
-                    UnstakeItStakedex::default()
-                });
+        let unstakeit = init_from_keyed_account(accounts, &unstake_it_program::SOL_RESERVES_ID)
+            .unwrap_or_else(|e| {
+                errs.push(e);
+                UnstakeItStakedex::default()
+            });
 
         let marinade = init_from_keyed_account(accounts, &marinade_state::ID).unwrap_or_else(|e| {
             errs.push(e);
@@ -217,16 +217,14 @@ impl Stakedex {
     /// Note: consumes accounts_map
     pub fn update(&mut self, account_map: HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
         // unstake.it special-case: required reinitialization to save sol_reserves_lamports correctly
-        let maybe_unstake_it_init_err = match init_from_keyed_account(
-            &account_map,
-            &stakedex_unstake_it::find_pool_sol_reserves().0,
-        ) {
-            Ok(unstakeit) => {
-                self.unstakeit = unstakeit;
-                None
-            }
-            Err(e) => Some(e),
-        };
+        let maybe_unstake_it_init_err =
+            match init_from_keyed_account(&account_map, &unstake_it_program::SOL_RESERVES_ID) {
+                Ok(unstakeit) => {
+                    self.unstakeit = unstakeit;
+                    None
+                }
+                Err(e) => Some(e),
+            };
 
         let mut errs = self.update_data(&account_map);
         if let Some(e) = maybe_unstake_it_init_err {
@@ -411,8 +409,6 @@ impl Stakedex {
                     swap_params.destination_mint
                 )
             })?;
-        let (sol_bridge_out, _) = find_sol_bridge_out();
-
         let mut ix = stakedex_interface::stake_wrapped_sol_ix(
             StakeWrappedSolKeys {
                 user: swap_params.token_transfer_authority,
@@ -422,8 +418,8 @@ impl Stakedex {
                 dest_token_mint: swap_params.destination_mint,
                 token_program: spl_token::ID,
                 system_program: system_program::ID,
-                wsol_bridge_in: cws_wsol_bridge_in(&sol_bridge_out),
-                sol_bridge_out,
+                wsol_bridge_in: wsol_bridge_in::ID,
+                sol_bridge_out: stakedex_program::SOL_BRIDGE_OUT_ID,
                 dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
             },
             StakeWrappedSolIxArgs {

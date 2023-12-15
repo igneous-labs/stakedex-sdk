@@ -1,7 +1,5 @@
 use anyhow::{anyhow, Result};
 use marinade_finance_interface::State;
-use solana_program::pubkey::Pubkey;
-use stakedex_sdk_common::marinade_program;
 
 use crate::calc::shares_from_value;
 
@@ -9,24 +7,6 @@ use crate::calc::shares_from_value;
 pub struct StateWrapper<'a>(pub &'a State);
 
 impl<'a> StateWrapper<'a> {
-    /// Suffix for reserve account seed
-    pub const RESERVE_SEED: &'static [u8] = b"reserve";
-    pub const MSOL_MINT_AUTHORITY_SEED: &'static [u8] = b"st_mint";
-
-    pub fn find_msol_mint_authority(state: &Pubkey) -> (Pubkey, u8) {
-        Pubkey::find_program_address(
-            &[&state.to_bytes()[..32], Self::MSOL_MINT_AUTHORITY_SEED],
-            &marinade_program::ID,
-        )
-    }
-
-    pub fn find_reserve_address(state: &Pubkey) -> (Pubkey, u8) {
-        Pubkey::find_program_address(
-            &[&state.to_bytes()[..32], Self::RESERVE_SEED],
-            &marinade_program::ID,
-        )
-    }
-
     pub fn calc_msol_from_lamports(&self, stake_lamports: u64) -> Result<u64> {
         shares_from_value(
             stake_lamports,

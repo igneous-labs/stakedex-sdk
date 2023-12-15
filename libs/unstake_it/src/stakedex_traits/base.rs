@@ -3,12 +3,10 @@ use solana_program::pubkey::Pubkey;
 use stakedex_sdk_common::{
     account_missing_err,
     jupiter_stakedex_interface::{AccountMap, KeyedAccount},
-    unstake_it_pool, BaseStakePoolAmm, InitFromKeyedAccount,
+    unstake_it_pool, unstake_it_program, BaseStakePoolAmm, InitFromKeyedAccount,
 };
 
-use crate::{
-    find_fee, find_pool_sol_reserves, find_protocol_fee, UnstakeItStakedex, UNSTAKE_IT_LABEL,
-};
+use crate::{UnstakeItStakedex, UNSTAKE_IT_LABEL};
 
 impl InitFromKeyedAccount for UnstakeItStakedex {
     fn from_keyed_account(_keyed_account: &KeyedAccount) -> Result<Self> {
@@ -32,9 +30,9 @@ impl BaseStakePoolAmm for UnstakeItStakedex {
     fn get_accounts_to_update(&self) -> Vec<Pubkey> {
         Vec::from([
             unstake_it_pool::ID,
-            find_pool_sol_reserves().0,
-            find_fee().0,
-            find_protocol_fee().0,
+            unstake_it_program::SOL_RESERVES_ID,
+            unstake_it_program::FEE_ID,
+            unstake_it_program::PROTOCOL_FEE_ID,
         ])
     }
 
@@ -46,20 +44,20 @@ impl BaseStakePoolAmm for UnstakeItStakedex {
             .as_ref();
         self.update_pool(pool_data)?;
         let fee_data = accounts_map
-            .get(&find_fee().0)
-            .ok_or_else(|| account_missing_err(&find_fee().0))?
+            .get(&unstake_it_program::FEE_ID)
+            .ok_or_else(|| account_missing_err(&unstake_it_program::FEE_ID))?
             .data
             .as_ref();
         self.update_fee(fee_data)?;
         let protocol_fee_data = accounts_map
-            .get(&find_protocol_fee().0)
-            .ok_or_else(|| account_missing_err(&find_protocol_fee().0))?
+            .get(&unstake_it_program::PROTOCOL_FEE_ID)
+            .ok_or_else(|| account_missing_err(&unstake_it_program::PROTOCOL_FEE_ID))?
             .data
             .as_ref();
         self.update_protocol_fee(protocol_fee_data)?;
         self.sol_reserves_lamports = accounts_map
-            .get(&find_pool_sol_reserves().0)
-            .ok_or_else(|| account_missing_err(&find_pool_sol_reserves().0))?
+            .get(&unstake_it_program::SOL_RESERVES_ID)
+            .ok_or_else(|| account_missing_err(&unstake_it_program::SOL_RESERVES_ID))?
             .lamports;
         Ok(())
     }
