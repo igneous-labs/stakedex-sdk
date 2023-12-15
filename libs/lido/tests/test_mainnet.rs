@@ -10,7 +10,7 @@ use stakedex_sdk_common::{
 
 #[test]
 fn test_mainnet() {
-    let client = RpcClient::new("https://solana-mainnet.rpc.extrnode.com");
+    let client = RpcClient::new(std::env::var("SOLANA_RPC_URL").unwrap());
     let keys = vec![lido_state::ID, lido_validator_list::ID, sysvar::clock::ID];
     let accounts = client.get_multiple_accounts(&keys).unwrap();
     let keyed_state = KeyedAccount {

@@ -1,9 +1,10 @@
-use jupiter_amm_interface::{QuoteParams, SwapParams};
+use jupiter_amm_interface::{QuoteParams, SwapMode, SwapParams};
 use lazy_static::lazy_static;
 use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
     rpc_client::RpcClient,
     rpc_config::{RpcSimulateTransactionAccountsConfig, RpcSimulateTransactionConfig},
+    rpc_response::{Response, RpcSimulateTransactionResult},
 };
 use solana_sdk::{
     account::Account, program_pack::Pack, pubkey::Pubkey, signer::Signer, transaction::Transaction,
@@ -14,11 +15,14 @@ use stakedex_sdk::Stakedex;
 use stakedex_sdk_common::{
     bsol, cogentsol, daosol, esol, jitosol, jsol, lainesol, msol, risksol, scnsol, stsol,
 };
-use std::{collections::HashMap, iter::zip, str::FromStr};
+use std::{collections::HashMap, iter::zip};
 
-const WHALE: &str = "9uyDy9VDBw4K7xoSkhmCAm8NAFCwu4pkF6JeHUCtVKcX";
+// Alameda account with yuge mSOL, jSOL, stSOL holdings
+pub mod whale {
+    solana_sdk::declare_id!("9uyDy9VDBw4K7xoSkhmCAm8NAFCwu4pkF6JeHUCtVKcX");
+}
 
-mod jupiter_program {
+pub mod jupiter_program {
     // NOT IN USE, JUST BECAUSE ITS REQUIRED AS A STRUCT FIELD FOR jupiter_amm_interface::SwapParams
     solana_sdk::declare_id!("JUP4Fb2cqiRUcaTHdrPC8h2gNsA2ETXiPDD33WcGuJB");
 }
@@ -58,9 +62,10 @@ fn fetch_accounts(accounts_pubkeys: &[Pubkey]) -> HashMap<Pubkey, Account> {
 fn test_swap_via_stake_unknown_token() {
     let unknown_token = Pubkey::new_unique();
     let res = STAKEDEX.quote_swap_via_stake(&QuoteParams {
-        in_amount: 1_000_000_000,
+        amount: 1_000_000_000,
         input_mint: unknown_token,
         output_mint: bsol::ID,
+        swap_mode: SwapMode::default(),
     });
     assert!(res.is_err());
 }
@@ -703,9 +708,7 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
         return;
     }
 
-    let whale_pk = Pubkey::from_str(WHALE).unwrap();
-
-    let source_token_account = get_associated_token_address(&whale_pk, &input_mint);
+    let source_token_account = get_associated_token_address(&whale::ID, &input_mint);
     let source_balance = RPC
         .get_token_account_balance(&source_token_account)
         .map_err(|err| {
@@ -714,7 +717,7 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
         })
         .unwrap();
 
-    let destination_token_account = get_associated_token_address(&whale_pk, &output_mint);
+    let destination_token_account = get_associated_token_address(&whale::ID, &output_mint);
     let destination_balance = RPC
         .get_token_account_balance(&destination_token_account)
         .map_err(|err| {
@@ -728,9 +731,10 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
     let before_destination_amount: u64 = destination_balance.amount.parse().unwrap();
 
     let res = STAKEDEX.quote_swap_via_stake(&QuoteParams {
-        in_amount: amount,
+        amount,
         input_mint,
         output_mint,
+        swap_mode: SwapMode::ExactIn,
     });
 
     match res {
@@ -742,7 +746,7 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
             assert!(err.to_string() == "No route found between pools")
         }
         Ok(quote) => {
-            let destination_token_account = get_associated_token_address(&whale_pk, &output_mint);
+            let destination_token_account = get_associated_token_address(&whale::ID, &output_mint);
             let ix = STAKEDEX
                 .swap_via_stake_ix(
                     &SwapParams {
@@ -750,16 +754,17 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
                         in_amount: quote.in_amount,
                         destination_mint: output_mint,
                         source_mint: input_mint,
-                        user_destination_token_account: destination_token_account,
-                        user_source_token_account: source_token_account,
-                        user_transfer_authority: whale_pk,
+                        destination_token_account,
+                        source_token_account,
+                        token_transfer_authority: whale::ID,
                         open_order_address: None,
                         quote_mint_to_referrer: None,
+                        out_amount: quote.out_amount,
                     },
                     0,
                 )
                 .unwrap();
-            let mut tx = Transaction::new_with_payer(&[ix], Some(&whale_pk));
+            let mut tx = Transaction::new_with_payer(&[ix], Some(&whale::ID));
             let rbh = RPC.get_latest_blockhash().unwrap();
             // partial_sign just to add recentblockhash
             let no_signers: Vec<Box<dyn Signer>> = vec![];
@@ -851,38 +856,108 @@ fn test_jsol_drain_vsa_edge_case() {
         .unwrap();
     let max_possible_quote = STAKEDEX
         .quote_swap_via_stake(&QuoteParams {
-            in_amount: max_withdraw_jsol,
+            amount: max_withdraw_jsol,
             input_mint: jsol::ID,
             output_mint: msol::ID,
+            swap_mode: SwapMode::default(),
         })
         .unwrap();
     let should_fail = STAKEDEX.quote_swap_via_stake(&QuoteParams {
-        in_amount: max_withdraw_jsol + 1,
+        amount: max_withdraw_jsol + 1,
         input_mint: jsol::ID,
         output_mint: msol::ID,
+        swap_mode: SwapMode::default(),
     });
     assert!(should_fail.is_err());
+
     // try simulating max possible quote
-    let whale_pk = Pubkey::from_str(WHALE).unwrap();
-    let user_source_token_account = get_associated_token_address(&whale_pk, &jsol::ID);
-    let user_destination_token_account = get_associated_token_address(&whale_pk, &msol::ID);
-    let params = SwapParams {
-        jupiter_program_id: &jupiter_program::ID,
-        in_amount: max_possible_quote.in_amount,
-        destination_mint: msol::ID,
-        source_mint: jsol::ID,
-        user_destination_token_account,
-        user_source_token_account,
-        user_transfer_authority: whale_pk,
-        open_order_address: None,
-        quote_mint_to_referrer: None,
-    };
-    let ix = STAKEDEX.swap_via_stake_ix(&params, 0).unwrap();
-    let mut tx = Transaction::new_with_payer(&[ix], Some(&whale_pk));
-    let rbh = RPC.get_latest_blockhash().unwrap();
+    let result = sim_swap_via_stake(
+        &STAKEDEX,
+        &RPC,
+        TestSwapViaStakeArgs {
+            amount: max_possible_quote.in_amount,
+            input_mint: jsol::ID,
+            output_mint: msol::ID,
+            signer: whale::ID,
+            src_token_acc: get_associated_token_address(&whale::ID, &jsol::ID),
+            dst_token_acc: get_associated_token_address(&whale::ID, &msol::ID),
+        },
+    );
+    assert_sim_success(&result);
+}
+
+pub struct TestSwapViaStakeArgs {
+    pub amount: u64,
+    pub input_mint: Pubkey,
+    pub output_mint: Pubkey,
+    pub signer: Pubkey,
+    pub src_token_acc: Pubkey,
+    pub dst_token_acc: Pubkey,
+}
+
+fn assert_sim_success(response: &Response<RpcSimulateTransactionResult>) {
+    if let Some(e) = &response.value.err {
+        eprintln!("{:#?}", response.value.logs.as_ref().unwrap());
+        eprintln!("ERROR: {e}");
+    }
+}
+
+pub fn sim_swap_via_stake(
+    stakedex: &Stakedex,
+    rpc: &RpcClient,
+    TestSwapViaStakeArgs {
+        amount,
+        input_mint,
+        output_mint,
+        signer,
+        src_token_acc,
+        dst_token_acc,
+    }: TestSwapViaStakeArgs,
+) -> Response<RpcSimulateTransactionResult> {
+    let quote = stakedex
+        .quote_swap_via_stake(&QuoteParams {
+            amount,
+            input_mint,
+            output_mint,
+            swap_mode: SwapMode::ExactIn,
+        })
+        .unwrap();
+    // println!("{:?}", quote);
+    let ix = stakedex
+        .swap_via_stake_ix(
+            &SwapParams {
+                jupiter_program_id: &jupiter_program::ID,
+                in_amount: quote.in_amount,
+                out_amount: quote.out_amount,
+                destination_mint: output_mint,
+                source_mint: input_mint,
+                destination_token_account: dst_token_acc,
+                source_token_account: src_token_acc,
+                token_transfer_authority: signer,
+                open_order_address: None,
+                quote_mint_to_referrer: None,
+            },
+            0,
+        )
+        .unwrap();
+    // let msg = Message::new(&[ix], Some(&whale_pk));
+    // let blockhash = RPC.get_latest_blockhash().unwrap();
+    let rbh = rpc.get_latest_blockhash().unwrap();
+    let mut tx = Transaction::new_with_payer(&[ix], Some(&signer));
     // partial_sign just to add recentblockhash
     let no_signers: Vec<Box<dyn Signer>> = vec![];
     tx.partial_sign(&no_signers, rbh);
-    let result = RPC.simulate_transaction(&tx).unwrap();
-    assert!(result.value.err.is_none());
+    let result = rpc
+        .simulate_transaction_with_config(
+            &tx,
+            RpcSimulateTransactionConfig {
+                accounts: Some(RpcSimulateTransactionAccountsConfig {
+                    addresses: vec![src_token_acc.to_string(), dst_token_acc.to_string()],
+                    encoding: Some(UiAccountEncoding::Base64),
+                }),
+                ..RpcSimulateTransactionConfig::default()
+            },
+        )
+        .unwrap();
+    result
 }

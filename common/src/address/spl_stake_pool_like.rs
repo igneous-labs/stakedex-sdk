@@ -113,3 +113,15 @@ pub mod solblaze_validator_list {
 pub mod bsol {
     solana_program::declare_id!("bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1");
 }
+
+pub mod mrgn_stake_pool {
+    solana_program::declare_id!("DqhH94PjkZsjAqEze2BEkWhFQJ6EyU6MdtMphMgnXqeK");
+}
+
+pub mod mrgn_validator_list {
+    solana_program::declare_id!("77Nc7i2Pe4ktkPVsk2KsZeLZRMUMKpddheBUgW727XR4");
+}
+
+pub mod lst {
+    solana_program::declare_id!("LSTxxxnJzKDFSLr4dUkPcmCf5VyryEqzPLz5j4bpxFp");
+}

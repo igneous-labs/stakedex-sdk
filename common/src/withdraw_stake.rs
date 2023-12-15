@@ -6,7 +6,7 @@ use solana_program::{
     stake::state::{Delegation, Stake, StakeState},
 };
 
-use crate::{BaseStakePoolAmm, WithdrawStakeQuoteErr, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
+use crate::{BaseStakePoolAmm, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
 
 // TODO: include additional rent payments?
 #[derive(Clone, Copy, Debug, Default)]
@@ -81,69 +81,36 @@ impl WithdrawStakeQuote {
     }
 }
 
-pub struct WithdrawStakeQuoteIter {
-    withdraw_amount: u64,
-    curr_validator_index: usize,
+pub trait WithdrawStakeIter {
+    /// Iter should return WithdrawStakeQuote::default() if the current validator
+    /// cant service the withdrawal but next ones maybe can.
+    ///
+    /// Otherwise, it should return None to indicate iteration has ended and stop searching
+    type Iter<'me>: Iterator<Item = WithdrawStakeQuote>
+    where
+        Self: 'me;
+
+    fn withdraw_stake_quote_iter(&self, withdraw_amount: u64) -> Self::Iter<'_>;
 }
 
-impl WithdrawStakeQuoteIter {
-    pub fn next<P: WithdrawStake + ?Sized>(
-        &mut self,
-        pool: &P,
-    ) -> Result<Option<WithdrawStakeQuote>, WithdrawStakeQuoteErr> {
-        let res = pool.get_quote_for_validator(self.curr_validator_index, self.withdraw_amount);
-        self.curr_validator_index += 1;
-        res
-    }
-}
-
-pub trait WithdrawStake: BaseStakePoolAmm {
-    fn withdraw_stake_quote_iter(&self, withdraw_amount: u64) -> WithdrawStakeQuoteIter {
-        WithdrawStakeQuoteIter {
-            withdraw_amount,
-            curr_validator_index: 0,
-        }
-    }
-
-    /// Returns Err if stake pool cannot currently accept stake withdrawals
-    /// (e.g. spl not yet updated for this epoch)
-    /// Returns Ok(None) if validator_index out of bounds (all validators searched).
-    /// Returns Ok(WithdrawStakeQuote::default()) if given validator cant service withdrawal
-    /// eg withdraw_amount > validator stake amount
-    fn get_quote_for_validator(
-        &self,
-        validator_index: usize,
-        withdraw_amount: u64,
-    ) -> Result<Option<WithdrawStakeQuote>, WithdrawStakeQuoteErr> {
-        if self.is_validator_index_out_of_bounds(validator_index) {
-            return Ok(None);
-        }
-        if !self.can_accept_stake_withdrawals() {
-            return Err(WithdrawStakeQuoteErr::CannotAcceptStakeWithdrawals);
-        }
-        // TODO: return err if lamports out below minimum delegation once
-        // minimum delegation feature activated
-        // TODO: this currently returns default if lamports out below rent-exempt min,
-        // return err instead?
-        Ok(Some(self.get_quote_for_validator_unchecked(
-            validator_index,
-            withdraw_amount,
-        )))
-    }
-
-    fn is_validator_index_out_of_bounds(&self, validator_index: usize) -> bool;
-
+pub trait WithdrawStakeBase {
     fn can_accept_stake_withdrawals(&self) -> bool;
 
-    /// panics if validator_index out of bounds
-    /// is_validator_index_out_of_bounds() should be called before calling this
-    /// Inner impl fn, should not be called directly. Instead, call
-    /// get_quote_for_validator()
-    fn get_quote_for_validator_unchecked(
-        &self,
-        validator_index: usize,
-        withdraw_amount: u64,
-    ) -> WithdrawStakeQuote;
-
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction>;
+}
+
+pub trait WithdrawStake: BaseStakePoolAmm + WithdrawStakeBase {
+    fn withdraw_stake_quote_iter_dyn(
+        &self,
+        withdraw_amount: u64,
+    ) -> Box<dyn Iterator<Item = WithdrawStakeQuote> + '_>;
+}
+
+impl<T: WithdrawStakeIter + WithdrawStakeBase + BaseStakePoolAmm> WithdrawStake for T {
+    fn withdraw_stake_quote_iter_dyn(
+        &self,
+        withdraw_amount: u64,
+    ) -> Box<dyn Iterator<Item = WithdrawStakeQuote> + '_> {
+        Box::new(self.withdraw_stake_quote_iter(withdraw_amount))
+    }
 }
