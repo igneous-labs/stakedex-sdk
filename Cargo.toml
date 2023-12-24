@@ -11,16 +11,21 @@ members = [
 [workspace.dependencies]
 anyhow = "^1.0"
 bincode = "^1.0"
-borsh = "^0.9"
+borsh = ">=0.9"
 jupiter-amm-interface = "~0.3.2"
 lazy_static = "^1.0"
+num-derive = ">=0.1"
+num-traits = ">=0.1"
+serde = "^1"
 solana-client = "^1.9"
 solana-program = "^1.9"
 solana-sdk = "^1.9"
 spl-token = "^3.0"
+thiserror = "^1.0"
+
+# workspace members
 stakedex_deposit_sol_interface = { path = "./interfaces/stakedex_deposit_sol_interface" }
 stakedex_deposit_stake_interface = { path = "./interfaces/stakedex_deposit_stake_interface" }
-stakedex_eversol_stake_pool = { path = "./libs/eversol_stake_pool" }
 stakedex_interface = { path = "./interfaces/stakedex_interface" }
 stakedex_lido = { path = "./libs/lido" }
 stakedex_marinade = { path = "./libs/marinade" }
@@ -29,4 +34,3 @@ stakedex_socean_stake_pool = { path = "./libs/socean_stake_pool" }
 stakedex_spl_stake_pool = { path = "./libs/spl_stake_pool" }
 stakedex_unstake_it = { path = "./libs/unstake_it" }
 stakedex_withdraw_stake_interface = { path = "./interfaces/stakedex_withdraw_stake_interface" }
-thiserror = "^1.0"

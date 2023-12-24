@@ -1,217 +1,67 @@
-use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::AccountInfo,
     entrypoint::ProgramResult,
     instruction::{AccountMeta, Instruction},
     program::{invoke, invoke_signed},
+    program_error::ProgramError,
     pubkey::Pubkey,
 };
-pub const EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10usize;
-#[derive(Copy, Clone, Debug)]
-pub struct EversolStakePoolWithdrawStakeAccounts<
-    'me,
-    'a0: 'me,
-    'a1: 'me,
-    'a2: 'me,
-    'a3: 'me,
-    'a4: 'me,
-    'a5: 'me,
-    'a6: 'me,
-    'a7: 'me,
-    'a8: 'me,
-    'a9: 'me,
-> {
-    pub eversol_stake_pool_program: &'me AccountInfo<'a0>,
-    pub withdraw_stake_spl_stake_pool: &'me AccountInfo<'a1>,
-    pub withdraw_stake_validator_list: &'me AccountInfo<'a2>,
-    pub withdraw_stake_withdraw_authority: &'me AccountInfo<'a3>,
-    pub withdraw_stake_stake_to_split: &'me AccountInfo<'a4>,
-    pub withdraw_stake_manager_fee: &'me AccountInfo<'a5>,
-    pub clock: &'me AccountInfo<'a6>,
-    pub token_program: &'me AccountInfo<'a7>,
-    pub stake_program: &'me AccountInfo<'a8>,
-    pub system_program: &'me AccountInfo<'a9>,
+use std::io::Read;
+#[derive(Clone, Debug, PartialEq)]
+pub enum StakedexWithdrawStakeProgramIx {
+    SoceanStakePoolWithdrawStake,
+    SplStakePoolWithdrawStake,
+    LidoWithdrawStake,
+    MarinadeWithdrawStake,
 }
-#[derive(Copy, Clone, Debug)]
-pub struct EversolStakePoolWithdrawStakeKeys {
-    pub eversol_stake_pool_program: Pubkey,
-    pub withdraw_stake_spl_stake_pool: Pubkey,
-    pub withdraw_stake_validator_list: Pubkey,
-    pub withdraw_stake_withdraw_authority: Pubkey,
-    pub withdraw_stake_stake_to_split: Pubkey,
-    pub withdraw_stake_manager_fee: Pubkey,
-    pub clock: Pubkey,
-    pub token_program: Pubkey,
-    pub stake_program: Pubkey,
-    pub system_program: Pubkey,
-}
-impl<'me> From<&EversolStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '_, '_>>
-    for EversolStakePoolWithdrawStakeKeys
-{
-    fn from(
-        accounts: &EversolStakePoolWithdrawStakeAccounts<
-            'me,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-        >,
-    ) -> Self {
-        Self {
-            eversol_stake_pool_program: *accounts.eversol_stake_pool_program.key,
-            withdraw_stake_spl_stake_pool: *accounts.withdraw_stake_spl_stake_pool.key,
-            withdraw_stake_validator_list: *accounts.withdraw_stake_validator_list.key,
-            withdraw_stake_withdraw_authority: *accounts.withdraw_stake_withdraw_authority.key,
-            withdraw_stake_stake_to_split: *accounts.withdraw_stake_stake_to_split.key,
-            withdraw_stake_manager_fee: *accounts.withdraw_stake_manager_fee.key,
-            clock: *accounts.clock.key,
-            token_program: *accounts.token_program.key,
-            stake_program: *accounts.stake_program.key,
-            system_program: *accounts.system_program.key,
+impl StakedexWithdrawStakeProgramIx {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        match maybe_discm {
+            SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM => Ok(Self::SoceanStakePoolWithdrawStake),
+            SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM => Ok(Self::SplStakePoolWithdrawStake),
+            LIDO_WITHDRAW_STAKE_IX_DISCM => Ok(Self::LidoWithdrawStake),
+            MARINADE_WITHDRAW_STAKE_IX_DISCM => Ok(Self::MarinadeWithdrawStake),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("discm {:?} not found", maybe_discm),
+            )),
         }
     }
-}
-impl From<&EversolStakePoolWithdrawStakeKeys>
-    for [AccountMeta; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
-{
-    fn from(keys: &EversolStakePoolWithdrawStakeKeys) -> Self {
-        [
-            AccountMeta::new_readonly(keys.eversol_stake_pool_program, false),
-            AccountMeta::new(keys.withdraw_stake_spl_stake_pool, false),
-            AccountMeta::new(keys.withdraw_stake_validator_list, false),
-            AccountMeta::new_readonly(keys.withdraw_stake_withdraw_authority, false),
-            AccountMeta::new(keys.withdraw_stake_stake_to_split, false),
-            AccountMeta::new(keys.withdraw_stake_manager_fee, false),
-            AccountMeta::new_readonly(keys.clock, false),
-            AccountMeta::new_readonly(keys.token_program, false),
-            AccountMeta::new_readonly(keys.stake_program, false),
-            AccountMeta::new_readonly(keys.system_program, false),
-        ]
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        match self {
+            Self::SoceanStakePoolWithdrawStake => {
+                writer.write_all(&[SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
+            }
+            Self::SplStakePoolWithdrawStake => {
+                writer.write_all(&[SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
+            }
+            Self::LidoWithdrawStake => writer.write_all(&[LIDO_WITHDRAW_STAKE_IX_DISCM]),
+            Self::MarinadeWithdrawStake => writer.write_all(&[MARINADE_WITHDRAW_STAKE_IX_DISCM]),
+        }
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-impl<'a> From<&EversolStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
-{
-    fn from(
-        accounts: &EversolStakePoolWithdrawStakeAccounts<
-            '_,
-            'a,
-            'a,
-            'a,
-            'a,
-            'a,
-            'a,
-            'a,
-            'a,
-            'a,
-            'a,
-        >,
-    ) -> Self {
-        [
-            accounts.eversol_stake_pool_program.clone(),
-            accounts.withdraw_stake_spl_stake_pool.clone(),
-            accounts.withdraw_stake_validator_list.clone(),
-            accounts.withdraw_stake_withdraw_authority.clone(),
-            accounts.withdraw_stake_stake_to_split.clone(),
-            accounts.withdraw_stake_manager_fee.clone(),
-            accounts.clock.clone(),
-            accounts.token_program.clone(),
-            accounts.stake_program.clone(),
-            accounts.system_program.clone(),
-        ]
-    }
-}
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct EversolStakePoolWithdrawStakeIxArgs {}
+pub const SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
 #[derive(Copy, Clone, Debug)]
-pub struct EversolStakePoolWithdrawStakeIxData<'me>(pub &'me EversolStakePoolWithdrawStakeIxArgs);
-pub const EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM: u8 = 0u8;
-impl<'me> From<&'me EversolStakePoolWithdrawStakeIxArgs>
-    for EversolStakePoolWithdrawStakeIxData<'me>
-{
-    fn from(args: &'me EversolStakePoolWithdrawStakeIxArgs) -> Self {
-        Self(args)
-    }
-}
-impl BorshSerialize for EversolStakePoolWithdrawStakeIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])?;
-        self.0.serialize(writer)
-    }
-}
-pub fn eversol_stake_pool_withdraw_stake_ix<
-    K: Into<EversolStakePoolWithdrawStakeKeys>,
-    A: Into<EversolStakePoolWithdrawStakeIxArgs>,
->(
-    accounts: K,
-    args: A,
-) -> std::io::Result<Instruction> {
-    let keys: EversolStakePoolWithdrawStakeKeys = accounts.into();
-    let metas: [AccountMeta; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: EversolStakePoolWithdrawStakeIxArgs = args.into();
-    let data: EversolStakePoolWithdrawStakeIxData = (&args_full).into();
-    Ok(Instruction {
-        program_id: crate::ID,
-        accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
-    })
-}
-pub fn eversol_stake_pool_withdraw_stake_invoke<
-    'a,
-    A: Into<EversolStakePoolWithdrawStakeIxArgs>,
->(
-    accounts: &EversolStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
-) -> ProgramResult {
-    let ix = eversol_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
-}
-pub fn eversol_stake_pool_withdraw_stake_invoke_signed<
-    'a,
-    A: Into<EversolStakePoolWithdrawStakeIxArgs>,
->(
-    accounts: &EversolStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
-    seeds: &[&[&[u8]]],
-) -> ProgramResult {
-    let ix = eversol_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; EVERSOL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
-}
-pub const SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10usize;
-#[derive(Copy, Clone, Debug)]
-pub struct SoceanStakePoolWithdrawStakeAccounts<
-    'me,
-    'a0: 'me,
-    'a1: 'me,
-    'a2: 'me,
-    'a3: 'me,
-    'a4: 'me,
-    'a5: 'me,
-    'a6: 'me,
-    'a7: 'me,
-    'a8: 'me,
-    'a9: 'me,
-> {
-    pub socean_stake_pool_program: &'me AccountInfo<'a0>,
-    pub withdraw_stake_spl_stake_pool: &'me AccountInfo<'a1>,
-    pub withdraw_stake_validator_list: &'me AccountInfo<'a2>,
-    pub withdraw_stake_withdraw_authority: &'me AccountInfo<'a3>,
-    pub withdraw_stake_stake_to_split: &'me AccountInfo<'a4>,
-    pub withdraw_stake_manager_fee: &'me AccountInfo<'a5>,
-    pub clock: &'me AccountInfo<'a6>,
-    pub token_program: &'me AccountInfo<'a7>,
-    pub stake_program: &'me AccountInfo<'a8>,
-    pub system_program: &'me AccountInfo<'a9>,
+pub struct SoceanStakePoolWithdrawStakeAccounts<'me, 'info> {
+    pub socean_stake_pool_program: &'me AccountInfo<'info>,
+    pub withdraw_stake_spl_stake_pool: &'me AccountInfo<'info>,
+    pub withdraw_stake_validator_list: &'me AccountInfo<'info>,
+    pub withdraw_stake_withdraw_authority: &'me AccountInfo<'info>,
+    pub withdraw_stake_stake_to_split: &'me AccountInfo<'info>,
+    pub withdraw_stake_manager_fee: &'me AccountInfo<'info>,
+    pub clock: &'me AccountInfo<'info>,
+    pub token_program: &'me AccountInfo<'info>,
+    pub stake_program: &'me AccountInfo<'info>,
+    pub system_program: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct SoceanStakePoolWithdrawStakeKeys {
@@ -226,24 +76,8 @@ pub struct SoceanStakePoolWithdrawStakeKeys {
     pub stake_program: Pubkey,
     pub system_program: Pubkey,
 }
-impl<'me> From<&SoceanStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '_, '_>>
-    for SoceanStakePoolWithdrawStakeKeys
-{
-    fn from(
-        accounts: &SoceanStakePoolWithdrawStakeAccounts<
-            'me,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-            '_,
-        >,
-    ) -> Self {
+impl From<SoceanStakePoolWithdrawStakeAccounts<'_, '_>> for SoceanStakePoolWithdrawStakeKeys {
+    fn from(accounts: SoceanStakePoolWithdrawStakeAccounts) -> Self {
         Self {
             socean_stake_pool_program: *accounts.socean_stake_pool_program.key,
             withdraw_stake_spl_stake_pool: *accounts.withdraw_stake_spl_stake_pool.key,
@@ -258,30 +92,86 @@ impl<'me> From<&SoceanStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_
         }
     }
 }
-impl From<&SoceanStakePoolWithdrawStakeKeys>
+impl From<SoceanStakePoolWithdrawStakeKeys>
     for [AccountMeta; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
 {
-    fn from(keys: &SoceanStakePoolWithdrawStakeKeys) -> Self {
+    fn from(keys: SoceanStakePoolWithdrawStakeKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.socean_stake_pool_program, false),
-            AccountMeta::new(keys.withdraw_stake_spl_stake_pool, false),
-            AccountMeta::new(keys.withdraw_stake_validator_list, false),
-            AccountMeta::new_readonly(keys.withdraw_stake_withdraw_authority, false),
-            AccountMeta::new(keys.withdraw_stake_stake_to_split, false),
-            AccountMeta::new(keys.withdraw_stake_manager_fee, false),
-            AccountMeta::new_readonly(keys.clock, false),
-            AccountMeta::new_readonly(keys.token_program, false),
-            AccountMeta::new_readonly(keys.stake_program, false),
-            AccountMeta::new_readonly(keys.system_program, false),
+            AccountMeta {
+                pubkey: keys.socean_stake_pool_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_spl_stake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_validator_list,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_withdraw_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_stake_to_split,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_manager_fee,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
-impl<'a> From<&SoceanStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+impl From<[Pubkey; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for SoceanStakePoolWithdrawStakeKeys
 {
-    fn from(
-        accounts: &SoceanStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    ) -> Self {
+    fn from(pubkeys: [Pubkey; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            socean_stake_pool_program: pubkeys[0],
+            withdraw_stake_spl_stake_pool: pubkeys[1],
+            withdraw_stake_validator_list: pubkeys[2],
+            withdraw_stake_withdraw_authority: pubkeys[3],
+            withdraw_stake_stake_to_split: pubkeys[4],
+            withdraw_stake_manager_fee: pubkeys[5],
+            clock: pubkeys[6],
+            token_program: pubkeys[7],
+            stake_program: pubkeys[8],
+            system_program: pubkeys[9],
+        }
+    }
+}
+impl<'info> From<SoceanStakePoolWithdrawStakeAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: SoceanStakePoolWithdrawStakeAccounts<'_, 'info>) -> Self {
         [
             accounts.socean_stake_pool_program.clone(),
             accounts.withdraw_stake_spl_stake_pool.clone(),
@@ -296,88 +186,151 @@ impl<'a> From<&SoceanStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 
         ]
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct SoceanStakePoolWithdrawStakeIxArgs {}
-#[derive(Copy, Clone, Debug)]
-pub struct SoceanStakePoolWithdrawStakeIxData<'me>(pub &'me SoceanStakePoolWithdrawStakeIxArgs);
-pub const SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM: u8 = 1u8;
-impl<'me> From<&'me SoceanStakePoolWithdrawStakeIxArgs>
-    for SoceanStakePoolWithdrawStakeIxData<'me>
+impl<'me, 'info> From<&'me [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for SoceanStakePoolWithdrawStakeAccounts<'me, 'info>
 {
-    fn from(args: &'me SoceanStakePoolWithdrawStakeIxArgs) -> Self {
-        Self(args)
+    fn from(
+        arr: &'me [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN],
+    ) -> Self {
+        Self {
+            socean_stake_pool_program: &arr[0],
+            withdraw_stake_spl_stake_pool: &arr[1],
+            withdraw_stake_validator_list: &arr[2],
+            withdraw_stake_withdraw_authority: &arr[3],
+            withdraw_stake_stake_to_split: &arr[4],
+            withdraw_stake_manager_fee: &arr[5],
+            clock: &arr[6],
+            token_program: &arr[7],
+            stake_program: &arr[8],
+            system_program: &arr[9],
+        }
     }
 }
-impl BorshSerialize for SoceanStakePoolWithdrawStakeIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])?;
-        self.0.serialize(writer)
+pub const SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM: u8 = 0u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct SoceanStakePoolWithdrawStakeIxData;
+impl SoceanStakePoolWithdrawStakeIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn socean_stake_pool_withdraw_stake_ix<
-    K: Into<SoceanStakePoolWithdrawStakeKeys>,
-    A: Into<SoceanStakePoolWithdrawStakeIxArgs>,
->(
+pub fn socean_stake_pool_withdraw_stake_ix<K: Into<SoceanStakePoolWithdrawStakeKeys>>(
     accounts: K,
-    args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SoceanStakePoolWithdrawStakeKeys = accounts.into();
-    let metas: [AccountMeta; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: SoceanStakePoolWithdrawStakeIxArgs = args.into();
-    let data: SoceanStakePoolWithdrawStakeIxData = (&args_full).into();
+    let metas: [AccountMeta; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: SoceanStakePoolWithdrawStakeIxData.try_to_vec()?,
     })
 }
-pub fn socean_stake_pool_withdraw_stake_invoke<'a, A: Into<SoceanStakePoolWithdrawStakeIxArgs>>(
-    accounts: &SoceanStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn socean_stake_pool_withdraw_stake_invoke<'info>(
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, 'info>,
 ) -> ProgramResult {
-    let ix = socean_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+    let ix = socean_stake_pool_withdraw_stake_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn socean_stake_pool_withdraw_stake_invoke_signed<
-    'a,
-    A: Into<SoceanStakePoolWithdrawStakeIxArgs>,
->(
-    accounts: &SoceanStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn socean_stake_pool_withdraw_stake_invoke_signed<'info>(
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = socean_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+    let ix = socean_stake_pool_withdraw_stake_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
-pub const SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10usize;
+pub fn socean_stake_pool_withdraw_stake_verify_account_keys(
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
+    keys: SoceanStakePoolWithdrawStakeKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (
+            accounts.socean_stake_pool_program.key,
+            &keys.socean_stake_pool_program,
+        ),
+        (
+            accounts.withdraw_stake_spl_stake_pool.key,
+            &keys.withdraw_stake_spl_stake_pool,
+        ),
+        (
+            accounts.withdraw_stake_validator_list.key,
+            &keys.withdraw_stake_validator_list,
+        ),
+        (
+            accounts.withdraw_stake_withdraw_authority.key,
+            &keys.withdraw_stake_withdraw_authority,
+        ),
+        (
+            accounts.withdraw_stake_stake_to_split.key,
+            &keys.withdraw_stake_stake_to_split,
+        ),
+        (
+            accounts.withdraw_stake_manager_fee.key,
+            &keys.withdraw_stake_manager_fee,
+        ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.token_program.key, &keys.token_program),
+        (accounts.stake_program.key, &keys.stake_program),
+        (accounts.system_program.key, &keys.system_program),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn socean_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.withdraw_stake_spl_stake_pool,
+        accounts.withdraw_stake_validator_list,
+        accounts.withdraw_stake_stake_to_split,
+        accounts.withdraw_stake_manager_fee,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub const SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
 #[derive(Copy, Clone, Debug)]
-pub struct SplStakePoolWithdrawStakeAccounts<
-    'me,
-    'a0: 'me,
-    'a1: 'me,
-    'a2: 'me,
-    'a3: 'me,
-    'a4: 'me,
-    'a5: 'me,
-    'a6: 'me,
-    'a7: 'me,
-    'a8: 'me,
-    'a9: 'me,
-> {
-    pub spl_stake_pool_program: &'me AccountInfo<'a0>,
-    pub withdraw_stake_spl_stake_pool: &'me AccountInfo<'a1>,
-    pub withdraw_stake_validator_list: &'me AccountInfo<'a2>,
-    pub withdraw_stake_withdraw_authority: &'me AccountInfo<'a3>,
-    pub withdraw_stake_stake_to_split: &'me AccountInfo<'a4>,
-    pub withdraw_stake_manager_fee: &'me AccountInfo<'a5>,
-    pub clock: &'me AccountInfo<'a6>,
-    pub token_program: &'me AccountInfo<'a7>,
-    pub stake_program: &'me AccountInfo<'a8>,
-    pub system_program: &'me AccountInfo<'a9>,
+pub struct SplStakePoolWithdrawStakeAccounts<'me, 'info> {
+    pub spl_stake_pool_program: &'me AccountInfo<'info>,
+    pub withdraw_stake_spl_stake_pool: &'me AccountInfo<'info>,
+    pub withdraw_stake_validator_list: &'me AccountInfo<'info>,
+    pub withdraw_stake_withdraw_authority: &'me AccountInfo<'info>,
+    pub withdraw_stake_stake_to_split: &'me AccountInfo<'info>,
+    pub withdraw_stake_manager_fee: &'me AccountInfo<'info>,
+    pub clock: &'me AccountInfo<'info>,
+    pub token_program: &'me AccountInfo<'info>,
+    pub stake_program: &'me AccountInfo<'info>,
+    pub system_program: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct SplStakePoolWithdrawStakeKeys {
@@ -392,12 +345,8 @@ pub struct SplStakePoolWithdrawStakeKeys {
     pub stake_program: Pubkey,
     pub system_program: Pubkey,
 }
-impl<'me> From<&SplStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '_, '_>>
-    for SplStakePoolWithdrawStakeKeys
-{
-    fn from(
-        accounts: &SplStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '_, '_>,
-    ) -> Self {
+impl From<SplStakePoolWithdrawStakeAccounts<'_, '_>> for SplStakePoolWithdrawStakeKeys {
+    fn from(accounts: SplStakePoolWithdrawStakeAccounts) -> Self {
         Self {
             spl_stake_pool_program: *accounts.spl_stake_pool_program.key,
             withdraw_stake_spl_stake_pool: *accounts.withdraw_stake_spl_stake_pool.key,
@@ -412,30 +361,86 @@ impl<'me> From<&SplStakePoolWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '
         }
     }
 }
-impl From<&SplStakePoolWithdrawStakeKeys>
+impl From<SplStakePoolWithdrawStakeKeys>
     for [AccountMeta; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
 {
-    fn from(keys: &SplStakePoolWithdrawStakeKeys) -> Self {
+    fn from(keys: SplStakePoolWithdrawStakeKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.spl_stake_pool_program, false),
-            AccountMeta::new(keys.withdraw_stake_spl_stake_pool, false),
-            AccountMeta::new(keys.withdraw_stake_validator_list, false),
-            AccountMeta::new_readonly(keys.withdraw_stake_withdraw_authority, false),
-            AccountMeta::new(keys.withdraw_stake_stake_to_split, false),
-            AccountMeta::new(keys.withdraw_stake_manager_fee, false),
-            AccountMeta::new_readonly(keys.clock, false),
-            AccountMeta::new_readonly(keys.token_program, false),
-            AccountMeta::new_readonly(keys.stake_program, false),
-            AccountMeta::new_readonly(keys.system_program, false),
+            AccountMeta {
+                pubkey: keys.spl_stake_pool_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_spl_stake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_validator_list,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_withdraw_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_stake_to_split,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_manager_fee,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
-impl<'a> From<&SplStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+impl From<[Pubkey; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for SplStakePoolWithdrawStakeKeys
 {
-    fn from(
-        accounts: &SplStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    ) -> Self {
+    fn from(pubkeys: [Pubkey; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            spl_stake_pool_program: pubkeys[0],
+            withdraw_stake_spl_stake_pool: pubkeys[1],
+            withdraw_stake_validator_list: pubkeys[2],
+            withdraw_stake_withdraw_authority: pubkeys[3],
+            withdraw_stake_stake_to_split: pubkeys[4],
+            withdraw_stake_manager_fee: pubkeys[5],
+            clock: pubkeys[6],
+            token_program: pubkeys[7],
+            stake_program: pubkeys[8],
+            system_program: pubkeys[9],
+        }
+    }
+}
+impl<'info> From<SplStakePoolWithdrawStakeAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: SplStakePoolWithdrawStakeAccounts<'_, 'info>) -> Self {
         [
             accounts.spl_stake_pool_program.clone(),
             accounts.withdraw_stake_spl_stake_pool.clone(),
@@ -450,83 +455,149 @@ impl<'a> From<&SplStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a,
         ]
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct SplStakePoolWithdrawStakeIxArgs {}
-#[derive(Copy, Clone, Debug)]
-pub struct SplStakePoolWithdrawStakeIxData<'me>(pub &'me SplStakePoolWithdrawStakeIxArgs);
-pub const SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM: u8 = 2u8;
-impl<'me> From<&'me SplStakePoolWithdrawStakeIxArgs> for SplStakePoolWithdrawStakeIxData<'me> {
-    fn from(args: &'me SplStakePoolWithdrawStakeIxArgs) -> Self {
-        Self(args)
+impl<'me, 'info> From<&'me [AccountInfo<'info>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for SplStakePoolWithdrawStakeAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            spl_stake_pool_program: &arr[0],
+            withdraw_stake_spl_stake_pool: &arr[1],
+            withdraw_stake_validator_list: &arr[2],
+            withdraw_stake_withdraw_authority: &arr[3],
+            withdraw_stake_stake_to_split: &arr[4],
+            withdraw_stake_manager_fee: &arr[5],
+            clock: &arr[6],
+            token_program: &arr[7],
+            stake_program: &arr[8],
+            system_program: &arr[9],
+        }
     }
 }
-impl BorshSerialize for SplStakePoolWithdrawStakeIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])?;
-        self.0.serialize(writer)
+pub const SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM: u8 = 1u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct SplStakePoolWithdrawStakeIxData;
+impl SplStakePoolWithdrawStakeIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn spl_stake_pool_withdraw_stake_ix<
-    K: Into<SplStakePoolWithdrawStakeKeys>,
-    A: Into<SplStakePoolWithdrawStakeIxArgs>,
->(
+pub fn spl_stake_pool_withdraw_stake_ix<K: Into<SplStakePoolWithdrawStakeKeys>>(
     accounts: K,
-    args: A,
 ) -> std::io::Result<Instruction> {
     let keys: SplStakePoolWithdrawStakeKeys = accounts.into();
-    let metas: [AccountMeta; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: SplStakePoolWithdrawStakeIxArgs = args.into();
-    let data: SplStakePoolWithdrawStakeIxData = (&args_full).into();
+    let metas: [AccountMeta; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: SplStakePoolWithdrawStakeIxData.try_to_vec()?,
     })
 }
-pub fn spl_stake_pool_withdraw_stake_invoke<'a, A: Into<SplStakePoolWithdrawStakeIxArgs>>(
-    accounts: &SplStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn spl_stake_pool_withdraw_stake_invoke<'info>(
+    accounts: SplStakePoolWithdrawStakeAccounts<'_, 'info>,
 ) -> ProgramResult {
-    let ix = spl_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+    let ix = spl_stake_pool_withdraw_stake_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn spl_stake_pool_withdraw_stake_invoke_signed<'a, A: Into<SplStakePoolWithdrawStakeIxArgs>>(
-    accounts: &SplStakePoolWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn spl_stake_pool_withdraw_stake_invoke_signed<'info>(
+    accounts: SplStakePoolWithdrawStakeAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = spl_stake_pool_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+    let ix = spl_stake_pool_withdraw_stake_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
         accounts.into();
     invoke_signed(&ix, &account_info, seeds)
 }
-pub const LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10usize;
+pub fn spl_stake_pool_withdraw_stake_verify_account_keys(
+    accounts: SplStakePoolWithdrawStakeAccounts<'_, '_>,
+    keys: SplStakePoolWithdrawStakeKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (
+            accounts.spl_stake_pool_program.key,
+            &keys.spl_stake_pool_program,
+        ),
+        (
+            accounts.withdraw_stake_spl_stake_pool.key,
+            &keys.withdraw_stake_spl_stake_pool,
+        ),
+        (
+            accounts.withdraw_stake_validator_list.key,
+            &keys.withdraw_stake_validator_list,
+        ),
+        (
+            accounts.withdraw_stake_withdraw_authority.key,
+            &keys.withdraw_stake_withdraw_authority,
+        ),
+        (
+            accounts.withdraw_stake_stake_to_split.key,
+            &keys.withdraw_stake_stake_to_split,
+        ),
+        (
+            accounts.withdraw_stake_manager_fee.key,
+            &keys.withdraw_stake_manager_fee,
+        ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.token_program.key, &keys.token_program),
+        (accounts.stake_program.key, &keys.stake_program),
+        (accounts.system_program.key, &keys.system_program),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn spl_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: SplStakePoolWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.withdraw_stake_spl_stake_pool,
+        accounts.withdraw_stake_validator_list,
+        accounts.withdraw_stake_stake_to_split,
+        accounts.withdraw_stake_manager_fee,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub const LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
 #[derive(Copy, Clone, Debug)]
-pub struct LidoWithdrawStakeAccounts<
-    'me,
-    'a0: 'me,
-    'a1: 'me,
-    'a2: 'me,
-    'a3: 'me,
-    'a4: 'me,
-    'a5: 'me,
-    'a6: 'me,
-    'a7: 'me,
-    'a8: 'me,
-    'a9: 'me,
-> {
-    pub lido_program: &'me AccountInfo<'a0>,
-    pub withdraw_stake_solido: &'me AccountInfo<'a1>,
-    pub withdraw_stake_voter: &'me AccountInfo<'a2>,
-    pub withdraw_stake_stake_to_split: &'me AccountInfo<'a3>,
-    pub withdraw_stake_stake_authority: &'me AccountInfo<'a4>,
-    pub withdraw_stake_validator_list: &'me AccountInfo<'a5>,
-    pub clock: &'me AccountInfo<'a6>,
-    pub token_program: &'me AccountInfo<'a7>,
-    pub stake_program: &'me AccountInfo<'a8>,
-    pub system_program: &'me AccountInfo<'a9>,
+pub struct LidoWithdrawStakeAccounts<'me, 'info> {
+    pub lido_program: &'me AccountInfo<'info>,
+    pub withdraw_stake_solido: &'me AccountInfo<'info>,
+    pub withdraw_stake_voter: &'me AccountInfo<'info>,
+    pub withdraw_stake_stake_to_split: &'me AccountInfo<'info>,
+    pub withdraw_stake_stake_authority: &'me AccountInfo<'info>,
+    pub withdraw_stake_validator_list: &'me AccountInfo<'info>,
+    pub clock: &'me AccountInfo<'info>,
+    pub token_program: &'me AccountInfo<'info>,
+    pub stake_program: &'me AccountInfo<'info>,
+    pub system_program: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct LidoWithdrawStakeKeys {
@@ -541,12 +612,8 @@ pub struct LidoWithdrawStakeKeys {
     pub stake_program: Pubkey,
     pub system_program: Pubkey,
 }
-impl<'me> From<&LidoWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '_, '_>>
-    for LidoWithdrawStakeKeys
-{
-    fn from(
-        accounts: &LidoWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '_, '_>,
-    ) -> Self {
+impl From<LidoWithdrawStakeAccounts<'_, '_>> for LidoWithdrawStakeKeys {
+    fn from(accounts: LidoWithdrawStakeAccounts) -> Self {
         Self {
             lido_program: *accounts.lido_program.key,
             withdraw_stake_solido: *accounts.withdraw_stake_solido.key,
@@ -561,28 +628,82 @@ impl<'me> From<&LidoWithdrawStakeAccounts<'me, '_, '_, '_, '_, '_, '_, '_, '_, '
         }
     }
 }
-impl From<&LidoWithdrawStakeKeys> for [AccountMeta; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] {
-    fn from(keys: &LidoWithdrawStakeKeys) -> Self {
+impl From<LidoWithdrawStakeKeys> for [AccountMeta; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] {
+    fn from(keys: LidoWithdrawStakeKeys) -> Self {
         [
-            AccountMeta::new_readonly(keys.lido_program, false),
-            AccountMeta::new(keys.withdraw_stake_solido, false),
-            AccountMeta::new_readonly(keys.withdraw_stake_voter, false),
-            AccountMeta::new(keys.withdraw_stake_stake_to_split, false),
-            AccountMeta::new_readonly(keys.withdraw_stake_stake_authority, false),
-            AccountMeta::new(keys.withdraw_stake_validator_list, false),
-            AccountMeta::new_readonly(keys.clock, false),
-            AccountMeta::new_readonly(keys.token_program, false),
-            AccountMeta::new_readonly(keys.stake_program, false),
-            AccountMeta::new_readonly(keys.system_program, false),
+            AccountMeta {
+                pubkey: keys.lido_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_solido,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_voter,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_stake_to_split,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_stake_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_validator_list,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
-impl<'a> From<&LidoWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>>
-    for [AccountInfo<'a>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+impl From<[Pubkey; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]> for LidoWithdrawStakeKeys {
+    fn from(pubkeys: [Pubkey; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            lido_program: pubkeys[0],
+            withdraw_stake_solido: pubkeys[1],
+            withdraw_stake_voter: pubkeys[2],
+            withdraw_stake_stake_to_split: pubkeys[3],
+            withdraw_stake_stake_authority: pubkeys[4],
+            withdraw_stake_validator_list: pubkeys[5],
+            clock: pubkeys[6],
+            token_program: pubkeys[7],
+            stake_program: pubkeys[8],
+            system_program: pubkeys[9],
+        }
+    }
+}
+impl<'info> From<LidoWithdrawStakeAccounts<'_, 'info>>
+    for [AccountInfo<'info>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
 {
-    fn from(
-        accounts: &LidoWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    ) -> Self {
+    fn from(accounts: LidoWithdrawStakeAccounts<'_, 'info>) -> Self {
         [
             accounts.lido_program.clone(),
             accounts.withdraw_stake_solido.clone(),
@@ -597,50 +718,370 @@ impl<'a> From<&LidoWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a,
         ]
     }
 }
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug)]
-pub struct LidoWithdrawStakeIxArgs {}
-#[derive(Copy, Clone, Debug)]
-pub struct LidoWithdrawStakeIxData<'me>(pub &'me LidoWithdrawStakeIxArgs);
-pub const LIDO_WITHDRAW_STAKE_IX_DISCM: u8 = 3u8;
-impl<'me> From<&'me LidoWithdrawStakeIxArgs> for LidoWithdrawStakeIxData<'me> {
-    fn from(args: &'me LidoWithdrawStakeIxArgs) -> Self {
-        Self(args)
+impl<'me, 'info> From<&'me [AccountInfo<'info>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for LidoWithdrawStakeAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            lido_program: &arr[0],
+            withdraw_stake_solido: &arr[1],
+            withdraw_stake_voter: &arr[2],
+            withdraw_stake_stake_to_split: &arr[3],
+            withdraw_stake_stake_authority: &arr[4],
+            withdraw_stake_validator_list: &arr[5],
+            clock: &arr[6],
+            token_program: &arr[7],
+            stake_program: &arr[8],
+            system_program: &arr[9],
+        }
     }
 }
-impl BorshSerialize for LidoWithdrawStakeIxData<'_> {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write_all(&[LIDO_WITHDRAW_STAKE_IX_DISCM])?;
-        self.0.serialize(writer)
+pub const LIDO_WITHDRAW_STAKE_IX_DISCM: u8 = 2u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct LidoWithdrawStakeIxData;
+impl LidoWithdrawStakeIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != LIDO_WITHDRAW_STAKE_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    LIDO_WITHDRAW_STAKE_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[LIDO_WITHDRAW_STAKE_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
     }
 }
-pub fn lido_withdraw_stake_ix<K: Into<LidoWithdrawStakeKeys>, A: Into<LidoWithdrawStakeIxArgs>>(
+pub fn lido_withdraw_stake_ix<K: Into<LidoWithdrawStakeKeys>>(
     accounts: K,
-    args: A,
 ) -> std::io::Result<Instruction> {
     let keys: LidoWithdrawStakeKeys = accounts.into();
-    let metas: [AccountMeta; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = (&keys).into();
-    let args_full: LidoWithdrawStakeIxArgs = args.into();
-    let data: LidoWithdrawStakeIxData = (&args_full).into();
+    let metas: [AccountMeta; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
         program_id: crate::ID,
         accounts: Vec::from(metas),
-        data: data.try_to_vec()?,
+        data: LidoWithdrawStakeIxData.try_to_vec()?,
     })
 }
-pub fn lido_withdraw_stake_invoke<'a, A: Into<LidoWithdrawStakeIxArgs>>(
-    accounts: &LidoWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn lido_withdraw_stake_invoke<'info>(
+    accounts: LidoWithdrawStakeAccounts<'_, 'info>,
 ) -> ProgramResult {
-    let ix = lido_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
+    let ix = lido_withdraw_stake_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke(&ix, &account_info)
 }
-pub fn lido_withdraw_stake_invoke_signed<'a, A: Into<LidoWithdrawStakeIxArgs>>(
-    accounts: &LidoWithdrawStakeAccounts<'_, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a, 'a>,
-    args: A,
+pub fn lido_withdraw_stake_invoke_signed<'info>(
+    accounts: LidoWithdrawStakeAccounts<'_, 'info>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = lido_withdraw_stake_ix(accounts, args)?;
-    let account_info: [AccountInfo<'a>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
+    let ix = lido_withdraw_stake_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
     invoke_signed(&ix, &account_info, seeds)
+}
+pub fn lido_withdraw_stake_verify_account_keys(
+    accounts: LidoWithdrawStakeAccounts<'_, '_>,
+    keys: LidoWithdrawStakeKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (accounts.lido_program.key, &keys.lido_program),
+        (
+            accounts.withdraw_stake_solido.key,
+            &keys.withdraw_stake_solido,
+        ),
+        (
+            accounts.withdraw_stake_voter.key,
+            &keys.withdraw_stake_voter,
+        ),
+        (
+            accounts.withdraw_stake_stake_to_split.key,
+            &keys.withdraw_stake_stake_to_split,
+        ),
+        (
+            accounts.withdraw_stake_stake_authority.key,
+            &keys.withdraw_stake_stake_authority,
+        ),
+        (
+            accounts.withdraw_stake_validator_list.key,
+            &keys.withdraw_stake_validator_list,
+        ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.token_program.key, &keys.token_program),
+        (accounts.stake_program.key, &keys.stake_program),
+        (accounts.system_program.key, &keys.system_program),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn lido_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: LidoWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.withdraw_stake_solido,
+        accounts.withdraw_stake_stake_to_split,
+        accounts.withdraw_stake_validator_list,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub const MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 8;
+#[derive(Copy, Clone, Debug)]
+pub struct MarinadeWithdrawStakeAccounts<'me, 'info> {
+    pub marinade_program: &'me AccountInfo<'info>,
+    pub withdraw_stake_marinade_state: &'me AccountInfo<'info>,
+    pub withdraw_stake_marinade_treasury: &'me AccountInfo<'info>,
+    pub withdraw_stake_validator_list: &'me AccountInfo<'info>,
+    pub withdraw_stake_stake_to_split: &'me AccountInfo<'info>,
+    pub withdraw_stake_stake_list: &'me AccountInfo<'info>,
+    pub withdraw_stake_withdraw_authority: &'me AccountInfo<'info>,
+    pub withdraw_stake_deposit_authority: &'me AccountInfo<'info>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct MarinadeWithdrawStakeKeys {
+    pub marinade_program: Pubkey,
+    pub withdraw_stake_marinade_state: Pubkey,
+    pub withdraw_stake_marinade_treasury: Pubkey,
+    pub withdraw_stake_validator_list: Pubkey,
+    pub withdraw_stake_stake_to_split: Pubkey,
+    pub withdraw_stake_stake_list: Pubkey,
+    pub withdraw_stake_withdraw_authority: Pubkey,
+    pub withdraw_stake_deposit_authority: Pubkey,
+}
+impl From<MarinadeWithdrawStakeAccounts<'_, '_>> for MarinadeWithdrawStakeKeys {
+    fn from(accounts: MarinadeWithdrawStakeAccounts) -> Self {
+        Self {
+            marinade_program: *accounts.marinade_program.key,
+            withdraw_stake_marinade_state: *accounts.withdraw_stake_marinade_state.key,
+            withdraw_stake_marinade_treasury: *accounts.withdraw_stake_marinade_treasury.key,
+            withdraw_stake_validator_list: *accounts.withdraw_stake_validator_list.key,
+            withdraw_stake_stake_to_split: *accounts.withdraw_stake_stake_to_split.key,
+            withdraw_stake_stake_list: *accounts.withdraw_stake_stake_list.key,
+            withdraw_stake_withdraw_authority: *accounts.withdraw_stake_withdraw_authority.key,
+            withdraw_stake_deposit_authority: *accounts.withdraw_stake_deposit_authority.key,
+        }
+    }
+}
+impl From<MarinadeWithdrawStakeKeys> for [AccountMeta; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] {
+    fn from(keys: MarinadeWithdrawStakeKeys) -> Self {
+        [
+            AccountMeta {
+                pubkey: keys.marinade_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_marinade_state,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_marinade_treasury,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_validator_list,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_stake_to_split,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_stake_list,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_withdraw_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_deposit_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+        ]
+    }
+}
+impl From<[Pubkey; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]> for MarinadeWithdrawStakeKeys {
+    fn from(pubkeys: [Pubkey; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            marinade_program: pubkeys[0],
+            withdraw_stake_marinade_state: pubkeys[1],
+            withdraw_stake_marinade_treasury: pubkeys[2],
+            withdraw_stake_validator_list: pubkeys[3],
+            withdraw_stake_stake_to_split: pubkeys[4],
+            withdraw_stake_stake_list: pubkeys[5],
+            withdraw_stake_withdraw_authority: pubkeys[6],
+            withdraw_stake_deposit_authority: pubkeys[7],
+        }
+    }
+}
+impl<'info> From<MarinadeWithdrawStakeAccounts<'_, 'info>>
+    for [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: MarinadeWithdrawStakeAccounts<'_, 'info>) -> Self {
+        [
+            accounts.marinade_program.clone(),
+            accounts.withdraw_stake_marinade_state.clone(),
+            accounts.withdraw_stake_marinade_treasury.clone(),
+            accounts.withdraw_stake_validator_list.clone(),
+            accounts.withdraw_stake_stake_to_split.clone(),
+            accounts.withdraw_stake_stake_list.clone(),
+            accounts.withdraw_stake_withdraw_authority.clone(),
+            accounts.withdraw_stake_deposit_authority.clone(),
+        ]
+    }
+}
+impl<'me, 'info> From<&'me [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for MarinadeWithdrawStakeAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            marinade_program: &arr[0],
+            withdraw_stake_marinade_state: &arr[1],
+            withdraw_stake_marinade_treasury: &arr[2],
+            withdraw_stake_validator_list: &arr[3],
+            withdraw_stake_stake_to_split: &arr[4],
+            withdraw_stake_stake_list: &arr[5],
+            withdraw_stake_withdraw_authority: &arr[6],
+            withdraw_stake_deposit_authority: &arr[7],
+        }
+    }
+}
+pub const MARINADE_WITHDRAW_STAKE_IX_DISCM: u8 = 3u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct MarinadeWithdrawStakeIxData;
+impl MarinadeWithdrawStakeIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != MARINADE_WITHDRAW_STAKE_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    MARINADE_WITHDRAW_STAKE_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[MARINADE_WITHDRAW_STAKE_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
+    }
+}
+pub fn marinade_withdraw_stake_ix<K: Into<MarinadeWithdrawStakeKeys>>(
+    accounts: K,
+) -> std::io::Result<Instruction> {
+    let keys: MarinadeWithdrawStakeKeys = accounts.into();
+    let metas: [AccountMeta; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
+    Ok(Instruction {
+        program_id: crate::ID,
+        accounts: Vec::from(metas),
+        data: MarinadeWithdrawStakeIxData.try_to_vec()?,
+    })
+}
+pub fn marinade_withdraw_stake_invoke<'info>(
+    accounts: MarinadeWithdrawStakeAccounts<'_, 'info>,
+) -> ProgramResult {
+    let ix = marinade_withdraw_stake_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        accounts.into();
+    invoke(&ix, &account_info)
+}
+pub fn marinade_withdraw_stake_invoke_signed<'info>(
+    accounts: MarinadeWithdrawStakeAccounts<'_, 'info>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let ix = marinade_withdraw_stake_ix(accounts)?;
+    let account_info: [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        accounts.into();
+    invoke_signed(&ix, &account_info, seeds)
+}
+pub fn marinade_withdraw_stake_verify_account_keys(
+    accounts: MarinadeWithdrawStakeAccounts<'_, '_>,
+    keys: MarinadeWithdrawStakeKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (accounts.marinade_program.key, &keys.marinade_program),
+        (
+            accounts.withdraw_stake_marinade_state.key,
+            &keys.withdraw_stake_marinade_state,
+        ),
+        (
+            accounts.withdraw_stake_marinade_treasury.key,
+            &keys.withdraw_stake_marinade_treasury,
+        ),
+        (
+            accounts.withdraw_stake_validator_list.key,
+            &keys.withdraw_stake_validator_list,
+        ),
+        (
+            accounts.withdraw_stake_stake_to_split.key,
+            &keys.withdraw_stake_stake_to_split,
+        ),
+        (
+            accounts.withdraw_stake_stake_list.key,
+            &keys.withdraw_stake_stake_list,
+        ),
+        (
+            accounts.withdraw_stake_withdraw_authority.key,
+            &keys.withdraw_stake_withdraw_authority,
+        ),
+        (
+            accounts.withdraw_stake_deposit_authority.key,
+            &keys.withdraw_stake_deposit_authority,
+        ),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn marinade_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: MarinadeWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.withdraw_stake_marinade_state,
+        accounts.withdraw_stake_marinade_treasury,
+        accounts.withdraw_stake_validator_list,
+        accounts.withdraw_stake_stake_to_split,
+        accounts.withdraw_stake_stake_list,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
 }

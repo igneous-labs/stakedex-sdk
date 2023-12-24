@@ -11,9 +11,7 @@ use stakedex_sdk_common::{
     lido_program, lido_state, WithdrawStakeBase, WithdrawStakeIter, WithdrawStakeQuote,
     STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
-use stakedex_withdraw_stake_interface::{
-    lido_withdraw_stake_ix, LidoWithdrawStakeIxArgs, LidoWithdrawStakeKeys,
-};
+use stakedex_withdraw_stake_interface::{lido_withdraw_stake_ix, LidoWithdrawStakeKeys};
 use std::ops::Add;
 
 use crate::LidoStakedex;
@@ -138,29 +136,26 @@ impl WithdrawStakeBase for LidoStakedex {
             .iter()
             .find(|v| v.vote_account_address == quote.voter)
             .ok_or_else(|| anyhow!("could not find validator"))?;
-        Ok(lido_withdraw_stake_ix(
-            LidoWithdrawStakeKeys {
-                lido_program: lido_program::ID,
-                withdraw_stake_solido: lido_state::ID,
-                withdraw_stake_stake_authority: self
-                    .lido_state
-                    .get_stake_authority(&lido_program::ID, &lido_state::ID)?,
-                withdraw_stake_stake_to_split: validator
-                    .find_stake_account_address(
-                        &lido_program::ID,
-                        &lido_state::ID,
-                        validator.stake_seeds.begin,
-                        StakeType::Stake,
-                    )
-                    .0,
-                withdraw_stake_voter: quote.voter,
-                withdraw_stake_validator_list: self.lido_state.validator_list,
-                clock: sysvar::clock::ID,
-                system_program: system_program::ID,
-                stake_program: stake::program::ID,
-                token_program: spl_token::ID,
-            },
-            LidoWithdrawStakeIxArgs {},
-        )?)
+        Ok(lido_withdraw_stake_ix(LidoWithdrawStakeKeys {
+            lido_program: lido_program::ID,
+            withdraw_stake_solido: lido_state::ID,
+            withdraw_stake_stake_authority: self
+                .lido_state
+                .get_stake_authority(&lido_program::ID, &lido_state::ID)?,
+            withdraw_stake_stake_to_split: validator
+                .find_stake_account_address(
+                    &lido_program::ID,
+                    &lido_state::ID,
+                    validator.stake_seeds.begin,
+                    StakeType::Stake,
+                )
+                .0,
+            withdraw_stake_voter: quote.voter,
+            withdraw_stake_validator_list: self.lido_state.validator_list,
+            clock: sysvar::clock::ID,
+            system_program: system_program::ID,
+            stake_program: stake::program::ID,
+            token_program: spl_token::ID,
+        })?)
     }
 }

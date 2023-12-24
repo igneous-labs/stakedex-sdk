@@ -3,6 +3,12 @@ name = "stakedex_deposit_stake_interface"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-borsh.workspace = true
-solana-program.workspace = true
+[dependencies.borsh]
+workspace = true
+
+[dependencies.solana-program]
+workspace = true
+
+[dependencies.serde]
+optional = true
+workspace = true

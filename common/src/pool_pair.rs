@@ -101,7 +101,7 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     .0;
     let deposit_stake_info = DepositStakeInfo { addr: bridge_stake };
     let mut metas = Vec::from(<[AccountMeta; SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]>::from(
-        &SwapViaStakeKeys {
+        SwapViaStakeKeys {
             user: swap_params.token_transfer_authority,
             src_token_from: swap_params.source_token_account,
             src_token_mint: swap_params.source_mint,

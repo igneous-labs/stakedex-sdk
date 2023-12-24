@@ -11,4 +11,13 @@ workspace = true
 
 [dependencies.serde]
 optional = true
-version = "^1.0"
+workspace = true
+
+[dependencies.thiserror]
+workspace = true
+
+[dependencies.num-derive]
+workspace = true
+
+[dependencies.num-traits]
+workspace = true

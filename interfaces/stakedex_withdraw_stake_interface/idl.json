@@ -3,66 +3,6 @@
   "name": "stakedex_withdraw_stake",
   "instructions": [
     {
-      "name": "EversolStakePoolWithdrawStake",
-      "accounts": [
-        {
-          "name": "eversolStakePoolProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeSplStakePool",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeValidatorList",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeWithdrawAuthority",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeStakeToSplit",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeManagerFee",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "clock",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakeProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [],
-      "discriminant": {
-        "type": "u8",
-        "value": 0
-      }
-    },
-    {
       "name": "SoceanStakePoolWithdrawStake",
       "accounts": [
         {
@@ -119,7 +59,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 1
+        "value": 0
       }
     },
     {
@@ -179,7 +119,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 2
+        "value": 1
       }
     },
     {
@@ -239,32 +179,62 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 3
+        "value": 2
       }
-    }
-  ],
-  "types": [
+    },
     {
-      "name": "WithdrawStakeAccountData",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "validatorIndex",
-            "type": "u32"
-          }
-        ]
+      "name": "MarinadeWithdrawStake",
+      "accounts": [
+        {
+          "name": "marinadeProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeMarinadeState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeMarinadeTreasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeValidatorList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeStakeToSplit",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeStakeList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeDepositAuthority",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
       }
     }
   ],
   "metadata": {
     "origin": "shank",
-    "address": "11111111111111111111111111111112",
-    "binaryVersion": "0.0.11",
-    "libVersion": "~0.0.11"
+    "address": "TH1S1SAV1RTUAL1DLoNLY1XACCoUNTSAREUSED11111"
   }
 }

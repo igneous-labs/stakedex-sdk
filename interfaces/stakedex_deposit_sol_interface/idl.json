@@ -3,71 +3,6 @@
   "name": "stakedex_deposit_sol",
   "instructions": [
     {
-      "name": "EversolStakePoolDepositSol",
-      "accounts": [
-        {
-          "name": "eversolStakePoolProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakePool",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakePoolWithdrawAuthority",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakePoolReserveStake",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakePoolManagerFee",
-          "isMut": true,
-          "isSigner": false
-        }
-      ],
-      "args": [],
-      "discriminant": {
-        "type": "u8",
-        "value": 0
-      }
-    },
-    {
-      "name": "LidoDepositSol",
-      "accounts": [
-        {
-          "name": "lidoProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "solido",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "lidoReserve",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stsolMintAuthority",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [],
-      "discriminant": {
-        "type": "u8",
-        "value": 1
-      }
-    },
-    {
       "name": "MarinadeDepositSol",
       "accounts": [
         {
@@ -109,7 +44,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 2
+        "value": 0
       }
     },
     {
@@ -149,7 +84,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 3
+        "value": 1
       }
     },
     {
@@ -184,40 +119,12 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 4
-      }
-    }
-  ],
-  "types": [
-    {
-      "name": "LidoDepositSolAccountData",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "lamports",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "MarinadeDepositSolAccountData",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "lamports",
-            "type": "u64"
-          }
-        ]
+        "value": 2
       }
     }
   ],
   "metadata": {
     "origin": "shank",
-    "address": "11111111111111111111111111111112",
-    "binaryVersion": "0.0.11",
-    "libVersion": "~0.0.11"
+    "address": "TH1S1SAV1RTUAL1DLoNLY1XACCoUNTSAREUSED11111"
   }
 }

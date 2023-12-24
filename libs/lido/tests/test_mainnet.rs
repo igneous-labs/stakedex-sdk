@@ -18,7 +18,7 @@ fn test_mainnet() {
         account: accounts[0].clone().unwrap(),
         params: None,
     };
-    let accounts_map = zip(keys.into_iter(), accounts.into_iter().map(|o| o.unwrap())).collect();
+    let accounts_map = zip(keys, accounts.into_iter().map(|o| o.unwrap())).collect();
     let mut lido = LidoStakedex::from_keyed_account(&keyed_state).unwrap();
     lido.update(&accounts_map).unwrap();
 }

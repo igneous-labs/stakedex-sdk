@@ -5,8 +5,7 @@ use stakedex_sdk_common::{
     socean_program, socean_stake_pool, WithdrawStakeBase, WithdrawStakeIter, WithdrawStakeQuote,
 };
 use stakedex_withdraw_stake_interface::{
-    socean_stake_pool_withdraw_stake_ix, SoceanStakePoolWithdrawStakeIxArgs,
-    SoceanStakePoolWithdrawStakeKeys,
+    socean_stake_pool_withdraw_stake_ix, SoceanStakePoolWithdrawStakeKeys,
 };
 
 use crate::SoceanStakePoolStakedex;
@@ -119,7 +118,6 @@ impl WithdrawStakeBase for SoceanStakePoolStakedex {
                 stake_program: stake::program::ID,
                 system_program: system_program::ID,
             },
-            SoceanStakePoolWithdrawStakeIxArgs {},
         )?)
     }
 }

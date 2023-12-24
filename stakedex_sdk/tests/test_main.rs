@@ -13,7 +13,7 @@ use spl_associated_token_account::get_associated_token_address;
 use spl_token::native_mint;
 use stakedex_sdk::Stakedex;
 use stakedex_sdk_common::{
-    bsol, cogentsol, daosol, esol, jitosol, jsol, lainesol, msol, risksol, scnsol, stsol,
+    bsol, cogentsol, daosol, jitosol, jsol, lainesol, msol, risksol, scnsol, stsol,
 };
 use std::{collections::HashMap, iter::zip};
 
@@ -46,10 +46,10 @@ lazy_static! {
 }
 
 fn fetch_accounts(accounts_pubkeys: &[Pubkey]) -> HashMap<Pubkey, Account> {
-    let fetched = RPC.get_multiple_accounts(&accounts_pubkeys).unwrap();
+    let fetched = RPC.get_multiple_accounts(accounts_pubkeys).unwrap();
     zip(accounts_pubkeys, fetched)
         .filter_map(|(pubkey, opt)| match opt {
-            Some(acc) => Some((pubkey.clone(), acc)),
+            Some(acc) => Some((*pubkey, acc)),
             None => {
                 eprintln!("Missing acc {}", pubkey);
                 None
@@ -112,11 +112,6 @@ fn test_swap_via_stake_scnsol_unstakeit() {
 }
 
 #[test]
-fn test_swap_via_stake_esol_unstakeit() {
-    test_swap_via_stake(esol::ID, native_mint::ID, None);
-}
-
-#[test]
 fn test_swap_via_stake_msol_unstakeit() {
     test_swap_via_stake(msol::ID, native_mint::ID, None);
 }
@@ -160,11 +155,6 @@ fn test_swap_via_stake_bsol_risksol() {
 #[test]
 fn test_swap_via_stake_bsol_scnsol() {
     test_swap_via_stake(bsol::ID, scnsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_bsol_esol() {
-    test_swap_via_stake(bsol::ID, esol::ID, None);
 }
 
 #[test]
@@ -214,11 +204,6 @@ fn test_swap_via_stake_cogentsol_scnsol() {
 }
 
 #[test]
-fn test_swap_via_stake_cogentsol_esol() {
-    test_swap_via_stake(cogentsol::ID, esol::ID, None);
-}
-
-#[test]
 fn test_swap_via_stake_cogentsol_msol() {
     test_swap_via_stake(cogentsol::ID, msol::ID, None);
 }
@@ -262,11 +247,6 @@ fn test_swap_via_stake_daosol_risksol() {
 #[test]
 fn test_swap_via_stake_daosol_scnsol() {
     test_swap_via_stake(daosol::ID, scnsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_daosol_esol() {
-    test_swap_via_stake(daosol::ID, esol::ID, None);
 }
 
 #[test]
@@ -316,11 +296,6 @@ fn test_swap_via_stake_jitosol_scnsol() {
 }
 
 #[test]
-fn test_swap_via_stake_jitosol_esol() {
-    test_swap_via_stake(jitosol::ID, esol::ID, None);
-}
-
-#[test]
 fn test_swap_via_stake_jitosol_msol() {
     test_swap_via_stake(jitosol::ID, msol::ID, None);
 }
@@ -364,11 +339,6 @@ fn test_swap_via_stake_jsol_risksol() {
 #[test]
 fn test_swap_via_stake_jsol_scnsol() {
     test_swap_via_stake(jsol::ID, scnsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_jsol_esol() {
-    test_swap_via_stake(jsol::ID, esol::ID, None);
 }
 
 #[test]
@@ -418,11 +388,6 @@ fn test_swap_via_stake_lainesol_scnsol() {
 }
 
 #[test]
-fn test_swap_via_stake_lainesol_esol() {
-    test_swap_via_stake(lainesol::ID, esol::ID, None);
-}
-
-#[test]
 fn test_swap_via_stake_lainesol_msol() {
     test_swap_via_stake(lainesol::ID, msol::ID, None);
 }
@@ -466,11 +431,6 @@ fn test_swap_via_stake_risksol_lainesol() {
 #[test]
 fn test_swap_via_stake_risksol_scnsol() {
     test_swap_via_stake(risksol::ID, scnsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_risksol_esol() {
-    test_swap_via_stake(risksol::ID, esol::ID, None);
 }
 
 #[test]
@@ -520,11 +480,6 @@ fn test_swap_via_stake_scnsol_risksol() {
 }
 
 #[test]
-fn test_swap_via_stake_scnsol_esol() {
-    test_swap_via_stake(scnsol::ID, esol::ID, None);
-}
-
-#[test]
 fn test_swap_via_stake_scnsol_msol() {
     test_swap_via_stake(scnsol::ID, msol::ID, None);
 }
@@ -534,56 +489,6 @@ fn test_swap_via_stake_scnsol_stsol() {
     test_swap_via_stake(scnsol::ID, stsol::ID, None);
 }
 
-// esol to xsol
-#[test]
-fn test_swap_via_stake_esol_bsol() {
-    test_swap_via_stake(esol::ID, bsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_cogentsol() {
-    test_swap_via_stake(esol::ID, cogentsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_daosol() {
-    test_swap_via_stake(esol::ID, daosol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_jitosol() {
-    test_swap_via_stake(esol::ID, jitosol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_jsol() {
-    test_swap_via_stake(esol::ID, jsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_lainesol() {
-    test_swap_via_stake(esol::ID, lainesol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_risksol() {
-    test_swap_via_stake(esol::ID, risksol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_scnsol() {
-    test_swap_via_stake(esol::ID, scnsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_msol() {
-    test_swap_via_stake(esol::ID, msol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_esol_stsol() {
-    test_swap_via_stake(esol::ID, stsol::ID, None);
-}
 #[test]
 fn test_swap_via_stake_msol_bsol() {
     test_swap_via_stake(msol::ID, bsol::ID, None);
@@ -622,11 +527,6 @@ fn test_swap_via_stake_msol_risksol() {
 #[test]
 fn test_swap_via_stake_msol_scnsol() {
     test_swap_via_stake(msol::ID, scnsol::ID, None);
-}
-
-#[test]
-fn test_swap_via_stake_msol_esol() {
-    test_swap_via_stake(msol::ID, esol::ID, None);
 }
 
 #[test]
@@ -676,11 +576,6 @@ fn test_swap_via_stake_stsol_scnsol() {
 }
 
 #[test]
-fn test_swap_via_stake_stsol_esol() {
-    test_swap_via_stake(stsol::ID, esol::ID, None);
-}
-
-#[test]
 fn test_swap_via_stake_stsol_msol() {
     test_swap_via_stake(stsol::ID, msol::ID, None);
 }
@@ -693,8 +588,6 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
         || output_mint.eq(&cogentsol::ID)
         || input_mint.eq(&daosol::ID)
         || output_mint.eq(&daosol::ID)
-        || input_mint.eq(&esol::ID)
-        || output_mint.eq(&esol::ID)
         || input_mint.eq(&jitosol::ID)
         || output_mint.eq(&jitosol::ID)
         || input_mint.eq(&lainesol::ID)
@@ -947,17 +840,15 @@ pub fn sim_swap_via_stake(
     // partial_sign just to add recentblockhash
     let no_signers: Vec<Box<dyn Signer>> = vec![];
     tx.partial_sign(&no_signers, rbh);
-    let result = rpc
-        .simulate_transaction_with_config(
-            &tx,
-            RpcSimulateTransactionConfig {
-                accounts: Some(RpcSimulateTransactionAccountsConfig {
-                    addresses: vec![src_token_acc.to_string(), dst_token_acc.to_string()],
-                    encoding: Some(UiAccountEncoding::Base64),
-                }),
-                ..RpcSimulateTransactionConfig::default()
-            },
-        )
-        .unwrap();
-    result
+    rpc.simulate_transaction_with_config(
+        &tx,
+        RpcSimulateTransactionConfig {
+            accounts: Some(RpcSimulateTransactionAccountsConfig {
+                addresses: vec![src_token_acc.to_string(), dst_token_acc.to_string()],
+                encoding: Some(UiAccountEncoding::Base64),
+            }),
+            ..RpcSimulateTransactionConfig::default()
+        },
+    )
+    .unwrap()
 }
