@@ -139,9 +139,7 @@ impl WithdrawStakeBase for LidoStakedex {
         Ok(lido_withdraw_stake_ix(LidoWithdrawStakeKeys {
             lido_program: lido_program::ID,
             withdraw_stake_solido: lido_state::ID,
-            withdraw_stake_stake_authority: self
-                .lido_state
-                .get_stake_authority(&lido_program::ID, &lido_state::ID)?,
+            withdraw_stake_stake_authority: lido_program::STAKE_AUTHORITY_ID,
             withdraw_stake_stake_to_split: validator
                 .find_stake_account_address(
                     &lido_program::ID,

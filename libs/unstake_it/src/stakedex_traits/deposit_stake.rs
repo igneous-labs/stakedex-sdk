@@ -7,10 +7,7 @@ use stakedex_sdk_common::{
 };
 use std::cmp::Ordering;
 
-use crate::{
-    apply_fee, find_fee, find_pool_sol_reserves, find_protocol_fee, find_stake_account_record,
-    UnstakeItStakedex,
-};
+use crate::{apply_fee, find_stake_account_record, UnstakeItStakedex};
 
 impl DepositStake for UnstakeItStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
@@ -57,10 +54,10 @@ impl DepositStake for UnstakeItStakedex {
         Ok(unstake_it_deposit_stake_ix(UnstakeItDepositStakeKeys {
             unstakeit_program: unstake_it_program::ID,
             deposit_stake_unstake_pool: unstake_it_pool::ID,
-            deposit_stake_pool_sol_reserves: find_pool_sol_reserves().0,
+            deposit_stake_pool_sol_reserves: unstake_it_program::SOL_RESERVES_ID,
             deposit_stake_stake_acc_record: find_stake_account_record(&deposit_stake_info.addr).0,
-            deposit_stake_unstake_fee: find_fee().0,
-            deposit_stake_protocol_fee: find_protocol_fee().0,
+            deposit_stake_unstake_fee: unstake_it_program::FEE_ID,
+            deposit_stake_protocol_fee: unstake_it_program::PROTOCOL_FEE_ID,
             deposit_stake_protocol_fee_dest: self.protocol_fee.destination,
             clock: sysvar::clock::ID,
             token_program: spl_token::ID,

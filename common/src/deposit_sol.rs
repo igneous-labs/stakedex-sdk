@@ -20,10 +20,9 @@ use stakedex_interface::{StakeWrappedSolKeys, STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN}
 use crate::{
     init_from_keyed_account::InitFromKeyedAccount,
     jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META,
-    pda::{
-        cws_wsol_bridge_in, find_deposit_stake_amm_key, find_fee_token_acc, find_sol_bridge_out,
-    },
-    BaseStakePoolAmm, DepositSolQuoteError, TEMPORARY_JUP_AMM_LABEL,
+    pda::{find_deposit_stake_amm_key, find_fee_token_acc},
+    stakedex_program, wsol_bridge_in, BaseStakePoolAmm, DepositSolQuoteError,
+    TEMPORARY_JUP_AMM_LABEL,
 };
 
 #[derive(Copy, Clone, Debug)]
@@ -123,7 +122,6 @@ where
     }
 
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
-        let (sol_bridge_out, _) = find_sol_bridge_out();
         let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
         account_metas.extend(<[AccountMeta; STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN]>::from(
             StakeWrappedSolKeys {
@@ -134,8 +132,8 @@ where
                 dest_token_mint: swap_params.destination_mint,
                 token_program: spl_token::ID,
                 system_program: system_program::ID,
-                wsol_bridge_in: cws_wsol_bridge_in(&sol_bridge_out),
-                sol_bridge_out,
+                wsol_bridge_in: wsol_bridge_in::ID,
+                sol_bridge_out: stakedex_program::SOL_BRIDGE_OUT_ID,
                 dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
             },
         ));
