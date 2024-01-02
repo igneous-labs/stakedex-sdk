@@ -1,18 +1,19 @@
 mod calc;
 mod consts;
+mod stake_system;
 mod stakedex_traits;
 mod state;
 mod validator_system;
 
 use anyhow::{anyhow, Result};
-use borsh::BorshDeserialize;
-use consts::VALIDATOR_RECORD_BYTE_LENGTH;
+use consts::{STAKE_RECORD_BYTE_LENGTH, VALIDATOR_RECORD_BYTE_LENGTH};
 use marinade_finance_interface::{
-    Fee, LiqPool, List, StakeSystem, State, ValidatorRecord, ValidatorSystem,
+    Fee, FeeCents, LiqPool, List, StakeRecord, StakeSystem, State, ValidatorRecord, ValidatorSystem,
 };
 use solana_program::{borsh::try_from_slice_unchecked, pubkey::Pubkey};
 
 pub use stakedex_traits::*;
+use state::StateWrapper;
 
 pub const MARINADE_LABEL: &str = "Marinade";
 
@@ -20,6 +21,8 @@ pub const MARINADE_LABEL: &str = "Marinade";
 pub struct MarinadeStakedex {
     state: State,
     validator_records: Vec<ValidatorRecord>,
+    stake_records: Vec<StakeRecord>,
+    // stake_accounts: Vec
 }
 
 impl Default for MarinadeStakedex {
@@ -28,10 +31,11 @@ impl Default for MarinadeStakedex {
             account: Pubkey::default(),
             item_size: 0,
             count: 0,
-            new_account: Pubkey::default(),
-            copied_count: 0,
+            reserved1: Pubkey::default(),
+            reserved2: 0,
         };
         let zero_fee = Fee { basis_points: 0 };
+        let zero_fee_cents = FeeCents { bp_cents: 0 };
         Self {
             state: State {
                 msol_mint: Pubkey::default(),
@@ -68,7 +72,7 @@ impl Default for MarinadeStakedex {
                     lp_liquidity_target: 0,
                     lp_max_fee: zero_fee.clone(),
                     lp_min_fee: zero_fee.clone(),
-                    treasury_cut: zero_fee,
+                    treasury_cut: zero_fee.clone(),
                     lp_supply: 0,
                     lent_from_sol_leg: 0,
                     liquidity_sol_cap: 0,
@@ -83,8 +87,17 @@ impl Default for MarinadeStakedex {
                 min_withdraw: 0,
                 staking_sol_cap: 0,
                 emergency_cooling_down: 0,
+                pause_authority: Pubkey::default(),
+                paused: false,
+                delayed_unstake_fee: zero_fee_cents.clone(),
+                withdraw_stake_account_fee: zero_fee_cents,
+                withdraw_stake_account_enabled: false,
+                last_stake_move_epoch: 0,
+                stake_moved: 0,
+                max_stake_moved_per_epoch: zero_fee,
             },
             validator_records: Vec::new(),
+            stake_records: Vec::new(),
         }
     }
 }
@@ -97,13 +110,12 @@ impl MarinadeStakedex {
         Ok(())
     }
 
-    /// data is account data of state.validator_system.validator_list.account
+    /// data is account data of state.validator_system.validator_list.account.
+    /// Must be called after [`Self::update_state`] to ensure len is latest
     pub fn update_validator_records(&mut self, data: &[u8]) -> Result<()> {
-        // first 8 bytes are len
-        let len_slice = data
-            .get(..8)
-            .ok_or_else(|| anyhow!("Could not read validator records len"))?;
-        let len = u64::try_from_slice(len_slice)?;
+        let len: usize = StateWrapper(&self.state)
+            .validator_list_count()
+            .try_into()?;
         let records_slice = data
             .get(8..)
             .ok_or_else(|| anyhow!("Could not read validator records data"))?;
@@ -112,11 +124,32 @@ impl MarinadeStakedex {
             .enumerate();
         self.validator_records.clear();
         for (index, record) in validator_record_iter {
-            if len == index as u64 {
+            if len == index {
                 break;
             }
             self.validator_records
                 .push(try_from_slice_unchecked::<ValidatorRecord>(record)?);
+        }
+        Ok(())
+    }
+
+    /// data is account data of state.stake_system.stake_list.account.
+    /// Must be called after [`Self::update_state`] to ensure len is latest
+    pub fn update_stake_records(&mut self, data: &[u8]) -> Result<()> {
+        let len: usize = StateWrapper(&self.state).stake_list_count().try_into()?;
+        let records_slice = data
+            .get(8..)
+            .ok_or_else(|| anyhow!("Could not read stake records data"))?;
+        let stake_record_iter = records_slice
+            .chunks_exact(STAKE_RECORD_BYTE_LENGTH)
+            .enumerate();
+        self.stake_records.clear();
+        for (index, record) in stake_record_iter {
+            if len == index {
+                break;
+            }
+            self.stake_records
+                .push(try_from_slice_unchecked::<StakeRecord>(record)?);
         }
         Ok(())
     }

@@ -7,7 +7,7 @@ use crate::{state::StateWrapper, MarinadeStakedex};
 
 impl DepositSol for MarinadeStakedex {
     fn can_accept_sol_deposits(&self) -> bool {
-        true
+        !self.state.paused
     }
 
     fn get_deposit_sol_quote_unchecked(&self, user_lamports: u64) -> Result<DepositSolQuote> {

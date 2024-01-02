@@ -14,9 +14,10 @@ use crate::{
     account_missing_err, apply_global_fee, find_bridge_stake, find_fee_token_acc,
     find_stake_pool_pair_amm_key,
     jupiter_stakedex_interface::{Swap, STAKEDEX_ACCOUNT_META},
-    DepositStake, DepositStakeInfo, DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake,
-    WithdrawStakeQuote, WithdrawStakeQuoteErr, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX, TEMPORARY_JUP_AMM_LABEL,
+    marinade_state, DepositStake, DepositStakeInfo, DepositStakeQuote, SwapViaStakeQuoteErr,
+    WithdrawStake, WithdrawStakeQuote, WithdrawStakeQuoteErr,
+    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    TEMPORARY_JUP_AMM_LABEL,
 };
 
 pub fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
@@ -330,5 +331,13 @@ where
 
     fn program_id(&self) -> Pubkey {
         stakedex_interface::ID
+    }
+
+    /// Because marinade doesn't provide an easy way to match their stake accounts
+    /// to the validator vote account, we have to fetch all their stake accounts on
+    /// update to figure this out
+    fn has_dynamic_accounts(&self) -> bool {
+        self.p1.main_state_key() == marinade_state::ID
+            || self.p2.main_state_key() == marinade_state::ID
     }
 }

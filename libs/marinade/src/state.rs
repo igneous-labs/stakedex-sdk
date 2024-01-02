@@ -53,4 +53,12 @@ impl<'a> StateWrapper<'a> {
         }
         Ok(())
     }
+
+    pub fn validator_list_count(&self) -> u32 {
+        self.0.validator_system.validator_list.count
+    }
+
+    pub fn stake_list_count(&self) -> u32 {
+        self.0.stake_system.stake_list.count
+    }
 }

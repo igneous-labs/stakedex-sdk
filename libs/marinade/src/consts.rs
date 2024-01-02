@@ -1,3 +1,5 @@
 // struct ValidatorRecord is 53 bytes long borsh serialized
-// but marinade serializes it with 8-bytes padding so it's 61 bytes in accountinfo.data
+// + 8-byte discriminant marinade serializes it with
 pub const VALIDATOR_RECORD_BYTE_LENGTH: usize = 61;
+
+pub const STAKE_RECORD_BYTE_LENGTH: usize = 56;

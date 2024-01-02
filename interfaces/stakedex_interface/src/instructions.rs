@@ -1,3 +1,4 @@
+use crate::*;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::AccountInfo,
@@ -16,6 +17,8 @@ pub enum StakedexProgramIx {
     CloseFeeTokenAccount,
     WithdrawFees,
     DepositStake,
+    SlumSwapViaStake(SlumSwapViaStakeIxArgs),
+    SlumWithdrawStake(SlumWithdrawStakeIxArgs),
 }
 impl StakedexProgramIx {
     pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
@@ -34,6 +37,12 @@ impl StakedexProgramIx {
             CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM => Ok(Self::CloseFeeTokenAccount),
             WITHDRAW_FEES_IX_DISCM => Ok(Self::WithdrawFees),
             DEPOSIT_STAKE_IX_DISCM => Ok(Self::DepositStake),
+            SLUM_SWAP_VIA_STAKE_IX_DISCM => Ok(Self::SlumSwapViaStake(
+                SlumSwapViaStakeIxArgs::deserialize(&mut reader)?,
+            )),
+            SLUM_WITHDRAW_STAKE_IX_DISCM => Ok(Self::SlumWithdrawStake(
+                SlumWithdrawStakeIxArgs::deserialize(&mut reader)?,
+            )),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!("discm {:?} not found", maybe_discm),
@@ -54,6 +63,14 @@ impl StakedexProgramIx {
             Self::CloseFeeTokenAccount => writer.write_all(&[CLOSE_FEE_TOKEN_ACCOUNT_IX_DISCM]),
             Self::WithdrawFees => writer.write_all(&[WITHDRAW_FEES_IX_DISCM]),
             Self::DepositStake => writer.write_all(&[DEPOSIT_STAKE_IX_DISCM]),
+            Self::SlumSwapViaStake(args) => {
+                writer.write_all(&[SLUM_SWAP_VIA_STAKE_IX_DISCM])?;
+                args.serialize(&mut writer)
+            }
+            Self::SlumWithdrawStake(args) => {
+                writer.write_all(&[SLUM_WITHDRAW_STAKE_IX_DISCM])?;
+                args.serialize(&mut writer)
+            }
         }
     }
     pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
@@ -82,6 +99,7 @@ pub struct StakeWrappedSolAccounts<'me, 'info> {
     ///wSOL token mint
     pub wsol_mint: &'me AccountInfo<'info>,
     pub token_program: &'me AccountInfo<'info>,
+    ///System program. The deposit SOL accounts slice follows.
     pub system_program: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
@@ -103,6 +121,7 @@ pub struct StakeWrappedSolKeys {
     ///wSOL token mint
     pub wsol_mint: Pubkey,
     pub token_program: Pubkey,
+    ///System program. The deposit SOL accounts slice follows.
     pub system_program: Pubkey,
 }
 impl From<StakeWrappedSolAccounts<'_, '_>> for StakeWrappedSolKeys {
@@ -350,7 +369,7 @@ pub fn stake_wrapped_sol_verify_account_privileges<'me, 'info>(
 pub const SWAP_VIA_STAKE_IX_ACCOUNTS_LEN: usize = 7;
 #[derive(Copy, Clone, Debug)]
 pub struct SwapViaStakeAccounts<'me, 'info> {
-    ///The authority of src_token_from. Needs to be mutable to support marinde deposit stake.
+    ///The authority of src_token_from. Needs to be mutable to support marinade deposit stake.
     pub user: &'me AccountInfo<'info>,
     ///The token account to swap src tokens from
     pub src_token_from: &'me AccountInfo<'info>,
@@ -362,12 +381,12 @@ pub struct SwapViaStakeAccounts<'me, 'info> {
     pub dest_token_fee_token_account: &'me AccountInfo<'info>,
     ///Input token mint. If this is wrapped SOL, the account can be set to read-only
     pub src_token_mint: &'me AccountInfo<'info>,
-    ///Output token mint. If this is wrapped SOL, the account can be set to read-only
+    ///Output token mint. If this is wrapped SOL, the account can be set to read-only. The withdraw stake and deposit stake accounts slices follow.
     pub dest_token_mint: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct SwapViaStakeKeys {
-    ///The authority of src_token_from. Needs to be mutable to support marinde deposit stake.
+    ///The authority of src_token_from. Needs to be mutable to support marinade deposit stake.
     pub user: Pubkey,
     ///The token account to swap src tokens from
     pub src_token_from: Pubkey,
@@ -379,7 +398,7 @@ pub struct SwapViaStakeKeys {
     pub dest_token_fee_token_account: Pubkey,
     ///Input token mint. If this is wrapped SOL, the account can be set to read-only
     pub src_token_mint: Pubkey,
-    ///Output token mint. If this is wrapped SOL, the account can be set to read-only
+    ///Output token mint. If this is wrapped SOL, the account can be set to read-only. The withdraw stake and deposit stake accounts slices follow.
     pub dest_token_mint: Pubkey,
 }
 impl From<SwapViaStakeAccounts<'_, '_>> for SwapViaStakeKeys {
@@ -483,8 +502,7 @@ pub const SWAP_VIA_STAKE_IX_DISCM: u8 = 1u8;
 #[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SwapViaStakeIxArgs {
-    pub amount: u64,
-    pub bridge_stake_seed: u32,
+    pub args: SwapViaStakeArgs,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct SwapViaStakeIxData(pub SwapViaStakeIxArgs);
@@ -1172,7 +1190,7 @@ pub struct DepositStakeAccounts<'me, 'info> {
     pub dest_token_to: &'me AccountInfo<'info>,
     ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
     pub dest_token_fee_token_account: &'me AccountInfo<'info>,
-    ///Output token mint. If this is wrapped SOL, the account can be set to read-only
+    ///Output token mint. If this is wrapped SOL, the account can be set to read-only. The deposit stake accounts slice follows.
     pub dest_token_mint: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
@@ -1185,7 +1203,7 @@ pub struct DepositStakeKeys {
     pub dest_token_to: Pubkey,
     ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
     pub dest_token_fee_token_account: Pubkey,
-    ///Output token mint. If this is wrapped SOL, the account can be set to read-only
+    ///Output token mint. If this is wrapped SOL, the account can be set to read-only. The deposit stake accounts slice follows.
     pub dest_token_mint: Pubkey,
 }
 impl From<DepositStakeAccounts<'_, '_>> for DepositStakeKeys {
@@ -1347,6 +1365,876 @@ pub fn deposit_stake_verify_account_privileges<'me, 'info>(
         accounts.dest_token_to,
         accounts.dest_token_fee_token_account,
         accounts.dest_token_mint,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    for should_be_signer in [accounts.user] {
+        if !should_be_signer.is_signer {
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
+        }
+    }
+    Ok(())
+}
+pub const SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN: usize = 21;
+#[derive(Copy, Clone, Debug)]
+pub struct SlumSwapViaStakeAccounts<'me, 'info> {
+    ///The authority of src_token_from. Needs to be mutable to support marinade deposit stake.
+    pub user: &'me AccountInfo<'info>,
+    ///The token account to swap src tokens from
+    pub src_token_from: &'me AccountInfo<'info>,
+    ///The token account to receive dest tokens to
+    pub dest_token_to: &'me AccountInfo<'info>,
+    ///The bridge stake account thats withdrawn then deposited. PDA. seeds = ['bridge_stake', user.pubkey, SwapArgs.bridge_stake_seed]. Might be long-lived, make sure the seed is not already in use
+    pub bridge_stake: &'me AccountInfo<'info>,
+    ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
+    pub dest_token_fee_token_account: &'me AccountInfo<'info>,
+    ///Input token mint. If this is wrapped SOL, the account can be set to read-only
+    pub src_token_mint: &'me AccountInfo<'info>,
+    ///Output token mint. If this is wrapped SOL, the account can be set to read-only
+    pub dest_token_mint: &'me AccountInfo<'info>,
+    ///The slumdog stake account is split from bridge_stake upon stake withdraw and instant unstaked to repay slumlord's flash loan. create_with_seed(bridge_stake.pubkey, 'slumdog', stake_program). Might be long-lived, but should be not in use as long as bridge_stake is not in use
+    pub slumdog_stake: &'me AccountInfo<'info>,
+    ///The slumlord PDA to repay the flash loan to
+    pub slumlord: &'me AccountInfo<'info>,
+    ///The slumlord program ID
+    pub slumlord_program: &'me AccountInfo<'info>,
+    ///instructions sysvar
+    pub instructions: &'me AccountInfo<'info>,
+    ///Sanctum unstake program. unpXTU2Ndrc7WWNyEhQWe4udTzSibLPi25SXv2xbCHQ
+    pub unstakeit_program: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool. FypPtwbY3FUfzJUtXHSyVRokVKG2jKtH29FmK4ebxRSd
+    pub unstake_pool: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool SOL reserves. 3rBnnH9TTgd3xwu48rnzGsaQkSr1hR64nY71DrDt6VrQ
+    pub pool_sol_reserves: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool Fee account. 5Pcu8WeQa3VbBz2vdBT49Rj4gbS4hsnfzuL1LmuRaKFY
+    pub unstake_fee: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool stake account record for slumdog stake. PDA of sanctum unstake program. Seeds = [unstakePool.pubkey, slumdogStake.pubkey].
+    pub slumdog_stake_acc_record: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool protocol fee account. 2hN9UhvRFVfPYKL6rZJ5YiLEPCLTpN755pgwDJHWgFbU
+    pub unstake_protocol_fee: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool protocol fee destination. unstakeProtocolFee.destination
+    pub unstake_protocol_fee_dest: &'me AccountInfo<'info>,
+    ///sysvar clock
+    pub clock: &'me AccountInfo<'info>,
+    ///stake program
+    pub stake_program: &'me AccountInfo<'info>,
+    ///System program. The withdraw stake and deposit stake accounts slices follow.
+    pub system_program: &'me AccountInfo<'info>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct SlumSwapViaStakeKeys {
+    ///The authority of src_token_from. Needs to be mutable to support marinade deposit stake.
+    pub user: Pubkey,
+    ///The token account to swap src tokens from
+    pub src_token_from: Pubkey,
+    ///The token account to receive dest tokens to
+    pub dest_token_to: Pubkey,
+    ///The bridge stake account thats withdrawn then deposited. PDA. seeds = ['bridge_stake', user.pubkey, SwapArgs.bridge_stake_seed]. Might be long-lived, make sure the seed is not already in use
+    pub bridge_stake: Pubkey,
+    ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
+    pub dest_token_fee_token_account: Pubkey,
+    ///Input token mint. If this is wrapped SOL, the account can be set to read-only
+    pub src_token_mint: Pubkey,
+    ///Output token mint. If this is wrapped SOL, the account can be set to read-only
+    pub dest_token_mint: Pubkey,
+    ///The slumdog stake account is split from bridge_stake upon stake withdraw and instant unstaked to repay slumlord's flash loan. create_with_seed(bridge_stake.pubkey, 'slumdog', stake_program). Might be long-lived, but should be not in use as long as bridge_stake is not in use
+    pub slumdog_stake: Pubkey,
+    ///The slumlord PDA to repay the flash loan to
+    pub slumlord: Pubkey,
+    ///The slumlord program ID
+    pub slumlord_program: Pubkey,
+    ///instructions sysvar
+    pub instructions: Pubkey,
+    ///Sanctum unstake program. unpXTU2Ndrc7WWNyEhQWe4udTzSibLPi25SXv2xbCHQ
+    pub unstakeit_program: Pubkey,
+    ///Sanctum unstake pool. FypPtwbY3FUfzJUtXHSyVRokVKG2jKtH29FmK4ebxRSd
+    pub unstake_pool: Pubkey,
+    ///Sanctum unstake pool SOL reserves. 3rBnnH9TTgd3xwu48rnzGsaQkSr1hR64nY71DrDt6VrQ
+    pub pool_sol_reserves: Pubkey,
+    ///Sanctum unstake pool Fee account. 5Pcu8WeQa3VbBz2vdBT49Rj4gbS4hsnfzuL1LmuRaKFY
+    pub unstake_fee: Pubkey,
+    ///Sanctum unstake pool stake account record for slumdog stake. PDA of sanctum unstake program. Seeds = [unstakePool.pubkey, slumdogStake.pubkey].
+    pub slumdog_stake_acc_record: Pubkey,
+    ///Sanctum unstake pool protocol fee account. 2hN9UhvRFVfPYKL6rZJ5YiLEPCLTpN755pgwDJHWgFbU
+    pub unstake_protocol_fee: Pubkey,
+    ///Sanctum unstake pool protocol fee destination. unstakeProtocolFee.destination
+    pub unstake_protocol_fee_dest: Pubkey,
+    ///sysvar clock
+    pub clock: Pubkey,
+    ///stake program
+    pub stake_program: Pubkey,
+    ///System program. The withdraw stake and deposit stake accounts slices follow.
+    pub system_program: Pubkey,
+}
+impl From<SlumSwapViaStakeAccounts<'_, '_>> for SlumSwapViaStakeKeys {
+    fn from(accounts: SlumSwapViaStakeAccounts) -> Self {
+        Self {
+            user: *accounts.user.key,
+            src_token_from: *accounts.src_token_from.key,
+            dest_token_to: *accounts.dest_token_to.key,
+            bridge_stake: *accounts.bridge_stake.key,
+            dest_token_fee_token_account: *accounts.dest_token_fee_token_account.key,
+            src_token_mint: *accounts.src_token_mint.key,
+            dest_token_mint: *accounts.dest_token_mint.key,
+            slumdog_stake: *accounts.slumdog_stake.key,
+            slumlord: *accounts.slumlord.key,
+            slumlord_program: *accounts.slumlord_program.key,
+            instructions: *accounts.instructions.key,
+            unstakeit_program: *accounts.unstakeit_program.key,
+            unstake_pool: *accounts.unstake_pool.key,
+            pool_sol_reserves: *accounts.pool_sol_reserves.key,
+            unstake_fee: *accounts.unstake_fee.key,
+            slumdog_stake_acc_record: *accounts.slumdog_stake_acc_record.key,
+            unstake_protocol_fee: *accounts.unstake_protocol_fee.key,
+            unstake_protocol_fee_dest: *accounts.unstake_protocol_fee_dest.key,
+            clock: *accounts.clock.key,
+            stake_program: *accounts.stake_program.key,
+            system_program: *accounts.system_program.key,
+        }
+    }
+}
+impl From<SlumSwapViaStakeKeys> for [AccountMeta; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] {
+    fn from(keys: SlumSwapViaStakeKeys) -> Self {
+        [
+            AccountMeta {
+                pubkey: keys.user,
+                is_signer: true,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.src_token_from,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_to,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.bridge_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_fee_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.src_token_mint,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.dest_token_mint,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.slumdog_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.slumlord,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.slumlord_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.instructions,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.unstakeit_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.unstake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.pool_sol_reserves,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.unstake_fee,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.slumdog_stake_acc_record,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.unstake_protocol_fee,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.unstake_protocol_fee_dest,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
+        ]
+    }
+}
+impl From<[Pubkey; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]> for SlumSwapViaStakeKeys {
+    fn from(pubkeys: [Pubkey; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            user: pubkeys[0],
+            src_token_from: pubkeys[1],
+            dest_token_to: pubkeys[2],
+            bridge_stake: pubkeys[3],
+            dest_token_fee_token_account: pubkeys[4],
+            src_token_mint: pubkeys[5],
+            dest_token_mint: pubkeys[6],
+            slumdog_stake: pubkeys[7],
+            slumlord: pubkeys[8],
+            slumlord_program: pubkeys[9],
+            instructions: pubkeys[10],
+            unstakeit_program: pubkeys[11],
+            unstake_pool: pubkeys[12],
+            pool_sol_reserves: pubkeys[13],
+            unstake_fee: pubkeys[14],
+            slumdog_stake_acc_record: pubkeys[15],
+            unstake_protocol_fee: pubkeys[16],
+            unstake_protocol_fee_dest: pubkeys[17],
+            clock: pubkeys[18],
+            stake_program: pubkeys[19],
+            system_program: pubkeys[20],
+        }
+    }
+}
+impl<'info> From<SlumSwapViaStakeAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: SlumSwapViaStakeAccounts<'_, 'info>) -> Self {
+        [
+            accounts.user.clone(),
+            accounts.src_token_from.clone(),
+            accounts.dest_token_to.clone(),
+            accounts.bridge_stake.clone(),
+            accounts.dest_token_fee_token_account.clone(),
+            accounts.src_token_mint.clone(),
+            accounts.dest_token_mint.clone(),
+            accounts.slumdog_stake.clone(),
+            accounts.slumlord.clone(),
+            accounts.slumlord_program.clone(),
+            accounts.instructions.clone(),
+            accounts.unstakeit_program.clone(),
+            accounts.unstake_pool.clone(),
+            accounts.pool_sol_reserves.clone(),
+            accounts.unstake_fee.clone(),
+            accounts.slumdog_stake_acc_record.clone(),
+            accounts.unstake_protocol_fee.clone(),
+            accounts.unstake_protocol_fee_dest.clone(),
+            accounts.clock.clone(),
+            accounts.stake_program.clone(),
+            accounts.system_program.clone(),
+        ]
+    }
+}
+impl<'me, 'info> From<&'me [AccountInfo<'info>; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]>
+    for SlumSwapViaStakeAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            user: &arr[0],
+            src_token_from: &arr[1],
+            dest_token_to: &arr[2],
+            bridge_stake: &arr[3],
+            dest_token_fee_token_account: &arr[4],
+            src_token_mint: &arr[5],
+            dest_token_mint: &arr[6],
+            slumdog_stake: &arr[7],
+            slumlord: &arr[8],
+            slumlord_program: &arr[9],
+            instructions: &arr[10],
+            unstakeit_program: &arr[11],
+            unstake_pool: &arr[12],
+            pool_sol_reserves: &arr[13],
+            unstake_fee: &arr[14],
+            slumdog_stake_acc_record: &arr[15],
+            unstake_protocol_fee: &arr[16],
+            unstake_protocol_fee_dest: &arr[17],
+            clock: &arr[18],
+            stake_program: &arr[19],
+            system_program: &arr[20],
+        }
+    }
+}
+pub const SLUM_SWAP_VIA_STAKE_IX_DISCM: u8 = 6u8;
+#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SlumSwapViaStakeIxArgs {
+    pub args: SwapViaStakeArgs,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct SlumSwapViaStakeIxData(pub SlumSwapViaStakeIxArgs);
+impl From<SlumSwapViaStakeIxArgs> for SlumSwapViaStakeIxData {
+    fn from(args: SlumSwapViaStakeIxArgs) -> Self {
+        Self(args)
+    }
+}
+impl SlumSwapViaStakeIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SLUM_SWAP_VIA_STAKE_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SLUM_SWAP_VIA_STAKE_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self(SlumSwapViaStakeIxArgs::deserialize(&mut reader)?))
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SLUM_SWAP_VIA_STAKE_IX_DISCM])?;
+        self.0.serialize(&mut writer)
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
+    }
+}
+pub fn slum_swap_via_stake_ix<K: Into<SlumSwapViaStakeKeys>, A: Into<SlumSwapViaStakeIxArgs>>(
+    accounts: K,
+    args: A,
+) -> std::io::Result<Instruction> {
+    let keys: SlumSwapViaStakeKeys = accounts.into();
+    let metas: [AccountMeta; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] = keys.into();
+    let args_full: SlumSwapViaStakeIxArgs = args.into();
+    let data: SlumSwapViaStakeIxData = args_full.into();
+    Ok(Instruction {
+        program_id: crate::ID,
+        accounts: Vec::from(metas),
+        data: data.try_to_vec()?,
+    })
+}
+pub fn slum_swap_via_stake_invoke<'info, A: Into<SlumSwapViaStakeIxArgs>>(
+    accounts: SlumSwapViaStakeAccounts<'_, 'info>,
+    args: A,
+) -> ProgramResult {
+    let ix = slum_swap_via_stake_ix(accounts, args)?;
+    let account_info: [AccountInfo<'info>; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
+    invoke(&ix, &account_info)
+}
+pub fn slum_swap_via_stake_invoke_signed<'info, A: Into<SlumSwapViaStakeIxArgs>>(
+    accounts: SlumSwapViaStakeAccounts<'_, 'info>,
+    args: A,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let ix = slum_swap_via_stake_ix(accounts, args)?;
+    let account_info: [AccountInfo<'info>; SLUM_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
+    invoke_signed(&ix, &account_info, seeds)
+}
+pub fn slum_swap_via_stake_verify_account_keys(
+    accounts: SlumSwapViaStakeAccounts<'_, '_>,
+    keys: SlumSwapViaStakeKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (accounts.user.key, &keys.user),
+        (accounts.src_token_from.key, &keys.src_token_from),
+        (accounts.dest_token_to.key, &keys.dest_token_to),
+        (accounts.bridge_stake.key, &keys.bridge_stake),
+        (
+            accounts.dest_token_fee_token_account.key,
+            &keys.dest_token_fee_token_account,
+        ),
+        (accounts.src_token_mint.key, &keys.src_token_mint),
+        (accounts.dest_token_mint.key, &keys.dest_token_mint),
+        (accounts.slumdog_stake.key, &keys.slumdog_stake),
+        (accounts.slumlord.key, &keys.slumlord),
+        (accounts.slumlord_program.key, &keys.slumlord_program),
+        (accounts.instructions.key, &keys.instructions),
+        (accounts.unstakeit_program.key, &keys.unstakeit_program),
+        (accounts.unstake_pool.key, &keys.unstake_pool),
+        (accounts.pool_sol_reserves.key, &keys.pool_sol_reserves),
+        (accounts.unstake_fee.key, &keys.unstake_fee),
+        (
+            accounts.slumdog_stake_acc_record.key,
+            &keys.slumdog_stake_acc_record,
+        ),
+        (
+            accounts.unstake_protocol_fee.key,
+            &keys.unstake_protocol_fee,
+        ),
+        (
+            accounts.unstake_protocol_fee_dest.key,
+            &keys.unstake_protocol_fee_dest,
+        ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.stake_program.key, &keys.stake_program),
+        (accounts.system_program.key, &keys.system_program),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn slum_swap_via_stake_verify_account_privileges<'me, 'info>(
+    accounts: SlumSwapViaStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.user,
+        accounts.src_token_from,
+        accounts.dest_token_to,
+        accounts.bridge_stake,
+        accounts.dest_token_fee_token_account,
+        accounts.src_token_mint,
+        accounts.dest_token_mint,
+        accounts.slumdog_stake,
+        accounts.slumlord,
+        accounts.unstake_pool,
+        accounts.pool_sol_reserves,
+        accounts.slumdog_stake_acc_record,
+        accounts.unstake_protocol_fee_dest,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    for should_be_signer in [accounts.user] {
+        if !should_be_signer.is_signer {
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
+        }
+    }
+    Ok(())
+}
+pub const SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 18;
+#[derive(Copy, Clone, Debug)]
+pub struct SlumWithdrawStakeAccounts<'me, 'info> {
+    ///The withdraw authority of stake_account. Needs to be mutable and system account to receive slumlord flash loan.
+    pub user: &'me AccountInfo<'info>,
+    ///The token account to burn src tokens from in order to withdraw stake
+    pub src_token_from: &'me AccountInfo<'info>,
+    ///The bridge stake account thats withdrawn and given to the user. PDA. seeds = ['bridge_stake', user.pubkey, SwapArgs.bridge_stake_seed]. Might be long-lived, make sure the seed is not already in use
+    pub bridge_stake: &'me AccountInfo<'info>,
+    ///Input LST token mint
+    pub src_token_mint: &'me AccountInfo<'info>,
+    ///The slumdog stake account is split from bridge_stake upon stake withdraw and instant unstaked to repay slumlord's flash loan. create_with_seed(bridge_stake.pubkey, 'slumdog', stake_program). Might be long-lived, but should be not in use as long as bridge_stake is not in use
+    pub slumdog_stake: &'me AccountInfo<'info>,
+    ///The slumlord PDA to repay the flash loan to
+    pub slumlord: &'me AccountInfo<'info>,
+    ///The slumlord program ID
+    pub slumlord_program: &'me AccountInfo<'info>,
+    ///instructions sysvar
+    pub instructions: &'me AccountInfo<'info>,
+    ///Sanctum unstake program. unpXTU2Ndrc7WWNyEhQWe4udTzSibLPi25SXv2xbCHQ
+    pub unstakeit_program: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool. FypPtwbY3FUfzJUtXHSyVRokVKG2jKtH29FmK4ebxRSd
+    pub unstake_pool: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool SOL reserves. 3rBnnH9TTgd3xwu48rnzGsaQkSr1hR64nY71DrDt6VrQ
+    pub pool_sol_reserves: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool Fee account. 5Pcu8WeQa3VbBz2vdBT49Rj4gbS4hsnfzuL1LmuRaKFY
+    pub unstake_fee: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool stake account record for slumdog stake. PDA of sanctum unstake program. Seeds = [unstakePool.pubkey, slumdogStake.pubkey].
+    pub slumdog_stake_acc_record: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool protocol fee account. 2hN9UhvRFVfPYKL6rZJ5YiLEPCLTpN755pgwDJHWgFbU
+    pub unstake_protocol_fee: &'me AccountInfo<'info>,
+    ///Sanctum unstake pool protocol fee destination. unstakeProtocolFee.destination
+    pub unstake_protocol_fee_dest: &'me AccountInfo<'info>,
+    ///sysvar clock
+    pub clock: &'me AccountInfo<'info>,
+    ///stake program
+    pub stake_program: &'me AccountInfo<'info>,
+    ///System program. The withdraw stake accounts slices follow.
+    pub system_program: &'me AccountInfo<'info>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct SlumWithdrawStakeKeys {
+    ///The withdraw authority of stake_account. Needs to be mutable and system account to receive slumlord flash loan.
+    pub user: Pubkey,
+    ///The token account to burn src tokens from in order to withdraw stake
+    pub src_token_from: Pubkey,
+    ///The bridge stake account thats withdrawn and given to the user. PDA. seeds = ['bridge_stake', user.pubkey, SwapArgs.bridge_stake_seed]. Might be long-lived, make sure the seed is not already in use
+    pub bridge_stake: Pubkey,
+    ///Input LST token mint
+    pub src_token_mint: Pubkey,
+    ///The slumdog stake account is split from bridge_stake upon stake withdraw and instant unstaked to repay slumlord's flash loan. create_with_seed(bridge_stake.pubkey, 'slumdog', stake_program). Might be long-lived, but should be not in use as long as bridge_stake is not in use
+    pub slumdog_stake: Pubkey,
+    ///The slumlord PDA to repay the flash loan to
+    pub slumlord: Pubkey,
+    ///The slumlord program ID
+    pub slumlord_program: Pubkey,
+    ///instructions sysvar
+    pub instructions: Pubkey,
+    ///Sanctum unstake program. unpXTU2Ndrc7WWNyEhQWe4udTzSibLPi25SXv2xbCHQ
+    pub unstakeit_program: Pubkey,
+    ///Sanctum unstake pool. FypPtwbY3FUfzJUtXHSyVRokVKG2jKtH29FmK4ebxRSd
+    pub unstake_pool: Pubkey,
+    ///Sanctum unstake pool SOL reserves. 3rBnnH9TTgd3xwu48rnzGsaQkSr1hR64nY71DrDt6VrQ
+    pub pool_sol_reserves: Pubkey,
+    ///Sanctum unstake pool Fee account. 5Pcu8WeQa3VbBz2vdBT49Rj4gbS4hsnfzuL1LmuRaKFY
+    pub unstake_fee: Pubkey,
+    ///Sanctum unstake pool stake account record for slumdog stake. PDA of sanctum unstake program. Seeds = [unstakePool.pubkey, slumdogStake.pubkey].
+    pub slumdog_stake_acc_record: Pubkey,
+    ///Sanctum unstake pool protocol fee account. 2hN9UhvRFVfPYKL6rZJ5YiLEPCLTpN755pgwDJHWgFbU
+    pub unstake_protocol_fee: Pubkey,
+    ///Sanctum unstake pool protocol fee destination. unstakeProtocolFee.destination
+    pub unstake_protocol_fee_dest: Pubkey,
+    ///sysvar clock
+    pub clock: Pubkey,
+    ///stake program
+    pub stake_program: Pubkey,
+    ///System program. The withdraw stake accounts slices follow.
+    pub system_program: Pubkey,
+}
+impl From<SlumWithdrawStakeAccounts<'_, '_>> for SlumWithdrawStakeKeys {
+    fn from(accounts: SlumWithdrawStakeAccounts) -> Self {
+        Self {
+            user: *accounts.user.key,
+            src_token_from: *accounts.src_token_from.key,
+            bridge_stake: *accounts.bridge_stake.key,
+            src_token_mint: *accounts.src_token_mint.key,
+            slumdog_stake: *accounts.slumdog_stake.key,
+            slumlord: *accounts.slumlord.key,
+            slumlord_program: *accounts.slumlord_program.key,
+            instructions: *accounts.instructions.key,
+            unstakeit_program: *accounts.unstakeit_program.key,
+            unstake_pool: *accounts.unstake_pool.key,
+            pool_sol_reserves: *accounts.pool_sol_reserves.key,
+            unstake_fee: *accounts.unstake_fee.key,
+            slumdog_stake_acc_record: *accounts.slumdog_stake_acc_record.key,
+            unstake_protocol_fee: *accounts.unstake_protocol_fee.key,
+            unstake_protocol_fee_dest: *accounts.unstake_protocol_fee_dest.key,
+            clock: *accounts.clock.key,
+            stake_program: *accounts.stake_program.key,
+            system_program: *accounts.system_program.key,
+        }
+    }
+}
+impl From<SlumWithdrawStakeKeys> for [AccountMeta; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] {
+    fn from(keys: SlumWithdrawStakeKeys) -> Self {
+        [
+            AccountMeta {
+                pubkey: keys.user,
+                is_signer: true,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.src_token_from,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.bridge_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.src_token_mint,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.slumdog_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.slumlord,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.slumlord_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.instructions,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.unstakeit_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.unstake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.pool_sol_reserves,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.unstake_fee,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.slumdog_stake_acc_record,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.unstake_protocol_fee,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.unstake_protocol_fee_dest,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
+        ]
+    }
+}
+impl From<[Pubkey; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]> for SlumWithdrawStakeKeys {
+    fn from(pubkeys: [Pubkey; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            user: pubkeys[0],
+            src_token_from: pubkeys[1],
+            bridge_stake: pubkeys[2],
+            src_token_mint: pubkeys[3],
+            slumdog_stake: pubkeys[4],
+            slumlord: pubkeys[5],
+            slumlord_program: pubkeys[6],
+            instructions: pubkeys[7],
+            unstakeit_program: pubkeys[8],
+            unstake_pool: pubkeys[9],
+            pool_sol_reserves: pubkeys[10],
+            unstake_fee: pubkeys[11],
+            slumdog_stake_acc_record: pubkeys[12],
+            unstake_protocol_fee: pubkeys[13],
+            unstake_protocol_fee_dest: pubkeys[14],
+            clock: pubkeys[15],
+            stake_program: pubkeys[16],
+            system_program: pubkeys[17],
+        }
+    }
+}
+impl<'info> From<SlumWithdrawStakeAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: SlumWithdrawStakeAccounts<'_, 'info>) -> Self {
+        [
+            accounts.user.clone(),
+            accounts.src_token_from.clone(),
+            accounts.bridge_stake.clone(),
+            accounts.src_token_mint.clone(),
+            accounts.slumdog_stake.clone(),
+            accounts.slumlord.clone(),
+            accounts.slumlord_program.clone(),
+            accounts.instructions.clone(),
+            accounts.unstakeit_program.clone(),
+            accounts.unstake_pool.clone(),
+            accounts.pool_sol_reserves.clone(),
+            accounts.unstake_fee.clone(),
+            accounts.slumdog_stake_acc_record.clone(),
+            accounts.unstake_protocol_fee.clone(),
+            accounts.unstake_protocol_fee_dest.clone(),
+            accounts.clock.clone(),
+            accounts.stake_program.clone(),
+            accounts.system_program.clone(),
+        ]
+    }
+}
+impl<'me, 'info> From<&'me [AccountInfo<'info>; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for SlumWithdrawStakeAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            user: &arr[0],
+            src_token_from: &arr[1],
+            bridge_stake: &arr[2],
+            src_token_mint: &arr[3],
+            slumdog_stake: &arr[4],
+            slumlord: &arr[5],
+            slumlord_program: &arr[6],
+            instructions: &arr[7],
+            unstakeit_program: &arr[8],
+            unstake_pool: &arr[9],
+            pool_sol_reserves: &arr[10],
+            unstake_fee: &arr[11],
+            slumdog_stake_acc_record: &arr[12],
+            unstake_protocol_fee: &arr[13],
+            unstake_protocol_fee_dest: &arr[14],
+            clock: &arr[15],
+            stake_program: &arr[16],
+            system_program: &arr[17],
+        }
+    }
+}
+pub const SLUM_WITHDRAW_STAKE_IX_DISCM: u8 = 7u8;
+#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SlumWithdrawStakeIxArgs {
+    pub args: SwapViaStakeArgs,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct SlumWithdrawStakeIxData(pub SlumWithdrawStakeIxArgs);
+impl From<SlumWithdrawStakeIxArgs> for SlumWithdrawStakeIxData {
+    fn from(args: SlumWithdrawStakeIxArgs) -> Self {
+        Self(args)
+    }
+}
+impl SlumWithdrawStakeIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SLUM_WITHDRAW_STAKE_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SLUM_WITHDRAW_STAKE_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self(SlumWithdrawStakeIxArgs::deserialize(&mut reader)?))
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SLUM_WITHDRAW_STAKE_IX_DISCM])?;
+        self.0.serialize(&mut writer)
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
+    }
+}
+pub fn slum_withdraw_stake_ix<K: Into<SlumWithdrawStakeKeys>, A: Into<SlumWithdrawStakeIxArgs>>(
+    accounts: K,
+    args: A,
+) -> std::io::Result<Instruction> {
+    let keys: SlumWithdrawStakeKeys = accounts.into();
+    let metas: [AccountMeta; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
+    let args_full: SlumWithdrawStakeIxArgs = args.into();
+    let data: SlumWithdrawStakeIxData = args_full.into();
+    Ok(Instruction {
+        program_id: crate::ID,
+        accounts: Vec::from(metas),
+        data: data.try_to_vec()?,
+    })
+}
+pub fn slum_withdraw_stake_invoke<'info, A: Into<SlumWithdrawStakeIxArgs>>(
+    accounts: SlumWithdrawStakeAccounts<'_, 'info>,
+    args: A,
+) -> ProgramResult {
+    let ix = slum_withdraw_stake_ix(accounts, args)?;
+    let account_info: [AccountInfo<'info>; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
+    invoke(&ix, &account_info)
+}
+pub fn slum_withdraw_stake_invoke_signed<'info, A: Into<SlumWithdrawStakeIxArgs>>(
+    accounts: SlumWithdrawStakeAccounts<'_, 'info>,
+    args: A,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let ix = slum_withdraw_stake_ix(accounts, args)?;
+    let account_info: [AccountInfo<'info>; SLUM_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
+    invoke_signed(&ix, &account_info, seeds)
+}
+pub fn slum_withdraw_stake_verify_account_keys(
+    accounts: SlumWithdrawStakeAccounts<'_, '_>,
+    keys: SlumWithdrawStakeKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (accounts.user.key, &keys.user),
+        (accounts.src_token_from.key, &keys.src_token_from),
+        (accounts.bridge_stake.key, &keys.bridge_stake),
+        (accounts.src_token_mint.key, &keys.src_token_mint),
+        (accounts.slumdog_stake.key, &keys.slumdog_stake),
+        (accounts.slumlord.key, &keys.slumlord),
+        (accounts.slumlord_program.key, &keys.slumlord_program),
+        (accounts.instructions.key, &keys.instructions),
+        (accounts.unstakeit_program.key, &keys.unstakeit_program),
+        (accounts.unstake_pool.key, &keys.unstake_pool),
+        (accounts.pool_sol_reserves.key, &keys.pool_sol_reserves),
+        (accounts.unstake_fee.key, &keys.unstake_fee),
+        (
+            accounts.slumdog_stake_acc_record.key,
+            &keys.slumdog_stake_acc_record,
+        ),
+        (
+            accounts.unstake_protocol_fee.key,
+            &keys.unstake_protocol_fee,
+        ),
+        (
+            accounts.unstake_protocol_fee_dest.key,
+            &keys.unstake_protocol_fee_dest,
+        ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.stake_program.key, &keys.stake_program),
+        (accounts.system_program.key, &keys.system_program),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn slum_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: SlumWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.user,
+        accounts.src_token_from,
+        accounts.bridge_stake,
+        accounts.src_token_mint,
+        accounts.slumdog_stake,
+        accounts.slumlord,
+        accounts.unstake_pool,
+        accounts.pool_sol_reserves,
+        accounts.slumdog_stake_acc_record,
+        accounts.unstake_protocol_fee_dest,
     ] {
         if !should_be_writable.is_writable {
             return Err((should_be_writable, ProgramError::InvalidAccountData));

@@ -14,6 +14,8 @@ bincode = "^1.0"
 borsh = "^0.9"
 jupiter-amm-interface = "~0.3.2"
 lazy_static = "^1.0"
+lido = { git = "https://github.com/igneous-labs/solido", branch = "mod/2.0.0-loose-deps", features = ["no-entrypoint"] }
+marinade_finance_interface = { git = "https://github.com/igneous-labs/marinade_finance_interface", rev = "4d1895b" }
 num-derive = ">=0.1"
 num-traits = ">=0.1"
 rust_decimal = "^1.0"
