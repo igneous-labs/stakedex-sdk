@@ -842,7 +842,7 @@ pub fn lido_withdraw_stake_verify_account_privileges<'me, 'info>(
     }
     Ok(())
 }
-pub const MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 8;
+pub const MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 12;
 #[derive(Copy, Clone, Debug)]
 pub struct MarinadeWithdrawStakeAccounts<'me, 'info> {
     pub marinade_program: &'me AccountInfo<'info>,
@@ -853,6 +853,10 @@ pub struct MarinadeWithdrawStakeAccounts<'me, 'info> {
     pub withdraw_stake_stake_list: &'me AccountInfo<'info>,
     pub withdraw_stake_withdraw_authority: &'me AccountInfo<'info>,
     pub withdraw_stake_deposit_authority: &'me AccountInfo<'info>,
+    pub clock: &'me AccountInfo<'info>,
+    pub token_program: &'me AccountInfo<'info>,
+    pub stake_program: &'me AccountInfo<'info>,
+    pub system_program: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct MarinadeWithdrawStakeKeys {
@@ -864,6 +868,10 @@ pub struct MarinadeWithdrawStakeKeys {
     pub withdraw_stake_stake_list: Pubkey,
     pub withdraw_stake_withdraw_authority: Pubkey,
     pub withdraw_stake_deposit_authority: Pubkey,
+    pub clock: Pubkey,
+    pub token_program: Pubkey,
+    pub stake_program: Pubkey,
+    pub system_program: Pubkey,
 }
 impl From<MarinadeWithdrawStakeAccounts<'_, '_>> for MarinadeWithdrawStakeKeys {
     fn from(accounts: MarinadeWithdrawStakeAccounts) -> Self {
@@ -876,6 +884,10 @@ impl From<MarinadeWithdrawStakeAccounts<'_, '_>> for MarinadeWithdrawStakeKeys {
             withdraw_stake_stake_list: *accounts.withdraw_stake_stake_list.key,
             withdraw_stake_withdraw_authority: *accounts.withdraw_stake_withdraw_authority.key,
             withdraw_stake_deposit_authority: *accounts.withdraw_stake_deposit_authority.key,
+            clock: *accounts.clock.key,
+            token_program: *accounts.token_program.key,
+            stake_program: *accounts.stake_program.key,
+            system_program: *accounts.system_program.key,
         }
     }
 }
@@ -922,6 +934,26 @@ impl From<MarinadeWithdrawStakeKeys> for [AccountMeta; MARINADE_WITHDRAW_STAKE_I
                 is_signer: false,
                 is_writable: false,
             },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
@@ -936,6 +968,10 @@ impl From<[Pubkey; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]> for MarinadeWithdra
             withdraw_stake_stake_list: pubkeys[5],
             withdraw_stake_withdraw_authority: pubkeys[6],
             withdraw_stake_deposit_authority: pubkeys[7],
+            clock: pubkeys[8],
+            token_program: pubkeys[9],
+            stake_program: pubkeys[10],
+            system_program: pubkeys[11],
         }
     }
 }
@@ -952,6 +988,10 @@ impl<'info> From<MarinadeWithdrawStakeAccounts<'_, 'info>>
             accounts.withdraw_stake_stake_list.clone(),
             accounts.withdraw_stake_withdraw_authority.clone(),
             accounts.withdraw_stake_deposit_authority.clone(),
+            accounts.clock.clone(),
+            accounts.token_program.clone(),
+            accounts.stake_program.clone(),
+            accounts.system_program.clone(),
         ]
     }
 }
@@ -968,6 +1008,10 @@ impl<'me, 'info> From<&'me [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOU
             withdraw_stake_stake_list: &arr[5],
             withdraw_stake_withdraw_authority: &arr[6],
             withdraw_stake_deposit_authority: &arr[7],
+            clock: &arr[8],
+            token_program: &arr[9],
+            stake_program: &arr[10],
+            system_program: &arr[11],
         }
     }
 }
@@ -1062,6 +1106,10 @@ pub fn marinade_withdraw_stake_verify_account_keys(
             accounts.withdraw_stake_deposit_authority.key,
             &keys.withdraw_stake_deposit_authority,
         ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.token_program.key, &keys.token_program),
+        (accounts.stake_program.key, &keys.stake_program),
+        (accounts.system_program.key, &keys.system_program),
     ] {
         if actual != expected {
             return Err((*actual, *expected));

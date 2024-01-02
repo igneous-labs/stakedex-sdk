@@ -1867,11 +1867,14 @@ checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
 name = "marinade_finance_interface"
-version = "0.0.0"
-source = "git+https://github.com/igneous-labs/marinade_finance_interface?rev=d625979#d625979d145831f9261f76777501d0037e83fd9d"
+version = "0.1.0"
+source = "git+https://github.com/igneous-labs/marinade_finance_interface?rev=4d1895b#4d1895b6b1c34d731c1589e6d8a6c8feb6258152"
 dependencies = [
  "borsh 0.9.3",
+ "num-derive 0.3.3",
+ "num-traits",
  "solana-program",
+ "thiserror",
 ]
 
 [[package]]
@@ -3887,10 +3890,12 @@ dependencies = [
  "borsh 0.9.3",
  "marinade_finance_interface",
  "solana-program",
+ "solana-sdk",
  "spl-token",
  "stakedex_deposit_sol_interface",
  "stakedex_deposit_stake_interface",
  "stakedex_sdk_common",
+ "stakedex_withdraw_stake_interface",
 ]
 
 [[package]]

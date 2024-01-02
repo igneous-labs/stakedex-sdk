@@ -36,6 +36,7 @@ impl BaseStakePoolAmm for MarinadeStakedex {
         vec![
             marinade_state::ID,
             self.state.validator_system.validator_list.account,
+            self.state.stake_system.stake_list.account,
         ]
     }
 
@@ -46,14 +47,23 @@ impl BaseStakePoolAmm for MarinadeStakedex {
             .data
             .as_ref();
         self.update_state(state_data)?;
+
+        let validator_list_pubkey = self.state.validator_system.validator_list.account;
         let validator_records_data = accounts_map
-            .get(&self.state.validator_system.validator_list.account)
-            .ok_or_else(|| {
-                account_missing_err(&self.state.validator_system.validator_list.account)
-            })?
+            .get(&validator_list_pubkey)
+            .ok_or_else(|| account_missing_err(&validator_list_pubkey))?
             .data
             .as_ref();
         self.update_validator_records(validator_records_data)?;
+
+        let stake_list_pubkey = self.state.stake_system.stake_list.account;
+        let stake_records_data = accounts_map
+            .get(&stake_list_pubkey)
+            .ok_or_else(|| account_missing_err(&stake_list_pubkey))?
+            .data
+            .as_ref();
+        self.update_stake_records(stake_records_data)?;
+
         Ok(())
     }
 }

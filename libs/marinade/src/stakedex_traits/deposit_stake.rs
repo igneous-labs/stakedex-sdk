@@ -10,7 +10,7 @@ use crate::{state::StateWrapper, validator_system::ValidatorRecordWrapper, Marin
 
 impl DepositStake for MarinadeStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
-        true
+        !self.state.paused
     }
 
     fn get_deposit_stake_quote_unchecked(
