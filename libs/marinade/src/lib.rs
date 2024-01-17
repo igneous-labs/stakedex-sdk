@@ -8,9 +8,9 @@ use anyhow::{anyhow, Result};
 use borsh::BorshDeserialize;
 use consts::VALIDATOR_RECORD_BYTE_LENGTH;
 use marinade_finance_interface::{
-    Fee, LiqPool, List, StakeSystem, State, ValidatorRecord, ValidatorSystem,
+    Fee, FeeCents, LiqPool, List, StakeSystem, State, ValidatorRecord, ValidatorSystem,
 };
-use solana_program::{borsh::try_from_slice_unchecked, pubkey::Pubkey};
+use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey};
 
 pub use stakedex_traits::*;
 
@@ -28,10 +28,11 @@ impl Default for MarinadeStakedex {
             account: Pubkey::default(),
             item_size: 0,
             count: 0,
-            new_account: Pubkey::default(),
-            copied_count: 0,
+            reserved1: Pubkey::default(),
+            reserved2: 0,
         };
         let zero_fee = Fee { basis_points: 0 };
+        let zero_fee_cents = FeeCents { bp_cents: 0 };
         Self {
             state: State {
                 msol_mint: Pubkey::default(),
@@ -68,7 +69,7 @@ impl Default for MarinadeStakedex {
                     lp_liquidity_target: 0,
                     lp_max_fee: zero_fee.clone(),
                     lp_min_fee: zero_fee.clone(),
-                    treasury_cut: zero_fee,
+                    treasury_cut: zero_fee.clone(),
                     lp_supply: 0,
                     lent_from_sol_leg: 0,
                     liquidity_sol_cap: 0,
@@ -83,6 +84,14 @@ impl Default for MarinadeStakedex {
                 min_withdraw: 0,
                 staking_sol_cap: 0,
                 emergency_cooling_down: 0,
+                pause_authority: Pubkey::default(),
+                paused: false,
+                delayed_unstake_fee: zero_fee_cents.clone(),
+                withdraw_stake_account_fee: zero_fee_cents,
+                withdraw_stake_account_enabled: false,
+                last_stake_move_epoch: 0,
+                stake_moved: 0,
+                max_stake_moved_per_epoch: zero_fee,
             },
             validator_records: Vec::new(),
         }

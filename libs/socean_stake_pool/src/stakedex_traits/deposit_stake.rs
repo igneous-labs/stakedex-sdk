@@ -32,7 +32,7 @@ impl DepositStake for SoceanStakePoolStakedex {
             Some(r) => r,
             None => return DepositStakeQuote::default(),
         };
-        if validator_list_entry.status != StakeStatus::Active {
+        if validator_list_entry.status != StakeStatus::Active.into() {
             return DepositStakeQuote::default();
         }
         // Reference: https://github.com/solana-labs/solana-program-library/blob/stake-pool-v0.6.4/stake-pool/program/src/processor.rs#L1971

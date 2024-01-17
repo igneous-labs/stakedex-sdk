@@ -12,4 +12,5 @@ spl-math = { version = "0.1.0", features = ["no-entrypoint"]}
 spl-token = { workspace = true }
 stakedex_deposit_stake_interface = { workspace = true }
 stakedex_sdk_common = { workspace = true }
-unstake_it_interface = { git = "https://github.com/igneous-labs/unstake_it_interface", rev = "8819194" } # TODO: change to main program crate once we open source unstake.it
+unstake_interface = { workspace = true }
+unstake-lib = { workspace = true }

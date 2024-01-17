@@ -3,7 +3,7 @@ use solana_program::{
     clock::Clock,
     instruction::Instruction,
     pubkey::Pubkey,
-    stake::state::{Delegation, Stake, StakeState},
+    stake::state::{Delegation, Stake, StakeStateV2},
 };
 
 use crate::{BaseStakePoolAmm, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
@@ -67,11 +67,11 @@ impl WithdrawStakeQuote {
     }
 
     pub fn try_from_stake_acc(
-        s: &StakeState,
+        s: &StakeStateV2,
         stake_acc_lamports: u64,
         clock: &Clock,
     ) -> Result<Self> {
-        if let StakeState::Stake(meta, stake) = s {
+        if let StakeStateV2::Stake(meta, stake, _flags) = s {
             if meta.lockup.is_in_force(clock, None) {
                 return Err(anyhow!("Stake acc lockup in force"));
             }
