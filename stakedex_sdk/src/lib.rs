@@ -9,8 +9,8 @@ use solana_sdk::{
 use spl_token::native_mint;
 pub use stakedex_interface::ID as stakedex_program_id;
 use stakedex_interface::{
-    DepositStakeKeys, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeIxArgs,
-    SwapViaStakeKeys,
+    DepositStakeKeys, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeArgs,
+    SwapViaStakeIxArgs, SwapViaStakeKeys,
 };
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
@@ -367,8 +367,10 @@ impl Stakedex {
                 bridge_stake,
             },
             SwapViaStakeIxArgs {
-                amount: swap_params.in_amount,
-                bridge_stake_seed,
+                args: SwapViaStakeArgs {
+                    amount: swap_params.in_amount,
+                    bridge_stake_seed,
+                },
             },
         )?;
         for mint_idx in [

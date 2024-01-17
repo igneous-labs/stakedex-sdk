@@ -49,6 +49,21 @@ impl StakedexDepositStakeProgramIx {
         Ok(data)
     }
 }
+fn invoke_instruction<'info, A: Into<[AccountInfo<'info>; N]>, const N: usize>(
+    ix: &Instruction,
+    accounts: A,
+) -> ProgramResult {
+    let account_info: [AccountInfo<'info>; N] = accounts.into();
+    invoke(ix, &account_info)
+}
+fn invoke_instruction_signed<'info, A: Into<[AccountInfo<'info>; N]>, const N: usize>(
+    ix: &Instruction,
+    accounts: A,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let account_info: [AccountInfo<'info>; N] = accounts.into();
+    invoke_signed(ix, &account_info, seeds)
+}
 pub const SOCEAN_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN: usize = 12;
 #[derive(Copy, Clone, Debug)]
 pub struct SoceanStakePoolDepositStakeAccounts<'me, 'info> {
@@ -257,33 +272,49 @@ impl SoceanStakePoolDepositStakeIxData {
         Ok(data)
     }
 }
-pub fn socean_stake_pool_deposit_stake_ix<K: Into<SoceanStakePoolDepositStakeKeys>>(
-    accounts: K,
+pub fn socean_stake_pool_deposit_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: SoceanStakePoolDepositStakeKeys,
 ) -> std::io::Result<Instruction> {
-    let keys: SoceanStakePoolDepositStakeKeys = accounts.into();
     let metas: [AccountMeta; SOCEAN_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
-        program_id: crate::ID,
+        program_id,
         accounts: Vec::from(metas),
         data: SoceanStakePoolDepositStakeIxData.try_to_vec()?,
     })
 }
-pub fn socean_stake_pool_deposit_stake_invoke<'info>(
-    accounts: SoceanStakePoolDepositStakeAccounts<'_, 'info>,
-) -> ProgramResult {
-    let ix = socean_stake_pool_deposit_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; SOCEAN_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
+pub fn socean_stake_pool_deposit_stake_ix(
+    keys: SoceanStakePoolDepositStakeKeys,
+) -> std::io::Result<Instruction> {
+    socean_stake_pool_deposit_stake_ix_with_program_id(crate::ID, keys)
 }
-pub fn socean_stake_pool_deposit_stake_invoke_signed<'info>(
-    accounts: SoceanStakePoolDepositStakeAccounts<'_, 'info>,
+pub fn socean_stake_pool_deposit_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: SoceanStakePoolDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: SoceanStakePoolDepositStakeKeys = accounts.into();
+    let ix = socean_stake_pool_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn socean_stake_pool_deposit_stake_invoke(
+    accounts: SoceanStakePoolDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    socean_stake_pool_deposit_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn socean_stake_pool_deposit_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: SoceanStakePoolDepositStakeAccounts<'_, '_>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = socean_stake_pool_deposit_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; SOCEAN_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
+    let keys: SoceanStakePoolDepositStakeKeys = accounts.into();
+    let ix = socean_stake_pool_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn socean_stake_pool_deposit_stake_invoke_signed(
+    accounts: SoceanStakePoolDepositStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    socean_stake_pool_deposit_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
 }
 pub fn socean_stake_pool_deposit_stake_verify_account_keys(
     accounts: SoceanStakePoolDepositStakeAccounts<'_, '_>,
@@ -333,7 +364,7 @@ pub fn socean_stake_pool_deposit_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn socean_stake_pool_deposit_stake_verify_account_privileges<'me, 'info>(
+pub fn socean_stake_pool_deposit_stake_verify_writable_privileges<'me, 'info>(
     accounts: SoceanStakePoolDepositStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
@@ -347,6 +378,12 @@ pub fn socean_stake_pool_deposit_stake_verify_account_privileges<'me, 'info>(
             return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
+    Ok(())
+}
+pub fn socean_stake_pool_deposit_stake_verify_account_privileges<'me, 'info>(
+    accounts: SoceanStakePoolDepositStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    socean_stake_pool_deposit_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }
 pub const SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN: usize = 12;
@@ -553,33 +590,49 @@ impl SplStakePoolDepositStakeIxData {
         Ok(data)
     }
 }
-pub fn spl_stake_pool_deposit_stake_ix<K: Into<SplStakePoolDepositStakeKeys>>(
-    accounts: K,
+pub fn spl_stake_pool_deposit_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: SplStakePoolDepositStakeKeys,
 ) -> std::io::Result<Instruction> {
-    let keys: SplStakePoolDepositStakeKeys = accounts.into();
     let metas: [AccountMeta; SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
-        program_id: crate::ID,
+        program_id,
         accounts: Vec::from(metas),
         data: SplStakePoolDepositStakeIxData.try_to_vec()?,
     })
 }
-pub fn spl_stake_pool_deposit_stake_invoke<'info>(
-    accounts: SplStakePoolDepositStakeAccounts<'_, 'info>,
-) -> ProgramResult {
-    let ix = spl_stake_pool_deposit_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
+pub fn spl_stake_pool_deposit_stake_ix(
+    keys: SplStakePoolDepositStakeKeys,
+) -> std::io::Result<Instruction> {
+    spl_stake_pool_deposit_stake_ix_with_program_id(crate::ID, keys)
 }
-pub fn spl_stake_pool_deposit_stake_invoke_signed<'info>(
-    accounts: SplStakePoolDepositStakeAccounts<'_, 'info>,
+pub fn spl_stake_pool_deposit_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: SplStakePoolDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: SplStakePoolDepositStakeKeys = accounts.into();
+    let ix = spl_stake_pool_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn spl_stake_pool_deposit_stake_invoke(
+    accounts: SplStakePoolDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    spl_stake_pool_deposit_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn spl_stake_pool_deposit_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: SplStakePoolDepositStakeAccounts<'_, '_>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = spl_stake_pool_deposit_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
+    let keys: SplStakePoolDepositStakeKeys = accounts.into();
+    let ix = spl_stake_pool_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn spl_stake_pool_deposit_stake_invoke_signed(
+    accounts: SplStakePoolDepositStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    spl_stake_pool_deposit_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
 }
 pub fn spl_stake_pool_deposit_stake_verify_account_keys(
     accounts: SplStakePoolDepositStakeAccounts<'_, '_>,
@@ -629,7 +682,7 @@ pub fn spl_stake_pool_deposit_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn spl_stake_pool_deposit_stake_verify_account_privileges<'me, 'info>(
+pub fn spl_stake_pool_deposit_stake_verify_writable_privileges<'me, 'info>(
     accounts: SplStakePoolDepositStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
@@ -643,6 +696,12 @@ pub fn spl_stake_pool_deposit_stake_verify_account_privileges<'me, 'info>(
             return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
+    Ok(())
+}
+pub fn spl_stake_pool_deposit_stake_verify_account_privileges<'me, 'info>(
+    accounts: SplStakePoolDepositStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    spl_stake_pool_deposit_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }
 pub const MARINADE_DEPOSIT_STAKE_IX_ACCOUNTS_LEN: usize = 11;
@@ -836,33 +895,47 @@ impl MarinadeDepositStakeIxData {
         Ok(data)
     }
 }
-pub fn marinade_deposit_stake_ix<K: Into<MarinadeDepositStakeKeys>>(
-    accounts: K,
+pub fn marinade_deposit_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: MarinadeDepositStakeKeys,
 ) -> std::io::Result<Instruction> {
-    let keys: MarinadeDepositStakeKeys = accounts.into();
     let metas: [AccountMeta; MARINADE_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
-        program_id: crate::ID,
+        program_id,
         accounts: Vec::from(metas),
         data: MarinadeDepositStakeIxData.try_to_vec()?,
     })
 }
-pub fn marinade_deposit_stake_invoke<'info>(
-    accounts: MarinadeDepositStakeAccounts<'_, 'info>,
-) -> ProgramResult {
-    let ix = marinade_deposit_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; MARINADE_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
+pub fn marinade_deposit_stake_ix(keys: MarinadeDepositStakeKeys) -> std::io::Result<Instruction> {
+    marinade_deposit_stake_ix_with_program_id(crate::ID, keys)
 }
-pub fn marinade_deposit_stake_invoke_signed<'info>(
-    accounts: MarinadeDepositStakeAccounts<'_, 'info>,
+pub fn marinade_deposit_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: MarinadeDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: MarinadeDepositStakeKeys = accounts.into();
+    let ix = marinade_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn marinade_deposit_stake_invoke(
+    accounts: MarinadeDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    marinade_deposit_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn marinade_deposit_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: MarinadeDepositStakeAccounts<'_, '_>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = marinade_deposit_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; MARINADE_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
+    let keys: MarinadeDepositStakeKeys = accounts.into();
+    let ix = marinade_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn marinade_deposit_stake_invoke_signed(
+    accounts: MarinadeDepositStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    marinade_deposit_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
 }
 pub fn marinade_deposit_stake_verify_account_keys(
     accounts: MarinadeDepositStakeAccounts<'_, '_>,
@@ -902,7 +975,7 @@ pub fn marinade_deposit_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn marinade_deposit_stake_verify_account_privileges<'me, 'info>(
+pub fn marinade_deposit_stake_verify_writable_privileges<'me, 'info>(
     accounts: MarinadeDepositStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
@@ -915,6 +988,12 @@ pub fn marinade_deposit_stake_verify_account_privileges<'me, 'info>(
             return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
+    Ok(())
+}
+pub fn marinade_deposit_stake_verify_account_privileges<'me, 'info>(
+    accounts: MarinadeDepositStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    marinade_deposit_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }
 pub const UNSTAKE_IT_DEPOSIT_STAKE_IX_ACCOUNTS_LEN: usize = 11;
@@ -1108,33 +1187,49 @@ impl UnstakeItDepositStakeIxData {
         Ok(data)
     }
 }
-pub fn unstake_it_deposit_stake_ix<K: Into<UnstakeItDepositStakeKeys>>(
-    accounts: K,
+pub fn unstake_it_deposit_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: UnstakeItDepositStakeKeys,
 ) -> std::io::Result<Instruction> {
-    let keys: UnstakeItDepositStakeKeys = accounts.into();
     let metas: [AccountMeta; UNSTAKE_IT_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
-        program_id: crate::ID,
+        program_id,
         accounts: Vec::from(metas),
         data: UnstakeItDepositStakeIxData.try_to_vec()?,
     })
 }
-pub fn unstake_it_deposit_stake_invoke<'info>(
-    accounts: UnstakeItDepositStakeAccounts<'_, 'info>,
-) -> ProgramResult {
-    let ix = unstake_it_deposit_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; UNSTAKE_IT_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
+pub fn unstake_it_deposit_stake_ix(
+    keys: UnstakeItDepositStakeKeys,
+) -> std::io::Result<Instruction> {
+    unstake_it_deposit_stake_ix_with_program_id(crate::ID, keys)
 }
-pub fn unstake_it_deposit_stake_invoke_signed<'info>(
-    accounts: UnstakeItDepositStakeAccounts<'_, 'info>,
+pub fn unstake_it_deposit_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: UnstakeItDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: UnstakeItDepositStakeKeys = accounts.into();
+    let ix = unstake_it_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn unstake_it_deposit_stake_invoke(
+    accounts: UnstakeItDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    unstake_it_deposit_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn unstake_it_deposit_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: UnstakeItDepositStakeAccounts<'_, '_>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = unstake_it_deposit_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; UNSTAKE_IT_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
+    let keys: UnstakeItDepositStakeKeys = accounts.into();
+    let ix = unstake_it_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn unstake_it_deposit_stake_invoke_signed(
+    accounts: UnstakeItDepositStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    unstake_it_deposit_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
 }
 pub fn unstake_it_deposit_stake_verify_account_keys(
     accounts: UnstakeItDepositStakeAccounts<'_, '_>,
@@ -1177,7 +1272,7 @@ pub fn unstake_it_deposit_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn unstake_it_deposit_stake_verify_account_privileges<'me, 'info>(
+pub fn unstake_it_deposit_stake_verify_writable_privileges<'me, 'info>(
     accounts: UnstakeItDepositStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
@@ -1190,5 +1285,11 @@ pub fn unstake_it_deposit_stake_verify_account_privileges<'me, 'info>(
             return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
+    Ok(())
+}
+pub fn unstake_it_deposit_stake_verify_account_privileges<'me, 'info>(
+    accounts: UnstakeItDepositStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    unstake_it_deposit_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }

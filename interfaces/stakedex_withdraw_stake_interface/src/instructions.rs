@@ -49,6 +49,21 @@ impl StakedexWithdrawStakeProgramIx {
         Ok(data)
     }
 }
+fn invoke_instruction<'info, A: Into<[AccountInfo<'info>; N]>, const N: usize>(
+    ix: &Instruction,
+    accounts: A,
+) -> ProgramResult {
+    let account_info: [AccountInfo<'info>; N] = accounts.into();
+    invoke(ix, &account_info)
+}
+fn invoke_instruction_signed<'info, A: Into<[AccountInfo<'info>; N]>, const N: usize>(
+    ix: &Instruction,
+    accounts: A,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let account_info: [AccountInfo<'info>; N] = accounts.into();
+    invoke_signed(ix, &account_info, seeds)
+}
 pub const SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
 #[derive(Copy, Clone, Debug)]
 pub struct SoceanStakePoolWithdrawStakeAccounts<'me, 'info> {
@@ -235,33 +250,49 @@ impl SoceanStakePoolWithdrawStakeIxData {
         Ok(data)
     }
 }
-pub fn socean_stake_pool_withdraw_stake_ix<K: Into<SoceanStakePoolWithdrawStakeKeys>>(
-    accounts: K,
+pub fn socean_stake_pool_withdraw_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: SoceanStakePoolWithdrawStakeKeys,
 ) -> std::io::Result<Instruction> {
-    let keys: SoceanStakePoolWithdrawStakeKeys = accounts.into();
     let metas: [AccountMeta; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
-        program_id: crate::ID,
+        program_id,
         accounts: Vec::from(metas),
         data: SoceanStakePoolWithdrawStakeIxData.try_to_vec()?,
     })
 }
-pub fn socean_stake_pool_withdraw_stake_invoke<'info>(
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, 'info>,
-) -> ProgramResult {
-    let ix = socean_stake_pool_withdraw_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
+pub fn socean_stake_pool_withdraw_stake_ix(
+    keys: SoceanStakePoolWithdrawStakeKeys,
+) -> std::io::Result<Instruction> {
+    socean_stake_pool_withdraw_stake_ix_with_program_id(crate::ID, keys)
 }
-pub fn socean_stake_pool_withdraw_stake_invoke_signed<'info>(
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, 'info>,
+pub fn socean_stake_pool_withdraw_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: SoceanStakePoolWithdrawStakeKeys = accounts.into();
+    let ix = socean_stake_pool_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn socean_stake_pool_withdraw_stake_invoke(
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    socean_stake_pool_withdraw_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn socean_stake_pool_withdraw_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = socean_stake_pool_withdraw_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
+    let keys: SoceanStakePoolWithdrawStakeKeys = accounts.into();
+    let ix = socean_stake_pool_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn socean_stake_pool_withdraw_stake_invoke_signed(
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    socean_stake_pool_withdraw_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
 }
 pub fn socean_stake_pool_withdraw_stake_verify_account_keys(
     accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
@@ -303,7 +334,7 @@ pub fn socean_stake_pool_withdraw_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn socean_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
+pub fn socean_stake_pool_withdraw_stake_verify_writable_privileges<'me, 'info>(
     accounts: SoceanStakePoolWithdrawStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
@@ -316,6 +347,12 @@ pub fn socean_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
             return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
+    Ok(())
+}
+pub fn socean_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: SoceanStakePoolWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    socean_stake_pool_withdraw_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }
 pub const SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
@@ -502,33 +539,49 @@ impl SplStakePoolWithdrawStakeIxData {
         Ok(data)
     }
 }
-pub fn spl_stake_pool_withdraw_stake_ix<K: Into<SplStakePoolWithdrawStakeKeys>>(
-    accounts: K,
+pub fn spl_stake_pool_withdraw_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: SplStakePoolWithdrawStakeKeys,
 ) -> std::io::Result<Instruction> {
-    let keys: SplStakePoolWithdrawStakeKeys = accounts.into();
     let metas: [AccountMeta; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
-        program_id: crate::ID,
+        program_id,
         accounts: Vec::from(metas),
         data: SplStakePoolWithdrawStakeIxData.try_to_vec()?,
     })
 }
-pub fn spl_stake_pool_withdraw_stake_invoke<'info>(
-    accounts: SplStakePoolWithdrawStakeAccounts<'_, 'info>,
-) -> ProgramResult {
-    let ix = spl_stake_pool_withdraw_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
+pub fn spl_stake_pool_withdraw_stake_ix(
+    keys: SplStakePoolWithdrawStakeKeys,
+) -> std::io::Result<Instruction> {
+    spl_stake_pool_withdraw_stake_ix_with_program_id(crate::ID, keys)
 }
-pub fn spl_stake_pool_withdraw_stake_invoke_signed<'info>(
-    accounts: SplStakePoolWithdrawStakeAccounts<'_, 'info>,
+pub fn spl_stake_pool_withdraw_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: SplStakePoolWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: SplStakePoolWithdrawStakeKeys = accounts.into();
+    let ix = spl_stake_pool_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn spl_stake_pool_withdraw_stake_invoke(
+    accounts: SplStakePoolWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    spl_stake_pool_withdraw_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn spl_stake_pool_withdraw_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: SplStakePoolWithdrawStakeAccounts<'_, '_>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = spl_stake_pool_withdraw_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
+    let keys: SplStakePoolWithdrawStakeKeys = accounts.into();
+    let ix = spl_stake_pool_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn spl_stake_pool_withdraw_stake_invoke_signed(
+    accounts: SplStakePoolWithdrawStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    spl_stake_pool_withdraw_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
 }
 pub fn spl_stake_pool_withdraw_stake_verify_account_keys(
     accounts: SplStakePoolWithdrawStakeAccounts<'_, '_>,
@@ -570,7 +623,7 @@ pub fn spl_stake_pool_withdraw_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn spl_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
+pub fn spl_stake_pool_withdraw_stake_verify_writable_privileges<'me, 'info>(
     accounts: SplStakePoolWithdrawStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
@@ -583,6 +636,12 @@ pub fn spl_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
             return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
+    Ok(())
+}
+pub fn spl_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: SplStakePoolWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    spl_stake_pool_withdraw_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }
 pub const LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
@@ -765,31 +824,45 @@ impl LidoWithdrawStakeIxData {
         Ok(data)
     }
 }
-pub fn lido_withdraw_stake_ix<K: Into<LidoWithdrawStakeKeys>>(
-    accounts: K,
+pub fn lido_withdraw_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: LidoWithdrawStakeKeys,
 ) -> std::io::Result<Instruction> {
-    let keys: LidoWithdrawStakeKeys = accounts.into();
     let metas: [AccountMeta; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
-        program_id: crate::ID,
+        program_id,
         accounts: Vec::from(metas),
         data: LidoWithdrawStakeIxData.try_to_vec()?,
     })
 }
-pub fn lido_withdraw_stake_invoke<'info>(
-    accounts: LidoWithdrawStakeAccounts<'_, 'info>,
-) -> ProgramResult {
-    let ix = lido_withdraw_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
-    invoke(&ix, &account_info)
+pub fn lido_withdraw_stake_ix(keys: LidoWithdrawStakeKeys) -> std::io::Result<Instruction> {
+    lido_withdraw_stake_ix_with_program_id(crate::ID, keys)
 }
-pub fn lido_withdraw_stake_invoke_signed<'info>(
-    accounts: LidoWithdrawStakeAccounts<'_, 'info>,
+pub fn lido_withdraw_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: LidoWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: LidoWithdrawStakeKeys = accounts.into();
+    let ix = lido_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn lido_withdraw_stake_invoke(accounts: LidoWithdrawStakeAccounts<'_, '_>) -> ProgramResult {
+    lido_withdraw_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn lido_withdraw_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: LidoWithdrawStakeAccounts<'_, '_>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = lido_withdraw_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
+    let keys: LidoWithdrawStakeKeys = accounts.into();
+    let ix = lido_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn lido_withdraw_stake_invoke_signed(
+    accounts: LidoWithdrawStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    lido_withdraw_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
 }
 pub fn lido_withdraw_stake_verify_account_keys(
     accounts: LidoWithdrawStakeAccounts<'_, '_>,
@@ -828,7 +901,7 @@ pub fn lido_withdraw_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn lido_withdraw_stake_verify_account_privileges<'me, 'info>(
+pub fn lido_withdraw_stake_verify_writable_privileges<'me, 'info>(
     accounts: LidoWithdrawStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
@@ -842,7 +915,13 @@ pub fn lido_withdraw_stake_verify_account_privileges<'me, 'info>(
     }
     Ok(())
 }
-pub const MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 8;
+pub fn lido_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: LidoWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    lido_withdraw_stake_verify_writable_privileges(accounts)?;
+    Ok(())
+}
+pub const MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 12;
 #[derive(Copy, Clone, Debug)]
 pub struct MarinadeWithdrawStakeAccounts<'me, 'info> {
     pub marinade_program: &'me AccountInfo<'info>,
@@ -853,6 +932,10 @@ pub struct MarinadeWithdrawStakeAccounts<'me, 'info> {
     pub withdraw_stake_stake_list: &'me AccountInfo<'info>,
     pub withdraw_stake_withdraw_authority: &'me AccountInfo<'info>,
     pub withdraw_stake_deposit_authority: &'me AccountInfo<'info>,
+    pub clock: &'me AccountInfo<'info>,
+    pub token_program: &'me AccountInfo<'info>,
+    pub stake_program: &'me AccountInfo<'info>,
+    pub system_program: &'me AccountInfo<'info>,
 }
 #[derive(Copy, Clone, Debug)]
 pub struct MarinadeWithdrawStakeKeys {
@@ -864,6 +947,10 @@ pub struct MarinadeWithdrawStakeKeys {
     pub withdraw_stake_stake_list: Pubkey,
     pub withdraw_stake_withdraw_authority: Pubkey,
     pub withdraw_stake_deposit_authority: Pubkey,
+    pub clock: Pubkey,
+    pub token_program: Pubkey,
+    pub stake_program: Pubkey,
+    pub system_program: Pubkey,
 }
 impl From<MarinadeWithdrawStakeAccounts<'_, '_>> for MarinadeWithdrawStakeKeys {
     fn from(accounts: MarinadeWithdrawStakeAccounts) -> Self {
@@ -876,6 +963,10 @@ impl From<MarinadeWithdrawStakeAccounts<'_, '_>> for MarinadeWithdrawStakeKeys {
             withdraw_stake_stake_list: *accounts.withdraw_stake_stake_list.key,
             withdraw_stake_withdraw_authority: *accounts.withdraw_stake_withdraw_authority.key,
             withdraw_stake_deposit_authority: *accounts.withdraw_stake_deposit_authority.key,
+            clock: *accounts.clock.key,
+            token_program: *accounts.token_program.key,
+            stake_program: *accounts.stake_program.key,
+            system_program: *accounts.system_program.key,
         }
     }
 }
@@ -922,6 +1013,26 @@ impl From<MarinadeWithdrawStakeKeys> for [AccountMeta; MARINADE_WITHDRAW_STAKE_I
                 is_signer: false,
                 is_writable: false,
             },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
         ]
     }
 }
@@ -936,6 +1047,10 @@ impl From<[Pubkey; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]> for MarinadeWithdra
             withdraw_stake_stake_list: pubkeys[5],
             withdraw_stake_withdraw_authority: pubkeys[6],
             withdraw_stake_deposit_authority: pubkeys[7],
+            clock: pubkeys[8],
+            token_program: pubkeys[9],
+            stake_program: pubkeys[10],
+            system_program: pubkeys[11],
         }
     }
 }
@@ -952,6 +1067,10 @@ impl<'info> From<MarinadeWithdrawStakeAccounts<'_, 'info>>
             accounts.withdraw_stake_stake_list.clone(),
             accounts.withdraw_stake_withdraw_authority.clone(),
             accounts.withdraw_stake_deposit_authority.clone(),
+            accounts.clock.clone(),
+            accounts.token_program.clone(),
+            accounts.stake_program.clone(),
+            accounts.system_program.clone(),
         ]
     }
 }
@@ -968,6 +1087,10 @@ impl<'me, 'info> From<&'me [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOU
             withdraw_stake_stake_list: &arr[5],
             withdraw_stake_withdraw_authority: &arr[6],
             withdraw_stake_deposit_authority: &arr[7],
+            clock: &arr[8],
+            token_program: &arr[9],
+            stake_program: &arr[10],
+            system_program: &arr[11],
         }
     }
 }
@@ -1000,33 +1123,47 @@ impl MarinadeWithdrawStakeIxData {
         Ok(data)
     }
 }
-pub fn marinade_withdraw_stake_ix<K: Into<MarinadeWithdrawStakeKeys>>(
-    accounts: K,
+pub fn marinade_withdraw_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: MarinadeWithdrawStakeKeys,
 ) -> std::io::Result<Instruction> {
-    let keys: MarinadeWithdrawStakeKeys = accounts.into();
     let metas: [AccountMeta; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
     Ok(Instruction {
-        program_id: crate::ID,
+        program_id,
         accounts: Vec::from(metas),
         data: MarinadeWithdrawStakeIxData.try_to_vec()?,
     })
 }
-pub fn marinade_withdraw_stake_invoke<'info>(
-    accounts: MarinadeWithdrawStakeAccounts<'_, 'info>,
-) -> ProgramResult {
-    let ix = marinade_withdraw_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke(&ix, &account_info)
+pub fn marinade_withdraw_stake_ix(keys: MarinadeWithdrawStakeKeys) -> std::io::Result<Instruction> {
+    marinade_withdraw_stake_ix_with_program_id(crate::ID, keys)
 }
-pub fn marinade_withdraw_stake_invoke_signed<'info>(
-    accounts: MarinadeWithdrawStakeAccounts<'_, 'info>,
+pub fn marinade_withdraw_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: MarinadeWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: MarinadeWithdrawStakeKeys = accounts.into();
+    let ix = marinade_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn marinade_withdraw_stake_invoke(
+    accounts: MarinadeWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    marinade_withdraw_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn marinade_withdraw_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: MarinadeWithdrawStakeAccounts<'_, '_>,
     seeds: &[&[&[u8]]],
 ) -> ProgramResult {
-    let ix = marinade_withdraw_stake_ix(accounts)?;
-    let account_info: [AccountInfo<'info>; MARINADE_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
-        accounts.into();
-    invoke_signed(&ix, &account_info, seeds)
+    let keys: MarinadeWithdrawStakeKeys = accounts.into();
+    let ix = marinade_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn marinade_withdraw_stake_invoke_signed(
+    accounts: MarinadeWithdrawStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    marinade_withdraw_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
 }
 pub fn marinade_withdraw_stake_verify_account_keys(
     accounts: MarinadeWithdrawStakeAccounts<'_, '_>,
@@ -1062,6 +1199,10 @@ pub fn marinade_withdraw_stake_verify_account_keys(
             accounts.withdraw_stake_deposit_authority.key,
             &keys.withdraw_stake_deposit_authority,
         ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.token_program.key, &keys.token_program),
+        (accounts.stake_program.key, &keys.stake_program),
+        (accounts.system_program.key, &keys.system_program),
     ] {
         if actual != expected {
             return Err((*actual, *expected));
@@ -1069,7 +1210,7 @@ pub fn marinade_withdraw_stake_verify_account_keys(
     }
     Ok(())
 }
-pub fn marinade_withdraw_stake_verify_account_privileges<'me, 'info>(
+pub fn marinade_withdraw_stake_verify_writable_privileges<'me, 'info>(
     accounts: MarinadeWithdrawStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     for should_be_writable in [
@@ -1083,5 +1224,11 @@ pub fn marinade_withdraw_stake_verify_account_privileges<'me, 'info>(
             return Err((should_be_writable, ProgramError::InvalidAccountData));
         }
     }
+    Ok(())
+}
+pub fn marinade_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: MarinadeWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    marinade_withdraw_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }
