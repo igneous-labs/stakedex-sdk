@@ -36,6 +36,8 @@ pub enum StakedexError {
     UnsupportedProgram = 13,
     #[error("If you see this, there's a serious bug somewhere")]
     UnreachableError = 14,
+    #[error("Instant unstake of slumdog stake was not enough to cover rent")]
+    SlumdogUnstakeTooSmall = 17,
 }
 impl From<StakedexError> for ProgramError {
     fn from(e: StakedexError) -> Self {
