@@ -28,6 +28,7 @@ solana-sdk = "^1.9"
 spl-stake-pool = { version = "^1", features = ["no-entrypoint"] }
 spl-token = "^3.0"
 thiserror = "^1.0"
+tokio = "^1"
 unstake_interface = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
 unstake-lib = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
 

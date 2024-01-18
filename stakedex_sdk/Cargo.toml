@@ -26,5 +26,6 @@ itertools = "0.10.5"
 [dev-dependencies]
 solana-client.workspace = true
 solana-program-test.workspace = true
+tokio.workspace = true
 lazy_static.workspace = true
 sanctum-solana-test-utils.workspace = true

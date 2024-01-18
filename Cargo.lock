@@ -5234,6 +5234,7 @@ dependencies = [
  "stakedex_socean_stake_pool",
  "stakedex_spl_stake_pool",
  "stakedex_unstake_it",
+ "tokio",
 ]
 
 [[package]]

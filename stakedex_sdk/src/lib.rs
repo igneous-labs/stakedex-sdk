@@ -90,7 +90,7 @@ fn init_from_keyed_account<P: InitFromKeyedAccount>(
 impl Stakedex {
     /// Gets the list of accounts that must be fetched first to initialize
     /// Stakedex by passing the result into from_fetched_accounts()
-    pub fn init_accounts() -> [Pubkey; N_POOLS] {
+    pub const fn init_accounts() -> [Pubkey; N_POOLS] {
         [
             cogent_stake_pool::ID,
             daopool_stake_pool::ID,

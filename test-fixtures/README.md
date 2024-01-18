@@ -12,4 +12,4 @@ solana account -o test-fixtures/<NEW-FILENAME>.json --output json <ACCOUNT-PUBKE
 
 ## Current data
 
-Collected Epoch 545
+Epoch of collection recorded in `tests/common.rs`
