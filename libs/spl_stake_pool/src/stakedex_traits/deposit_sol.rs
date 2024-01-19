@@ -47,9 +47,9 @@ impl DepositSol for SplStakePoolStakedex {
 
     fn virtual_ix(&self) -> Result<Instruction> {
         Ok(spl_stake_pool_deposit_sol_ix(SplStakePoolDepositSolKeys {
-            spl_stake_pool_program: spl_stake_pool::ID,
+            spl_stake_pool_program: self.stake_pool_program,
             stake_pool: self.stake_pool_addr,
-            stake_pool_withdraw_authority: self.withdraw_authority_addr,
+            stake_pool_withdraw_authority: self.withdraw_authority_addr(),
             stake_pool_manager_fee: self.stake_pool.manager_fee_account,
             stake_pool_reserve_stake: self.stake_pool.reserve_stake,
         })?)

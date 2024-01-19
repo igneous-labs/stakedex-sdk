@@ -114,7 +114,7 @@ impl DepositStake for SplStakePoolStakedex {
         _deposit_stake_info: &DepositStakeInfo,
     ) -> Result<Instruction> {
         let deposit_stake_validator_stake = find_stake_program_address(
-            &spl_stake_pool::ID,
+            &self.stake_pool_program,
             &quote.voter,
             &self.stake_pool_addr,
             None,
@@ -122,11 +122,11 @@ impl DepositStake for SplStakePoolStakedex {
         .0;
         Ok(spl_stake_pool_deposit_stake_ix(
             SplStakePoolDepositStakeKeys {
-                spl_stake_pool_program: spl_stake_pool::ID,
+                spl_stake_pool_program: self.stake_pool_program,
                 deposit_stake_spl_stake_pool: self.stake_pool_addr,
                 deposit_stake_validator_list: self.stake_pool.validator_list,
                 deposit_stake_deposit_authority: self.stake_pool.stake_deposit_authority,
-                deposit_stake_withdraw_authority: self.withdraw_authority_addr,
+                deposit_stake_withdraw_authority: self.withdraw_authority_addr(),
                 deposit_stake_reserve_stake: self.stake_pool.reserve_stake,
                 deposit_stake_manager_fee: self.stake_pool.manager_fee_account,
                 deposit_stake_validator_stake,

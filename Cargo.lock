@@ -4477,7 +4477,7 @@ dependencies = [
 
 [[package]]
 name = "stakedex_sdk"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "itertools",
@@ -4487,7 +4487,7 @@ dependencies = [
  "solana-client",
  "solana-sdk",
  "spl-associated-token-account",
- "spl-token 4.0.0",
+ "spl-token 3.5.0",
  "stakedex_interface",
  "stakedex_lido",
  "stakedex_marinade",
@@ -4520,7 +4520,6 @@ dependencies = [
  "anyhow",
  "bincode",
  "borsh 0.10.3",
- "lazy_static",
  "solana-program",
  "spl-stake-pool",
  "spl-token 4.0.0",

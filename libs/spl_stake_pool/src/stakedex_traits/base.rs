@@ -1,26 +1,37 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use solana_program::{clock::Clock, pubkey::Pubkey, sysvar};
-use spl_stake_pool::find_withdraw_authority_program_address;
 use stakedex_sdk_common::{
     account_missing_err,
     jupiter_stakedex_interface::{AccountMap, KeyedAccount},
     BaseStakePoolAmm, InitFromKeyedAccount,
 };
 
-use crate::{SplStakePoolStakedex, SPL_STAKE_POOL_STATE_TO_LABEL};
+use crate::SplStakePoolStakedex;
 
 impl InitFromKeyedAccount for SplStakePoolStakedex {
     /// Initialize from stake pool main account
-    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
-        let mut res = Self::default();
-        res.stake_pool_addr = keyed_account.key;
-        // Assumes all SPL stake pools are permissionless, i.e. using the default withdraw authority
-        res.withdraw_authority_addr =
-            find_withdraw_authority_program_address(&spl_stake_pool::ID, &res.stake_pool_addr).0;
-        res.stake_pool_label = SPL_STAKE_POOL_STATE_TO_LABEL
-            .get(&res.stake_pool_addr)
-            .ok_or_else(|| anyhow!("Unknown spl stake pool: {}", res.stake_pool_addr))?;
-        res.update_stake_pool(&keyed_account.account.data)?;
+    fn from_keyed_account(
+        KeyedAccount {
+            key,
+            account,
+            params,
+        }: &KeyedAccount,
+    ) -> Result<Self> {
+        let mut res = Self {
+            stake_pool_program: account.owner,
+            stake_pool_addr: *key,
+            ..Default::default()
+        };
+
+        res.update_stake_pool(&account.data)?;
+
+        res.stake_pool_label = params
+            .as_ref()
+            .map_or_else(|| None, |v| v.as_str())
+            .map_or_else(
+                || format!("{} stake pool", res.stake_pool.pool_mint),
+                |token_name| format!("{token_name} stake pool"),
+            );
         // NOTE: the validator_list is not initialized until self.update() is
         // called for the first time with fetched on-chain data
         Ok(res)
@@ -28,8 +39,8 @@ impl InitFromKeyedAccount for SplStakePoolStakedex {
 }
 
 impl BaseStakePoolAmm for SplStakePoolStakedex {
-    fn stake_pool_label(&self) -> &'static str {
-        self.stake_pool_label
+    fn stake_pool_label(&self) -> &str {
+        &self.stake_pool_label
     }
 
     fn main_state_key(&self) -> Pubkey {
