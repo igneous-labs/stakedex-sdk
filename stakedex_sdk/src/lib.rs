@@ -37,6 +37,8 @@ pub const N_DEPOSIT_STAKE_POOLS: usize = 11;
 
 pub const N_WITHDRAW_STAKE_POOLS: usize = 10;
 
+pub const SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT: u32 = 400_000;
+
 #[macro_export]
 macro_rules! match_stakedexes {
     ( $Variant1:ident, $Variant2:ident, $first:pat, $second:pat ) => {
