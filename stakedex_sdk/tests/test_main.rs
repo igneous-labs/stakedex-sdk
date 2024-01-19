@@ -12,9 +12,7 @@ use solana_sdk::{
 use spl_associated_token_account::get_associated_token_address;
 use spl_token::native_mint;
 use stakedex_sdk::{Stakedex, SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT};
-use stakedex_sdk_common::{
-    bsol, cogentsol, daosol, jitosol, jsol, lainesol, msol, risksol, scnsol,
-};
+use stakedex_sdk_common::{bsol, daosol, jitosol, jsol, msol, scnsol};
 use std::{cmp, collections::HashMap, iter::zip};
 
 // Alameda account. Last known balances:
@@ -90,15 +88,21 @@ fn test_swap_via_stake_scnsol_unstakeit() {
 
 // jsol to xsol
 
+/*
+// no route
 #[test]
 fn test_swap_via_stake_jsol_bsol() {
     test_swap_via_stake(jsol::ID, bsol::ID, SMALL_JSOL_SWAP_AMT);
 }
+*/
 
+/*
+// no route
 #[test]
 fn test_swap_via_stake_jsol_cogentsol() {
     test_swap_via_stake(jsol::ID, cogentsol::ID, SMALL_JSOL_SWAP_AMT);
 }
+*/
 
 #[test]
 fn test_swap_via_stake_jsol_daosol() {
@@ -110,15 +114,21 @@ fn test_swap_via_stake_jsol_jitosol() {
     test_swap_via_stake(jsol::ID, jitosol::ID, SMALL_JSOL_SWAP_AMT);
 }
 
+/*
+// no route
 #[test]
 fn test_swap_via_stake_jsol_lainesol() {
     test_swap_via_stake(jsol::ID, lainesol::ID, SMALL_JSOL_SWAP_AMT);
 }
+ */
 
+/*
+// Stake pool cannot accept stake deposits at this time, riskSOL appears to be unmaintained
 #[test]
 fn test_swap_via_stake_jsol_risksol() {
     test_swap_via_stake(jsol::ID, risksol::ID, SMALL_JSOL_SWAP_AMT);
 }
+*/
 
 #[test]
 fn test_swap_via_stake_jsol_scnsol() {
@@ -132,20 +142,29 @@ fn test_swap_via_stake_jsol_msol() {
 
 // scnsol to xsol
 
+/*
+// no route
 #[test]
 fn test_swap_via_stake_scnsol_bsol() {
     test_swap_via_stake(scnsol::ID, bsol::ID, u64::MAX);
 }
+*/
 
+/*
+// no route
 #[test]
 fn test_swap_via_stake_scnsol_cogentsol() {
     test_swap_via_stake(scnsol::ID, cogentsol::ID, u64::MAX);
 }
+*/
 
+/*
+// no route
 #[test]
 fn test_swap_via_stake_scnsol_daosol() {
     test_swap_via_stake(scnsol::ID, daosol::ID, u64::MAX);
 }
+*/
 
 #[test]
 fn test_swap_via_stake_scnsol_jitosol() {
@@ -157,15 +176,21 @@ fn test_swap_via_stake_scnsol_jsol() {
     test_swap_via_stake(scnsol::ID, jsol::ID, u64::MAX);
 }
 
+/*
+// no route
 #[test]
 fn test_swap_via_stake_scnsol_lainesol() {
     test_swap_via_stake(scnsol::ID, lainesol::ID, u64::MAX);
 }
+*/
 
+/*
+// Stake pool cannot accept stake deposits at this time, riskSOL appears to be unmaintained
 #[test]
 fn test_swap_via_stake_scnsol_risksol() {
     test_swap_via_stake(scnsol::ID, risksol::ID, u64::MAX);
 }
+ */
 
 #[test]
 fn test_swap_via_stake_scnsol_msol() {
@@ -264,9 +289,6 @@ pub struct TestSwapViaStakeArgs {
     pub dst_token_acc: Pubkey,
 }
 
-/// - ignores these errors:
-///     - no route found between pools
-///     - stake pool cannot accept stake deposits at this time
 /// - uses min(amount, src_balance) as input amount
 /// - if dst_token_acc is signer's ATA and doesn't exist, prefixes
 ///   the simulated tx with a create ATA instruction
@@ -328,10 +350,15 @@ pub fn sim_swap_via_stake(
     }) {
         Ok(q) => q,
         Err(err) => {
-            println!(
+            panic!(
                 "Could not swap {} {} to {}. Reason: {}",
                 amount, input_mint, output_mint, err
             );
+            /*
+            // dont ignore errors, comment out the tests instead
+            // - ignores these errors:
+            //     - no route found between pools
+            //     - stake pool cannot accept stake deposits at this time
             let estr = err.to_string();
             if estr != "No route found between pools"
                 && estr != "Stake pool cannot accept stake deposits at this time"
@@ -339,6 +366,7 @@ pub fn sim_swap_via_stake(
                 panic!("{estr}");
             }
             return;
+             */
         }
     };
 
