@@ -1,3 +1,6 @@
+// TODO: remove once everyone has upgraded to ^1.17
+#![allow(deprecated)]
+
 use anyhow::{anyhow, Result};
 use solana_program::{
     clock::Clock,

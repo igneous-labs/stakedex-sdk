@@ -18,24 +18,22 @@ use stakedex_sdk_common::{
     bsol, cogent_stake_pool, cogentsol, daopool_stake_pool, daosol, find_bridge_stake,
     find_fee_token_acc, first_avail_quote, jito_stake_pool, jitosol, jpool_stake_pool, jsol,
     laine_stake_pool, lainesol, lido_state, lst, marinade_state, mrgn_stake_pool, msol,
-    quote_pool_pair, risklol_stake_pool, risksol, scnsol, socean_stake_pool, solblaze_stake_pool,
-    stakedex_program, stsol, unstake_it_program, wsol_bridge_in, BaseStakePoolAmm, DepositSol,
-    DepositSolWrapper, DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount,
-    OneWayPoolPair, TwoWayPoolPair, WithdrawStake, WithdrawStakeQuote,
-    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    quote_pool_pair, risklol_stake_pool, risksol, solblaze_stake_pool, stakedex_program, stsol,
+    unstake_it_program, wsol_bridge_in, BaseStakePoolAmm, DepositSol, DepositSolWrapper,
+    DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, OneWayPoolPair,
+    TwoWayPoolPair, WithdrawStake, WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
-use stakedex_socean_stake_pool::SoceanStakePoolStakedex;
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::UnstakeItStakedex;
 
-pub const N_POOLS: usize = 12;
+pub const N_POOLS: usize = 11;
 
-pub const N_DEPOSIT_SOL_POOLS: usize = 10;
+pub const N_DEPOSIT_SOL_POOLS: usize = 9;
 
-pub const N_DEPOSIT_STAKE_POOLS: usize = 11;
+pub const N_DEPOSIT_STAKE_POOLS: usize = 10;
 
-pub const N_WITHDRAW_STAKE_POOLS: usize = 10;
+pub const N_WITHDRAW_STAKE_POOLS: usize = 9;
 
 pub const SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT: u32 = 400_000;
 
@@ -64,7 +62,6 @@ pub struct Stakedex {
     pub mrgn: SplStakePoolStakedex,
     pub risklol: SplStakePoolStakedex,
     pub solblaze: SplStakePoolStakedex,
-    pub socean: SoceanStakePoolStakedex,
     pub unstakeit: UnstakeItStakedex,
     pub marinade: MarinadeStakedex,
     pub lido: LidoStakedex,
@@ -102,7 +99,6 @@ impl Stakedex {
             mrgn_stake_pool::ID,
             risklol_stake_pool::ID,
             solblaze_stake_pool::ID,
-            socean_stake_pool::ID,
             unstake_it_program::SOL_RESERVES_ID,
             marinade_state::ID,
             lido_state::ID,
@@ -114,12 +110,6 @@ impl Stakedex {
     ) -> (Self, Vec<anyhow::Error>) {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
-
-        let socean =
-            init_from_keyed_account(accounts, &socean_stake_pool::ID).unwrap_or_else(|e| {
-                errs.push(e);
-                SoceanStakePoolStakedex::default()
-            });
 
         let unstakeit = init_from_keyed_account(accounts, &unstake_it_program::SOL_RESERVES_ID)
             .unwrap_or_else(|e| {
@@ -166,7 +156,6 @@ impl Stakedex {
                 mrgn: spl_stake_pools_iter.next().unwrap(),
                 risklol: spl_stake_pools_iter.next().unwrap(),
                 solblaze: spl_stake_pools_iter.next().unwrap(),
-                socean,
                 unstakeit,
                 marinade,
                 lido,
@@ -185,7 +174,6 @@ impl Stakedex {
             &self.mrgn,
             &self.risklol,
             &self.solblaze,
-            &self.socean,
             &self.unstakeit,
             &self.marinade,
             &self.lido,
@@ -202,7 +190,6 @@ impl Stakedex {
             &mut self.mrgn,
             &mut self.risklol,
             &mut self.solblaze,
-            &mut self.socean,
             &mut self.unstakeit,
             &mut self.marinade,
             &mut self.lido,
@@ -257,7 +244,6 @@ impl Stakedex {
             (lainesol::ID, &self.laine),
             (lst::ID, &self.mrgn),
             (risksol::ID, &self.risklol),
-            (scnsol::ID, &self.socean),
             (msol::ID, &self.marinade),
         ]
     }
@@ -279,7 +265,6 @@ impl Stakedex {
             (lainesol::ID, &self.laine),
             (lst::ID, &self.mrgn),
             (risksol::ID, &self.risklol),
-            (scnsol::ID, &self.socean),
             (msol::ID, &self.marinade),
             (native_mint::ID, &self.unstakeit),
         ]
@@ -304,7 +289,6 @@ impl Stakedex {
             (lainesol::ID, &self.laine),
             (lst::ID, &self.mrgn),
             (risksol::ID, &self.risklol),
-            (scnsol::ID, &self.socean),
             (stsol::ID, &self.lido),
         ]
     }
@@ -498,7 +482,6 @@ impl Stakedex {
         #[derive(Clone)]
         enum Stakedex {
             SplStakePool(SplStakePoolStakedex),
-            Socean(SoceanStakePoolStakedex),
             UnstakeIt(UnstakeItStakedex),
             Marinade(MarinadeStakedex),
             Lido(LidoStakedex),
@@ -513,7 +496,6 @@ impl Stakedex {
             Stakedex::SplStakePool(self.mrgn.clone()),
             Stakedex::SplStakePool(self.risklol.clone()),
             Stakedex::SplStakePool(self.solblaze.clone()),
-            Stakedex::Socean(self.socean.clone()),
             Stakedex::UnstakeIt(self.unstakeit.clone()),
             Stakedex::Marinade(self.marinade.clone()),
             Stakedex::Lido(self.lido.clone()),
@@ -525,7 +507,6 @@ impl Stakedex {
                 Stakedex::SplStakePool(spl_stake_pool) => {
                     amms.push(Box::new(DepositSolWrapper(spl_stake_pool.clone())))
                 }
-                Stakedex::Socean(socean) => amms.push(Box::new(DepositSolWrapper(socean.clone()))),
                 Stakedex::Marinade(marinade) => {
                     amms.push(Box::new(DepositSolWrapper(marinade.clone())))
                 }
@@ -549,13 +530,6 @@ impl Stakedex {
                         clock: Clock::default(),
                     }));
                 }
-                match_stakedexes!(SplStakePool, Socean, p1, p2) => {
-                    amms.push(Box::new(TwoWayPoolPair {
-                        p1,
-                        p2,
-                        clock: Clock::default(),
-                    }));
-                }
                 match_stakedexes!(SplStakePool, Marinade, withdraw, deposit) => {
                     amms.push(Box::new(OneWayPoolPair {
                         withdraw,
@@ -570,28 +544,7 @@ impl Stakedex {
                         clock: Clock::default(),
                     }));
                 }
-                match_stakedexes!(Socean, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
-                }
-                match_stakedexes!(Socean, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
-                }
                 match_stakedexes!(Lido, SplStakePool, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
-                }
-                match_stakedexes!(Lido, Socean, withdraw, deposit) => {
                     amms.push(Box::new(OneWayPoolPair {
                         withdraw,
                         deposit,
@@ -613,8 +566,7 @@ impl Stakedex {
                     }));
                 }
                 match_stakedexes!(Marinade, UnstakeIt, _, _) => (), // Cannot do anything with those two
-                match_same_stakedex!(Socean)
-                | match_same_stakedex!(UnstakeIt)
+                match_same_stakedex!(UnstakeIt)
                 | match_same_stakedex!(Marinade)
                 | match_same_stakedex!(Lido) => (), // Invalid if found
             }

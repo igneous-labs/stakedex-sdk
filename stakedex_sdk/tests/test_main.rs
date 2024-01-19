@@ -12,7 +12,7 @@ use solana_sdk::{
 use spl_associated_token_account::get_associated_token_address;
 use spl_token::native_mint;
 use stakedex_sdk::{Stakedex, SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT};
-use stakedex_sdk_common::{bsol, daosol, jitosol, jsol, msol, scnsol};
+use stakedex_sdk_common::{bsol, daosol, jitosol, jsol, msol};
 use std::{cmp, collections::HashMap, iter::zip};
 
 // Alameda account. Last known balances:
@@ -81,10 +81,13 @@ fn test_swap_via_stake_jsol_unstakeit() {
     test_swap_via_stake(jsol::ID, native_mint::ID, SMALL_JSOL_SWAP_AMT);
 }
 
+/*
+// scnsol temporarily disabled before migration
 #[test]
 fn test_swap_via_stake_scnsol_unstakeit() {
     test_swap_via_stake(scnsol::ID, native_mint::ID, u64::MAX);
 }
+*/
 
 // jsol to xsol
 
@@ -130,10 +133,13 @@ fn test_swap_via_stake_jsol_risksol() {
 }
 */
 
+/*
+// scnsol temporarily disabled before migration
 #[test]
 fn test_swap_via_stake_jsol_scnsol() {
     test_swap_via_stake(jsol::ID, scnsol::ID, SMALL_JSOL_SWAP_AMT);
 }
+ */
 
 #[test]
 fn test_swap_via_stake_jsol_msol() {
@@ -166,15 +172,21 @@ fn test_swap_via_stake_scnsol_daosol() {
 }
 */
 
+/*
+// scnsol temporarily disabled before migration
 #[test]
 fn test_swap_via_stake_scnsol_jitosol() {
     test_swap_via_stake(scnsol::ID, jitosol::ID, u64::MAX);
 }
+*/
 
+/*
+// scnsol temporarily disabled before migration
 #[test]
 fn test_swap_via_stake_scnsol_jsol() {
     test_swap_via_stake(scnsol::ID, jsol::ID, u64::MAX);
 }
+*/
 
 /*
 // no route
@@ -192,10 +204,13 @@ fn test_swap_via_stake_scnsol_risksol() {
 }
  */
 
+/*
+// scnsol temporarily disabled before migration
 #[test]
 fn test_swap_via_stake_scnsol_msol() {
     test_swap_via_stake(scnsol::ID, msol::ID, u64::MAX);
 }
+*/
 
 // Set amount to u64::MAX to swap the entire input ATA balance
 fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: u64) {
