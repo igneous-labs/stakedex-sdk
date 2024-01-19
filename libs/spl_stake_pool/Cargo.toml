@@ -11,7 +11,7 @@ bincode = { workspace = true }
 borsh = { workspace = true }
 lazy_static = "^1.0"
 solana-program = { workspace = true }
-spl-stake-pool = "^0.6.4"
+spl-stake-pool = { workspace = true }
 spl-token = { workspace = true }
 stakedex_deposit_sol_interface = { workspace = true }
 stakedex_deposit_stake_interface = { workspace = true }

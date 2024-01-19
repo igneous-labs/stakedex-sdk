@@ -9,7 +9,7 @@ edition = "2021"
 anyhow = { workspace = true }
 bincode = { workspace = true }
 borsh = { workspace = true }
-lido = { git = "https://github.com/igneous-labs/solido", branch = "mod/2.0.0-loose-deps", features = ["no-entrypoint"] }
+lido = { workspace = true }
 solana-program = { workspace = true }
 spl-token = { workspace = true }
 stakedex_deposit_sol_interface = { workspace = true }
@@ -17,4 +17,4 @@ stakedex_withdraw_stake_interface = { workspace = true }
 stakedex_sdk_common = { workspace = true }
 
 [dev-dependencies]
-solana-client = "^1.9"
+solana-client = { workspace = true }

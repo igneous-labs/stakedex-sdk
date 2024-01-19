@@ -54,7 +54,7 @@ impl<'a> WithdrawStakeQuoteIter<'a> {
             .enumerate()
             .find(|(_, vsi)| vsi.vote_account_address == preferred_voter)?;
         // preferred cant service withdrawals, fallback to normal
-        if vsi.active_stake_lamports <= MINIMUM_ACTIVE_STAKE {
+        if u64::from(vsi.active_stake_lamports) <= MINIMUM_ACTIVE_STAKE {
             return Some((
                 WithdrawStakeQuote::default(),
                 WithdrawStakeQuoteIterState::Normal(0),

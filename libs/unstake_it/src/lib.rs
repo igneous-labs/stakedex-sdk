@@ -1,18 +1,16 @@
 use anyhow::Result;
-use solana_program::{borsh::try_from_slice_unchecked, pubkey::Pubkey};
-use unstake_it_interface::{Fee, FeeEnum, Pool, ProtocolFee};
+use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey};
+use unstake_interface::{Fee, FeeEnum, Pool, ProtocolFee, Rational};
 
-mod fee;
 mod pda;
-mod rational;
 mod stakedex_traits;
 
-pub use fee::*;
 pub use pda::*;
-pub use rational::*;
 pub use stakedex_traits::*;
 
 pub const UNSTAKE_IT_LABEL: &str = "Unstake.it";
+
+const ZERO_RATIONAL: Rational = Rational { num: 0, denom: 1 };
 
 #[derive(Clone)]
 pub struct UnstakeItStakedex {
@@ -32,14 +30,14 @@ impl Default for UnstakeItStakedex {
             },
             fee: Fee {
                 fee: FeeEnum::Flat {
-                    ratio: zero_rational(),
+                    ratio: ZERO_RATIONAL,
                 },
             },
             protocol_fee: ProtocolFee {
                 destination: Pubkey::default(),
                 authority: Pubkey::default(),
-                fee_ratio: zero_rational(),
-                referrer_fee_ratio: zero_rational(),
+                fee_ratio: ZERO_RATIONAL,
+                referrer_fee_ratio: ZERO_RATIONAL,
             },
             sol_reserves_lamports: u64::default(),
         }
