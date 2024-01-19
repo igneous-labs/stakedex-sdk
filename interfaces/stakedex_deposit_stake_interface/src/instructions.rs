@@ -13,6 +13,7 @@ pub enum StakedexDepositStakeProgramIx {
     SplStakePoolDepositStake,
     MarinadeDepositStake,
     UnstakeItDepositStake,
+    SanctumSplStakePoolDepositStake,
 }
 impl StakedexDepositStakeProgramIx {
     pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
@@ -25,6 +26,9 @@ impl StakedexDepositStakeProgramIx {
             SPL_STAKE_POOL_DEPOSIT_STAKE_IX_DISCM => Ok(Self::SplStakePoolDepositStake),
             MARINADE_DEPOSIT_STAKE_IX_DISCM => Ok(Self::MarinadeDepositStake),
             UNSTAKE_IT_DEPOSIT_STAKE_IX_DISCM => Ok(Self::UnstakeItDepositStake),
+            SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_DISCM => {
+                Ok(Self::SanctumSplStakePoolDepositStake)
+            }
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!("discm {:?} not found", maybe_discm),
@@ -41,6 +45,9 @@ impl StakedexDepositStakeProgramIx {
             }
             Self::MarinadeDepositStake => writer.write_all(&[MARINADE_DEPOSIT_STAKE_IX_DISCM]),
             Self::UnstakeItDepositStake => writer.write_all(&[UNSTAKE_IT_DEPOSIT_STAKE_IX_DISCM]),
+            Self::SanctumSplStakePoolDepositStake => {
+                writer.write_all(&[SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_DISCM])
+            }
         }
     }
     pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
@@ -1291,5 +1298,328 @@ pub fn unstake_it_deposit_stake_verify_account_privileges<'me, 'info>(
     accounts: UnstakeItDepositStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     unstake_it_deposit_stake_verify_writable_privileges(accounts)?;
+    Ok(())
+}
+pub const SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN: usize = 12;
+#[derive(Copy, Clone, Debug)]
+pub struct SanctumSplStakePoolDepositStakeAccounts<'me, 'info> {
+    pub sanctum_spl_stake_pool_program: &'me AccountInfo<'info>,
+    pub deposit_stake_spl_stake_pool: &'me AccountInfo<'info>,
+    pub deposit_stake_validator_list: &'me AccountInfo<'info>,
+    pub deposit_stake_deposit_authority: &'me AccountInfo<'info>,
+    pub deposit_stake_withdraw_authority: &'me AccountInfo<'info>,
+    pub deposit_stake_validator_stake: &'me AccountInfo<'info>,
+    pub deposit_stake_reserve_stake: &'me AccountInfo<'info>,
+    pub deposit_stake_manager_fee: &'me AccountInfo<'info>,
+    pub clock: &'me AccountInfo<'info>,
+    pub stake_history: &'me AccountInfo<'info>,
+    pub token_program: &'me AccountInfo<'info>,
+    pub stake_program: &'me AccountInfo<'info>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct SanctumSplStakePoolDepositStakeKeys {
+    pub sanctum_spl_stake_pool_program: Pubkey,
+    pub deposit_stake_spl_stake_pool: Pubkey,
+    pub deposit_stake_validator_list: Pubkey,
+    pub deposit_stake_deposit_authority: Pubkey,
+    pub deposit_stake_withdraw_authority: Pubkey,
+    pub deposit_stake_validator_stake: Pubkey,
+    pub deposit_stake_reserve_stake: Pubkey,
+    pub deposit_stake_manager_fee: Pubkey,
+    pub clock: Pubkey,
+    pub stake_history: Pubkey,
+    pub token_program: Pubkey,
+    pub stake_program: Pubkey,
+}
+impl From<SanctumSplStakePoolDepositStakeAccounts<'_, '_>> for SanctumSplStakePoolDepositStakeKeys {
+    fn from(accounts: SanctumSplStakePoolDepositStakeAccounts) -> Self {
+        Self {
+            sanctum_spl_stake_pool_program: *accounts.sanctum_spl_stake_pool_program.key,
+            deposit_stake_spl_stake_pool: *accounts.deposit_stake_spl_stake_pool.key,
+            deposit_stake_validator_list: *accounts.deposit_stake_validator_list.key,
+            deposit_stake_deposit_authority: *accounts.deposit_stake_deposit_authority.key,
+            deposit_stake_withdraw_authority: *accounts.deposit_stake_withdraw_authority.key,
+            deposit_stake_validator_stake: *accounts.deposit_stake_validator_stake.key,
+            deposit_stake_reserve_stake: *accounts.deposit_stake_reserve_stake.key,
+            deposit_stake_manager_fee: *accounts.deposit_stake_manager_fee.key,
+            clock: *accounts.clock.key,
+            stake_history: *accounts.stake_history.key,
+            token_program: *accounts.token_program.key,
+            stake_program: *accounts.stake_program.key,
+        }
+    }
+}
+impl From<SanctumSplStakePoolDepositStakeKeys>
+    for [AccountMeta; SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(keys: SanctumSplStakePoolDepositStakeKeys) -> Self {
+        [
+            AccountMeta {
+                pubkey: keys.sanctum_spl_stake_pool_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.deposit_stake_spl_stake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.deposit_stake_validator_list,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.deposit_stake_deposit_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.deposit_stake_withdraw_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.deposit_stake_validator_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.deposit_stake_reserve_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.deposit_stake_manager_fee,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_history,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+        ]
+    }
+}
+impl From<[Pubkey; SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN]>
+    for SanctumSplStakePoolDepositStakeKeys
+{
+    fn from(pubkeys: [Pubkey; SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            sanctum_spl_stake_pool_program: pubkeys[0],
+            deposit_stake_spl_stake_pool: pubkeys[1],
+            deposit_stake_validator_list: pubkeys[2],
+            deposit_stake_deposit_authority: pubkeys[3],
+            deposit_stake_withdraw_authority: pubkeys[4],
+            deposit_stake_validator_stake: pubkeys[5],
+            deposit_stake_reserve_stake: pubkeys[6],
+            deposit_stake_manager_fee: pubkeys[7],
+            clock: pubkeys[8],
+            stake_history: pubkeys[9],
+            token_program: pubkeys[10],
+            stake_program: pubkeys[11],
+        }
+    }
+}
+impl<'info> From<SanctumSplStakePoolDepositStakeAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: SanctumSplStakePoolDepositStakeAccounts<'_, 'info>) -> Self {
+        [
+            accounts.sanctum_spl_stake_pool_program.clone(),
+            accounts.deposit_stake_spl_stake_pool.clone(),
+            accounts.deposit_stake_validator_list.clone(),
+            accounts.deposit_stake_deposit_authority.clone(),
+            accounts.deposit_stake_withdraw_authority.clone(),
+            accounts.deposit_stake_validator_stake.clone(),
+            accounts.deposit_stake_reserve_stake.clone(),
+            accounts.deposit_stake_manager_fee.clone(),
+            accounts.clock.clone(),
+            accounts.stake_history.clone(),
+            accounts.token_program.clone(),
+            accounts.stake_program.clone(),
+        ]
+    }
+}
+impl<'me, 'info>
+    From<&'me [AccountInfo<'info>; SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN]>
+    for SanctumSplStakePoolDepositStakeAccounts<'me, 'info>
+{
+    fn from(
+        arr: &'me [AccountInfo<'info>; SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN],
+    ) -> Self {
+        Self {
+            sanctum_spl_stake_pool_program: &arr[0],
+            deposit_stake_spl_stake_pool: &arr[1],
+            deposit_stake_validator_list: &arr[2],
+            deposit_stake_deposit_authority: &arr[3],
+            deposit_stake_withdraw_authority: &arr[4],
+            deposit_stake_validator_stake: &arr[5],
+            deposit_stake_reserve_stake: &arr[6],
+            deposit_stake_manager_fee: &arr[7],
+            clock: &arr[8],
+            stake_history: &arr[9],
+            token_program: &arr[10],
+            stake_program: &arr[11],
+        }
+    }
+}
+pub const SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_DISCM: u8 = 4u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct SanctumSplStakePoolDepositStakeIxData;
+impl SanctumSplStakePoolDepositStakeIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
+    }
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: SanctumSplStakePoolDepositStakeKeys,
+) -> std::io::Result<Instruction> {
+    let metas: [AccountMeta; SANCTUM_SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN] = keys.into();
+    Ok(Instruction {
+        program_id,
+        accounts: Vec::from(metas),
+        data: SanctumSplStakePoolDepositStakeIxData.try_to_vec()?,
+    })
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_ix(
+    keys: SanctumSplStakePoolDepositStakeKeys,
+) -> std::io::Result<Instruction> {
+    sanctum_spl_stake_pool_deposit_stake_ix_with_program_id(crate::ID, keys)
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: SanctumSplStakePoolDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: SanctumSplStakePoolDepositStakeKeys = accounts.into();
+    let ix = sanctum_spl_stake_pool_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_invoke(
+    accounts: SanctumSplStakePoolDepositStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    sanctum_spl_stake_pool_deposit_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: SanctumSplStakePoolDepositStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let keys: SanctumSplStakePoolDepositStakeKeys = accounts.into();
+    let ix = sanctum_spl_stake_pool_deposit_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_invoke_signed(
+    accounts: SanctumSplStakePoolDepositStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    sanctum_spl_stake_pool_deposit_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_verify_account_keys(
+    accounts: SanctumSplStakePoolDepositStakeAccounts<'_, '_>,
+    keys: SanctumSplStakePoolDepositStakeKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (
+            accounts.sanctum_spl_stake_pool_program.key,
+            &keys.sanctum_spl_stake_pool_program,
+        ),
+        (
+            accounts.deposit_stake_spl_stake_pool.key,
+            &keys.deposit_stake_spl_stake_pool,
+        ),
+        (
+            accounts.deposit_stake_validator_list.key,
+            &keys.deposit_stake_validator_list,
+        ),
+        (
+            accounts.deposit_stake_deposit_authority.key,
+            &keys.deposit_stake_deposit_authority,
+        ),
+        (
+            accounts.deposit_stake_withdraw_authority.key,
+            &keys.deposit_stake_withdraw_authority,
+        ),
+        (
+            accounts.deposit_stake_validator_stake.key,
+            &keys.deposit_stake_validator_stake,
+        ),
+        (
+            accounts.deposit_stake_reserve_stake.key,
+            &keys.deposit_stake_reserve_stake,
+        ),
+        (
+            accounts.deposit_stake_manager_fee.key,
+            &keys.deposit_stake_manager_fee,
+        ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.stake_history.key, &keys.stake_history),
+        (accounts.token_program.key, &keys.token_program),
+        (accounts.stake_program.key, &keys.stake_program),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_verify_writable_privileges<'me, 'info>(
+    accounts: SanctumSplStakePoolDepositStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.deposit_stake_spl_stake_pool,
+        accounts.deposit_stake_validator_list,
+        accounts.deposit_stake_validator_stake,
+        accounts.deposit_stake_reserve_stake,
+        accounts.deposit_stake_manager_fee,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub fn sanctum_spl_stake_pool_deposit_stake_verify_account_privileges<'me, 'info>(
+    accounts: SanctumSplStakePoolDepositStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    sanctum_spl_stake_pool_deposit_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }
