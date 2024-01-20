@@ -39,7 +39,7 @@ lazy_static! {
         }
         // Need to update() one more time to fetch auxilliary accounts (e.g. validatorlist)
         let update_accounts = fetch_accounts(&stakedex.get_accounts_to_update());
-        let errs = stakedex.update(update_accounts);
+        let errs = stakedex.update(&update_accounts);
         if !errs.is_empty() {
             eprintln!("update errs {:?}", errs);
         }
@@ -230,7 +230,7 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: u64) {
 
 /*
 // TODO: currently no shared validators between JPool and marinade,
-// need to deposit into other pool
+// need to deposit into other pool to test this case
 #[test]
 fn test_jsol_drain_vsa_edge_case() {
     // assumes

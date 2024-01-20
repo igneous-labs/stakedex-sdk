@@ -47,7 +47,8 @@ fn get_withdraw_stake_quote_for_validator_copied(
         .map_err(|_| anyhow!("no stSOL minted"))?;
     // TODO: this is = accounts.source_stake_account.lamports()
     // rn because there's only 1 active stake account
-    // per validator, might change in the future
+    // per validator, might change in the future.
+    // Nvm, lido is sunsetting lol
     let source_balance = validator.effective_stake_balance;
     let max_withdraw_amount = (source_balance
         * Rational {

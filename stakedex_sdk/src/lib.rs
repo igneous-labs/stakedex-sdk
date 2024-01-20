@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use jupiter_amm_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
+use lazy_static::lazy_static;
+use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList, SplPoolAccounts};
 use solana_sdk::{
     account::Account, clock::Clock, instruction::Instruction, pubkey::Pubkey, system_program,
 };
 use spl_token::native_mint;
-pub use stakedex_interface::ID as stakedex_program_id;
 use stakedex_interface::{
     DepositStakeKeys, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeArgs,
     SwapViaStakeIxArgs, SwapViaStakeKeys,
@@ -15,27 +16,23 @@ use stakedex_interface::{
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
 use stakedex_sdk_common::{
-    bsol, cogent_stake_pool, cogentsol, daopool_stake_pool, daosol, find_bridge_stake,
-    find_fee_token_acc, first_avail_quote, jito_stake_pool, jitosol, jpool_stake_pool, jsol,
-    laine_stake_pool, lainesol, lido_state, lst, marinade_state, mrgn_stake_pool, msol,
-    quote_pool_pair, risklol_stake_pool, risksol, solblaze_stake_pool, stakedex_program, stsol,
-    unstake_it_program, wsol_bridge_in, BaseStakePoolAmm, DepositSol, DepositSolWrapper,
-    DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, OneWayPoolPair,
-    TwoWayPoolPair, WithdrawStake, WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    find_bridge_stake, find_fee_token_acc, first_avail_quote, lido_state, marinade_state, msol,
+    quote_pool_pair, stakedex_program, stsol, unstake_it_program, wsol_bridge_in, BaseStakePoolAmm,
+    DepositSol, DepositSolWrapper, DepositStake, DepositStakeInfo, DepositStakeQuote,
+    InitFromKeyedAccount, OneWayPoolPair, TwoWayPoolPair, WithdrawStake, WithdrawStakeQuote,
+    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
+    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::UnstakeItStakedex;
 
-pub const N_POOLS: usize = 11;
-
-pub const N_DEPOSIT_SOL_POOLS: usize = 9;
-
-pub const N_DEPOSIT_STAKE_POOLS: usize = 10;
-
-pub const N_WITHDRAW_STAKE_POOLS: usize = 9;
+pub use stakedex_interface::ID as stakedex_program_id;
 
 pub const SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT: u32 = 400_000;
+
+lazy_static! {
+    static ref SANCTUM_LST_LIST: SanctumLstList = SanctumLstList::load();
+}
 
 #[macro_export]
 macro_rules! match_stakedexes {
@@ -54,14 +51,7 @@ macro_rules! match_same_stakedex {
 
 #[derive(Clone, Default)]
 pub struct Stakedex {
-    pub cogent: SplStakePoolStakedex,
-    pub daopool: SplStakePoolStakedex,
-    pub jito: SplStakePoolStakedex,
-    pub jpool: SplStakePoolStakedex,
-    pub laine: SplStakePoolStakedex,
-    pub mrgn: SplStakePoolStakedex,
-    pub risklol: SplStakePoolStakedex,
-    pub solblaze: SplStakePoolStakedex,
+    pub spls: Vec<SplStakePoolStakedex>,
     pub unstakeit: UnstakeItStakedex,
     pub marinade: MarinadeStakedex,
     pub lido: LidoStakedex,
@@ -78,7 +68,7 @@ fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Resul
     })
 }
 
-fn init_from_keyed_account<P: InitFromKeyedAccount>(
+fn init_from_keyed_account_no_params<P: InitFromKeyedAccount>(
     accounts: &HashMap<Pubkey, Account>,
     key: &Pubkey,
 ) -> Result<P> {
@@ -86,23 +76,31 @@ fn init_from_keyed_account<P: InitFromKeyedAccount>(
     P::from_keyed_account(&keyed_acc)
 }
 
+fn sanctum_lst_list_map_all_spl_like<F: FnMut(&SanctumLst, SplPoolAccounts) -> T, T>(
+    mut f: F,
+) -> impl Iterator<Item = T> {
+    SANCTUM_LST_LIST
+        .sanctum_lst_list
+        .iter()
+        .filter_map(move |lst| match lst.pool {
+            PoolInfo::SanctumSpl(accounts) | PoolInfo::Spl(accounts) => Some(f(lst, accounts)),
+            PoolInfo::Lido | PoolInfo::Marinade | PoolInfo::ReservePool | PoolInfo::Socean(..) => {
+                None
+            }
+        })
+}
+
 impl Stakedex {
     /// Gets the list of accounts that must be fetched first to initialize
     /// Stakedex by passing the result into from_fetched_accounts()
-    pub fn init_accounts() -> [Pubkey; N_POOLS] {
-        [
-            cogent_stake_pool::ID,
-            daopool_stake_pool::ID,
-            jito_stake_pool::ID,
-            jpool_stake_pool::ID,
-            laine_stake_pool::ID,
-            mrgn_stake_pool::ID,
-            risklol_stake_pool::ID,
-            solblaze_stake_pool::ID,
-            unstake_it_program::SOL_RESERVES_ID,
-            marinade_state::ID,
-            lido_state::ID,
-        ]
+    pub fn init_accounts() -> Vec<Pubkey> {
+        sanctum_lst_list_map_all_spl_like(|_lst, SplPoolAccounts { pool, .. }| pool)
+            .chain([
+                unstake_it_program::SOL_RESERVES_ID,
+                marinade_state::ID,
+                lido_state::ID,
+            ])
+            .collect()
     }
 
     pub fn from_fetched_accounts(
@@ -111,51 +109,43 @@ impl Stakedex {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
 
-        let unstakeit = init_from_keyed_account(accounts, &unstake_it_program::SOL_RESERVES_ID)
+        let unstakeit =
+            init_from_keyed_account_no_params(accounts, &unstake_it_program::SOL_RESERVES_ID)
+                .unwrap_or_else(|e| {
+                    errs.push(e);
+                    UnstakeItStakedex::default()
+                });
+
+        let marinade = init_from_keyed_account_no_params(accounts, &marinade_state::ID)
             .unwrap_or_else(|e| {
                 errs.push(e);
-                UnstakeItStakedex::default()
+                MarinadeStakedex::default()
             });
 
-        let marinade = init_from_keyed_account(accounts, &marinade_state::ID).unwrap_or_else(|e| {
-            errs.push(e);
-            MarinadeStakedex::default()
-        });
-
-        let lido = init_from_keyed_account(accounts, &lido_state::ID).unwrap_or_else(|e| {
-            errs.push(e);
-            LidoStakedex::default()
-        });
-
-        let spl_stake_pools = [
-            cogent_stake_pool::ID,
-            daopool_stake_pool::ID,
-            jito_stake_pool::ID,
-            jpool_stake_pool::ID,
-            laine_stake_pool::ID,
-            mrgn_stake_pool::ID,
-            risklol_stake_pool::ID,
-            solblaze_stake_pool::ID,
-        ]
-        .map(|pool_id| {
-            init_from_keyed_account(accounts, &pool_id).unwrap_or_else(|e| {
+        let lido =
+            init_from_keyed_account_no_params(accounts, &lido_state::ID).unwrap_or_else(|e| {
                 errs.push(e);
-                SplStakePoolStakedex::default()
-            })
-        });
-        // unwrap safety: spl_stake_pools length is known
-        let mut spl_stake_pools_iter = spl_stake_pools.into_iter();
+                LidoStakedex::default()
+            });
+
+        let spls = sanctum_lst_list_map_all_spl_like(
+            |SanctumLst { name, .. }, SplPoolAccounts { pool, .. }| {
+                get_keyed_account(accounts, &pool)
+                    .map_or_else(Err, |mut ka| {
+                        ka.params = Some(name.as_str().into());
+                        SplStakePoolStakedex::from_keyed_account(&ka)
+                    })
+                    .unwrap_or_else(|e| {
+                        errs.push(e);
+                        SplStakePoolStakedex::default()
+                    })
+            },
+        )
+        .collect();
+
         (
-            // NB: take note of order of `spl_stake_pools
             Self {
-                cogent: spl_stake_pools_iter.next().unwrap(),
-                daopool: spl_stake_pools_iter.next().unwrap(),
-                jito: spl_stake_pools_iter.next().unwrap(),
-                jpool: spl_stake_pools_iter.next().unwrap(),
-                laine: spl_stake_pools_iter.next().unwrap(),
-                mrgn: spl_stake_pools_iter.next().unwrap(),
-                risklol: spl_stake_pools_iter.next().unwrap(),
-                solblaze: spl_stake_pools_iter.next().unwrap(),
+                spls,
                 unstakeit,
                 marinade,
                 lido,
@@ -164,58 +154,49 @@ impl Stakedex {
         )
     }
 
-    pub fn all_pools(&self) -> [&dyn BaseStakePoolAmm; N_POOLS] {
-        [
-            &self.cogent,
-            &self.daopool,
-            &self.jito,
-            &self.jpool,
-            &self.laine,
-            &self.mrgn,
-            &self.risklol,
-            &self.solblaze,
-            &self.unstakeit,
-            &self.marinade,
-            &self.lido,
-        ]
+    pub fn all_pools(&self) -> impl Iterator<Item = &dyn BaseStakePoolAmm> {
+        self.spls
+            .iter()
+            .map(|spl| spl as &dyn BaseStakePoolAmm)
+            .chain([
+                &self.unstakeit as &dyn BaseStakePoolAmm,
+                &self.marinade as &dyn BaseStakePoolAmm,
+                &self.lido as &dyn BaseStakePoolAmm,
+            ])
     }
 
-    pub fn all_pools_mut(&mut self) -> [&mut dyn BaseStakePoolAmm; N_POOLS] {
-        [
-            &mut self.cogent,
-            &mut self.daopool,
-            &mut self.jito,
-            &mut self.jpool,
-            &mut self.laine,
-            &mut self.mrgn,
-            &mut self.risklol,
-            &mut self.solblaze,
-            &mut self.unstakeit,
-            &mut self.marinade,
-            &mut self.lido,
-        ]
+    pub fn all_pools_mut(&mut self) -> impl Iterator<Item = &mut dyn BaseStakePoolAmm> {
+        self.spls
+            .iter_mut()
+            .map(|spl| spl as &mut dyn BaseStakePoolAmm)
+            .chain([
+                &mut self.unstakeit as &mut dyn BaseStakePoolAmm,
+                &mut self.marinade as &mut dyn BaseStakePoolAmm,
+                &mut self.lido as &mut dyn BaseStakePoolAmm,
+            ])
     }
 
     pub fn get_accounts_to_update(&self) -> Vec<Pubkey> {
-        self.all_pools().iter().fold(Vec::new(), |mut vec, p| {
+        self.all_pools().fold(Vec::new(), |mut vec, p| {
             vec.append(&mut p.get_accounts_to_update());
             vec
         })
     }
 
-    /// Note: consumes accounts_map
-    pub fn update(&mut self, account_map: HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
+    pub fn update(&mut self, account_map: &HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
         // unstake.it special-case: required reinitialization to save sol_reserves_lamports correctly
-        let maybe_unstake_it_init_err =
-            match init_from_keyed_account(&account_map, &unstake_it_program::SOL_RESERVES_ID) {
-                Ok(unstakeit) => {
-                    self.unstakeit = unstakeit;
-                    None
-                }
-                Err(e) => Some(e),
-            };
+        let maybe_unstake_it_init_err = match init_from_keyed_account_no_params(
+            account_map,
+            &unstake_it_program::SOL_RESERVES_ID,
+        ) {
+            Ok(unstakeit) => {
+                self.unstakeit = unstakeit;
+                None
+            }
+            Err(e) => Some(e),
+        };
 
-        let mut errs = self.update_data(&account_map);
+        let mut errs = self.update_data(account_map);
         if let Some(e) = maybe_unstake_it_init_err {
             errs.push(e);
         }
@@ -223,81 +204,46 @@ impl Stakedex {
     }
 
     pub fn update_data(&mut self, account_map: &AccountMap) -> Vec<anyhow::Error> {
-        // So that other pools are still updated even if some pools fail to update
-        self.all_pools_mut()
-            .iter_mut()
-            .fold(Vec::new(), |mut vec, p| {
-                if let Err(e) = p.update(account_map) {
-                    vec.push(e);
-                }
-                vec
-            })
+        // accumulate errs in a vec so that other pools are still updated even if some pools fail to update
+        self.all_pools_mut().fold(Vec::new(), |mut err_vec, p| {
+            if let Err(e) = p.update(account_map) {
+                err_vec.push(e);
+            }
+            err_vec
+        })
     }
 
-    fn token_to_deposit_sol(&self) -> [(Pubkey, &dyn DepositSol); N_DEPOSIT_SOL_POOLS] {
-        [
-            (bsol::ID, &self.solblaze),
-            (cogentsol::ID, &self.cogent),
-            (daosol::ID, &self.daopool),
-            (jitosol::ID, &self.jito),
-            (jsol::ID, &self.jpool),
-            (lainesol::ID, &self.laine),
-            (lst::ID, &self.mrgn),
-            (risksol::ID, &self.risklol),
-            (msol::ID, &self.marinade),
-        ]
+    // TODO: maybe build an index of { mint: SplStakePoolStakedex } for faster lookups
+    // when there be many SplStakePoolStakedexes in the future
+    pub fn get_deposit_sol_pool(&self, mint: &Pubkey) -> Option<&dyn DepositSol> {
+        Some(match *mint {
+            msol::ID => &self.marinade,
+            mint => self
+                .spls
+                .iter()
+                .find(|SplStakePoolStakedex { stake_pool, .. }| stake_pool.pool_mint == mint)?,
+        })
     }
 
-    pub fn get_deposit_sol_pool(&self, token: &Pubkey) -> Option<&dyn DepositSol> {
-        self.token_to_deposit_sol()
-            .into_iter()
-            .find(|(token_key, _)| token_key == token)
-            .map(|(_, ptr)| ptr)
+    pub fn get_deposit_stake_pool(&self, mint: &Pubkey) -> Option<&dyn DepositStake> {
+        Some(match *mint {
+            msol::ID => &self.marinade,
+            native_mint::ID => &self.unstakeit,
+            mint => self
+                .spls
+                .iter()
+                .find(|SplStakePoolStakedex { stake_pool, .. }| stake_pool.pool_mint == mint)?,
+        })
     }
 
-    pub fn token_to_deposit_stake(&self) -> [(Pubkey, &dyn DepositStake); N_DEPOSIT_STAKE_POOLS] {
-        [
-            (bsol::ID, &self.solblaze),
-            (cogentsol::ID, &self.cogent),
-            (daosol::ID, &self.daopool),
-            (jitosol::ID, &self.jito),
-            (jsol::ID, &self.jpool),
-            (lainesol::ID, &self.laine),
-            (lst::ID, &self.mrgn),
-            (risksol::ID, &self.risklol),
-            (msol::ID, &self.marinade),
-            (native_mint::ID, &self.unstakeit),
-        ]
-    }
-
-    pub fn get_deposit_stake_pool(&self, token: &Pubkey) -> Option<&dyn DepositStake> {
-        self.token_to_deposit_stake()
-            .into_iter()
-            .find(|(token_key, _)| token_key == token)
-            .map(|(_, ptr)| ptr)
-    }
-
-    pub fn token_to_withdraw_stake(
-        &self,
-    ) -> [(Pubkey, &dyn WithdrawStake); N_WITHDRAW_STAKE_POOLS] {
-        [
-            (bsol::ID, &self.solblaze),
-            (cogentsol::ID, &self.cogent),
-            (daosol::ID, &self.daopool),
-            (jitosol::ID, &self.jito),
-            (jsol::ID, &self.jpool),
-            (lainesol::ID, &self.laine),
-            (lst::ID, &self.mrgn),
-            (risksol::ID, &self.risklol),
-            (stsol::ID, &self.lido),
-        ]
-    }
-
-    pub fn get_withdraw_stake_pool(&self, token: &Pubkey) -> Option<&dyn WithdrawStake> {
-        self.token_to_withdraw_stake()
-            .into_iter()
-            .find(|(token_key, _)| token_key == token)
-            .map(|(_, ptr)| ptr)
+    pub fn get_withdraw_stake_pool(&self, mint: &Pubkey) -> Option<&dyn WithdrawStake> {
+        Some(match *mint {
+            stsol::ID => &self.lido,
+            mint => self
+                .spls
+                .iter()
+                .find(|SplStakePoolStakedex { stake_pool, .. }| stake_pool.pool_mint == mint)?,
+        })
     }
 
     pub fn quote_swap_via_stake(&self, quote_params: &QuoteParams) -> Result<Quote> {
@@ -487,19 +433,17 @@ impl Stakedex {
             Lido(LidoStakedex),
         }
 
-        let stakedexes = vec![
-            Stakedex::SplStakePool(self.cogent.clone()),
-            Stakedex::SplStakePool(self.daopool.clone()),
-            Stakedex::SplStakePool(self.jito.clone()),
-            Stakedex::SplStakePool(self.jpool.clone()),
-            Stakedex::SplStakePool(self.laine.clone()),
-            Stakedex::SplStakePool(self.mrgn.clone()),
-            Stakedex::SplStakePool(self.risklol.clone()),
-            Stakedex::SplStakePool(self.solblaze.clone()),
-            Stakedex::UnstakeIt(self.unstakeit.clone()),
-            Stakedex::Marinade(self.marinade.clone()),
-            Stakedex::Lido(self.lido.clone()),
-        ];
+        let stakedexes: Vec<Stakedex> = self
+            .spls
+            .iter()
+            .cloned()
+            .map(Stakedex::SplStakePool)
+            .chain([
+                Stakedex::UnstakeIt(self.unstakeit.clone()),
+                Stakedex::Marinade(self.marinade.clone()),
+                Stakedex::Lido(self.lido.clone()),
+            ])
+            .collect();
 
         let mut amms: Vec<Box<dyn Amm + Send + Sync>> = Vec::new();
         for stakedex in stakedexes.iter() {
@@ -517,7 +461,6 @@ impl Stakedex {
         }
 
         // SplStakePool WithdrawStake + DepositStake
-        // Socean WithdrawStake + DepositStake
         // UnstakeIt DepositStake
         // Marinade DepositStake
         // Lido WithdrawStake

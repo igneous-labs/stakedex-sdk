@@ -1,4 +1,5 @@
-// TODO: remove once everyone has upgraded to ^1.17
+// TODO: this is for using StakeState over StakeStateV2 introduced in 1.17,
+// remove once everyone has upgraded to ^1.17
 #![allow(deprecated)]
 
 use anyhow::{anyhow, Result};
@@ -11,7 +12,6 @@ use solana_program::{
 
 use crate::{BaseStakePoolAmm, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
 
-// TODO: include additional rent payments?
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WithdrawStakeQuote {
     /// Total lamports contained in the output stake account,

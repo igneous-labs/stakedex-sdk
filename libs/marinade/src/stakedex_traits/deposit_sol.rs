@@ -13,7 +13,7 @@ impl DepositSol for MarinadeStakedex {
     fn get_deposit_sol_quote_unchecked(&self, user_lamports: u64) -> Result<DepositSolQuote> {
         // Reference: https://github.com/marinade-finance/liquid-staking-program/blob/main/programs/marinade-finance/src/state/deposit.rs#L27
         let out_amount = StateWrapper(&self.state).calc_msol_from_lamports(user_lamports)?;
-        // TODO: this is a simplified calc that doesn't account for the liquidity pool, which can result in a diff of 1 lamport
+        // TODO: this is a simplified calc that doesn't account for the liquidity pool, which can result in a diff of at most 1 lamport
         Ok(DepositSolQuote {
             in_amount: user_lamports,
             out_amount,

@@ -9,6 +9,8 @@ edition = "2021"
 anyhow = { workspace = true }
 itertools = { workspace = true }
 jupiter-amm-interface = { workspace = true }
+lazy_static = { workspace = true }
+sanctum-lst-list = { workspace = true }
 solana-account-decoder = { workspace = true }
 solana-sdk = { workspace = true }
 spl-associated-token-account = { workspace = true }
@@ -22,4 +24,4 @@ stakedex_unstake_it = { workspace = true }
 
 [dev-dependencies]
 solana-client.workspace = true
-lazy_static.workspace = true
+
