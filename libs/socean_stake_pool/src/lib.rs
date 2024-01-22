@@ -38,7 +38,7 @@ impl SoceanStakePoolStakedex {
 
     /// Find and return validator stake account
     pub fn vsa(voter: &Pubkey) -> Pubkey {
-        find_stake_program_address(&socean_program::ID, voter, &socean_stake_pool::ID, None).0
+        find_stake_program_address(&socean_program::ID, voter, &socean_stake_pool::ID).0
     }
 
     pub fn is_updated_this_epoch(&self) -> bool {

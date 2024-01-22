@@ -1,22 +1,27 @@
 [workspace]
 resolver = "2"
 
-members = ["stakedex_sdk", "common", "libs/*", "interfaces/*"]
+members = [
+    "stakedex_sdk",
+    "common",
+    "libs/*",
+    "interfaces/*"
+]
 
 [workspace.dependencies]
 anyhow = "^1.0"
 bincode = "^1.0"
+borsh = "^0.9"
+jupiter-amm-interface = "~0.3.2"
+lazy_static = "^1.0"
 num-derive = ">=0.1"
 num-traits = ">=0.1"
 rust_decimal = "^1.0"
 sanctum-macros = "^1.2"
 serde = "^1"
-borsh = "^0.10"
-jupiter-amm-interface = "~0.3.0"
-lazy_static = "^1.0"
-solana-client = "~1.16"
-solana-program = "~1.16"
-solana-sdk = "~1.16"
+solana-client = "^1.9"
+solana-program = "^1.9"
+solana-sdk = "^1.9"
 spl-token = "^3.0"
 thiserror = "^1.0"
 

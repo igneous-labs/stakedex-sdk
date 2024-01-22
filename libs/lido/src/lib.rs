@@ -4,7 +4,7 @@ use lido::state::{AccountType, Lido, Validator};
 mod stakedex_traits;
 
 use solana_program::{
-    borsh0_10::try_from_slice_unchecked, clock::Clock, program_pack::Pack, stake_history::Epoch,
+    borsh::try_from_slice_unchecked, clock::Clock, program_pack::Pack, stake_history::Epoch,
 };
 pub use stakedex_traits::*;
 

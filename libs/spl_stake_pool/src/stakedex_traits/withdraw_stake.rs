@@ -104,13 +104,8 @@ impl WithdrawStakeBase for SplStakePoolStakedex {
     }
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {
-        let withdraw_stake_stake_to_split = find_stake_program_address(
-            &spl_stake_pool::ID,
-            &quote.voter,
-            &self.stake_pool_addr,
-            None,
-        )
-        .0;
+        let withdraw_stake_stake_to_split =
+            find_stake_program_address(&spl_stake_pool::ID, &quote.voter, &self.stake_pool_addr).0;
         Ok(spl_stake_pool_withdraw_stake_ix(
             SplStakePoolWithdrawStakeKeys {
                 spl_stake_pool_program: spl_stake_pool::ID,
