@@ -9,8 +9,9 @@ use stakedex_sdk_common::{
     WithdrawStakeQuote, ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS,
 };
 use std::cmp::Ordering;
+use unstake_lib::{ApplyFeeArgs, PoolBalance, UnstakeFeeCalc};
 
-use crate::{apply_fee, find_stake_account_record, UnstakeItStakedex};
+use crate::{find_stake_account_record, UnstakeItStakedex};
 
 impl DepositStake for UnstakeItStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
@@ -21,12 +22,13 @@ impl DepositStake for UnstakeItStakedex {
         &self,
         withdraw_stake_quote: WithdrawStakeQuote,
     ) -> DepositStakeQuote {
-        let fee_amount = match apply_fee(
-            &self.fee.fee,
-            self.pool.incoming_stake,
-            self.sol_reserves_lamports,
-            withdraw_stake_quote.lamports_out,
-        ) {
+        let fee_amount = match self.fee.fee.apply(ApplyFeeArgs {
+            pool_balance: PoolBalance {
+                pool_incoming_stake: self.pool.incoming_stake,
+                sol_reserves_lamports: self.sol_reserves_lamports,
+            },
+            stake_account_lamports: withdraw_stake_quote.lamports_out,
+        }) {
             Some(f) => f,
             None => return DepositStakeQuote::default(),
         };

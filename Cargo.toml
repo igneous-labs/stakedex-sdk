@@ -11,19 +11,31 @@ members = [
 [workspace.dependencies]
 anyhow = "^1.0"
 bincode = "^1.0"
-borsh = "^0.9"
+borsh = ">=0.9,<1.0.0"
+itertools = ">=0.1"
 jupiter-amm-interface = "~0.3.2"
 lazy_static = "^1.0"
+lido = { git = "https://github.com/jup-ag/solido", rev = "ec25a9b", features = ["no-entrypoint"] }
+marinade_finance_interface = { git = "https://github.com/igneous-labs/marinade_finance_interface", rev = "4d1895b" }
 num-derive = ">=0.1"
 num-traits = ">=0.1"
-rust_decimal = "^1.0"
+rust_decimal = ">=1.0,<=1.32.0" # anything >1.32 uses borsh ^1
+sanctum-lst-list = { git = "https://github.com/igneous-labs/sanctum-lst-list.git", rev = "ada4de3" }
 sanctum-macros = "^1.2"
 serde = "^1"
-solana-client = "^1.9"
-solana-program = "^1.9"
-solana-sdk = "^1.9"
-spl-token = "^3.0"
+spl-associated-token-account = { version = ">=1", features = ["no-entrypoint"] }
+spl-math = { version = "0.1.0", features = ["no-entrypoint"]}
+spl-stake-pool = { version = "^1", features = ["no-entrypoint"] }
+spl-token = ">=3.0"
 thiserror = "^1.0"
+unstake_interface = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
+unstake-lib = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
+
+# solana core crates
+solana-program = "^1"
+solana-sdk = "^1"
+solana-account-decoder = "^1"
+solana-client = "^1"
 
 # workspace members
 stakedex_deposit_sol_interface = { path = "./interfaces/stakedex_deposit_sol_interface" }
@@ -32,7 +44,6 @@ stakedex_interface = { path = "./interfaces/stakedex_interface" }
 stakedex_lido = { path = "./libs/lido" }
 stakedex_marinade = { path = "./libs/marinade" }
 stakedex_sdk_common = { path = "./common" }
-stakedex_socean_stake_pool = { path = "./libs/socean_stake_pool" }
 stakedex_spl_stake_pool = { path = "./libs/spl_stake_pool" }
 stakedex_unstake_it = { path = "./libs/unstake_it" }
 stakedex_withdraw_stake_interface = { path = "./interfaces/stakedex_withdraw_stake_interface" }

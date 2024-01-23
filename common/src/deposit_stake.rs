@@ -10,7 +10,6 @@ use crate::{apply_global_fee, BaseStakePoolAmm, DepositStakeQuoteErr};
 
 use super::withdraw_stake::WithdrawStakeQuote;
 
-// TODO: include additional rent payments?
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DepositStakeQuote {
     /// Output tokens, after subtracting fees

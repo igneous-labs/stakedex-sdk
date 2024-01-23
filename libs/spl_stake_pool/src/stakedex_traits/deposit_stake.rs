@@ -36,7 +36,7 @@ impl DepositStake for SplStakePoolStakedex {
             Some(r) => r,
             None => return DepositStakeQuote::default(),
         };
-        if validator_list_entry.status != StakeStatus::Active {
+        if validator_list_entry.status != StakeStatus::Active.into() {
             return DepositStakeQuote::default();
         }
         // Reference: https://github.com/solana-labs/solana-program-library/blob/stake-pool-v0.6.4/stake-pool/program/src/processor.rs#L1971
@@ -114,15 +114,20 @@ impl DepositStake for SplStakePoolStakedex {
         quote: &DepositStakeQuote,
         _deposit_stake_info: &DepositStakeInfo,
     ) -> Result<Instruction> {
-        let deposit_stake_validator_stake =
-            find_stake_program_address(&spl_stake_pool::ID, &quote.voter, &self.stake_pool_addr).0;
+        let deposit_stake_validator_stake = find_stake_program_address(
+            &self.stake_pool_program,
+            &quote.voter,
+            &self.stake_pool_addr,
+            None,
+        )
+        .0;
         Ok(spl_stake_pool_deposit_stake_ix(
             SplStakePoolDepositStakeKeys {
-                spl_stake_pool_program: spl_stake_pool::ID,
+                spl_stake_pool_program: self.stake_pool_program,
                 deposit_stake_spl_stake_pool: self.stake_pool_addr,
                 deposit_stake_validator_list: self.stake_pool.validator_list,
                 deposit_stake_deposit_authority: self.stake_pool.stake_deposit_authority,
-                deposit_stake_withdraw_authority: self.withdraw_authority_addr,
+                deposit_stake_withdraw_authority: self.withdraw_authority_addr(),
                 deposit_stake_reserve_stake: self.stake_pool.reserve_stake,
                 deposit_stake_manager_fee: self.stake_pool.manager_fee_account,
                 deposit_stake_validator_stake,

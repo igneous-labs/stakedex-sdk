@@ -6,7 +6,7 @@ use solana_program::pubkey::Pubkey;
 pub trait BaseStakePoolAmm {
     fn program_id(&self) -> Pubkey;
 
-    fn stake_pool_label(&self) -> &'static str;
+    fn stake_pool_label(&self) -> &str;
 
     /// For ID purposes
     fn main_state_key(&self) -> Pubkey;

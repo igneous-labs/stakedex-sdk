@@ -131,12 +131,8 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
 fn prepare_underlying_liquidities(
     underlying_liquidities: &[Option<&Pubkey>],
 ) -> Option<HashSet<Pubkey>> {
-    let uls = HashSet::from_iter(
-        underlying_liquidities
-            .into_iter()
-            .filter_map(|ul| ul.cloned()),
-    );
-    if uls.len() > 0 {
+    let uls = HashSet::from_iter(underlying_liquidities.iter().filter_map(|ul| ul.cloned()));
+    if !uls.is_empty() {
         Some(uls)
     } else {
         None
