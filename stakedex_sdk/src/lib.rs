@@ -422,7 +422,7 @@ impl Stakedex {
     }
 
     /// Creates all possible Amms from the underlying available Stakedexes
-    pub fn get_amms(&self) -> Vec<Box<dyn Amm + Send + Sync>> {
+    pub fn get_amms(self) -> Vec<Box<dyn Amm + Send + Sync>> {
         #[derive(Clone)]
         enum Stakedex {
             SplStakePool(SplStakePoolStakedex),
@@ -431,15 +431,20 @@ impl Stakedex {
             Lido(LidoStakedex),
         }
 
-        let stakedexes: Vec<Stakedex> = self
-            .spls
-            .iter()
-            .cloned()
+        let Self {
+            spls,
+            unstakeit,
+            marinade,
+            lido,
+        } = self;
+
+        let stakedexes: Vec<Stakedex> = spls
+            .into_iter()
             .map(Stakedex::SplStakePool)
             .chain([
-                Stakedex::UnstakeIt(self.unstakeit.clone()),
-                Stakedex::Marinade(self.marinade.clone()),
-                Stakedex::Lido(self.lido.clone()),
+                Stakedex::UnstakeIt(unstakeit),
+                Stakedex::Marinade(marinade),
+                Stakedex::Lido(lido),
             ])
             .collect();
 
@@ -493,6 +498,7 @@ impl Stakedex {
     }
 }
 
+/// Used by jup, do not delete
 pub mod test_utils {
     pub use stakedex_lido::LidoStakedex;
     pub use stakedex_marinade::MarinadeStakedex;
