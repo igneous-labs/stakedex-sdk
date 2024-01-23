@@ -1,11 +1,12 @@
 use anyhow::Result;
-use solana_program::{instruction::Instruction, stake, system_program, sysvar};
+use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
 use spl_stake_pool::MINIMUM_ACTIVE_STAKE;
 use stakedex_sdk_common::{
     socean_program, socean_stake_pool, WithdrawStakeBase, WithdrawStakeIter, WithdrawStakeQuote,
 };
 use stakedex_withdraw_stake_interface::{
     socean_stake_pool_withdraw_stake_ix, SoceanStakePoolWithdrawStakeKeys,
+    SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 
 use crate::SoceanStakePoolStakedex;
@@ -54,7 +55,7 @@ impl<'a> WithdrawStakeQuoteIter<'a> {
             .enumerate()
             .find(|(_, vsi)| vsi.vote_account_address == preferred_voter)?;
         // preferred cant service withdrawals, fallback to normal
-        if vsi.active_stake_lamports <= MINIMUM_ACTIVE_STAKE {
+        if u64::from(vsi.active_stake_lamports) <= MINIMUM_ACTIVE_STAKE {
             return Some((
                 WithdrawStakeQuote::default(),
                 WithdrawStakeQuoteIterState::Normal(0),
@@ -119,5 +120,13 @@ impl WithdrawStakeBase for SoceanStakePoolStakedex {
                 system_program: system_program::ID,
             },
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
+    }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&socean_stake_pool::ID)
     }
 }

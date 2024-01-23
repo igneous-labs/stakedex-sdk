@@ -3,7 +3,7 @@ use solana_program::{clock::Clock, pubkey::Pubkey, sysvar};
 use stakedex_sdk_common::{
     account_missing_err,
     jupiter_stakedex_interface::{AccountMap, KeyedAccount},
-    scnsol, socean_stake_pool, BaseStakePoolAmm, InitFromKeyedAccount,
+    scnsol, socean_program, socean_stake_pool, BaseStakePoolAmm, InitFromKeyedAccount,
 };
 
 use crate::{SoceanStakePoolStakedex, SOCEAN_STAKE_POOL_LABEL};
@@ -20,6 +20,10 @@ impl InitFromKeyedAccount for SoceanStakePoolStakedex {
 }
 
 impl BaseStakePoolAmm for SoceanStakePoolStakedex {
+    fn program_id(&self) -> Pubkey {
+        socean_program::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         SOCEAN_STAKE_POOL_LABEL
     }

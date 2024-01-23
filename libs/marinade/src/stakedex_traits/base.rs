@@ -3,7 +3,7 @@ use solana_program::pubkey::Pubkey;
 use stakedex_sdk_common::{
     account_missing_err,
     jupiter_stakedex_interface::{AccountMap, KeyedAccount},
-    marinade_state, msol, BaseStakePoolAmm, InitFromKeyedAccount,
+    marinade_program, marinade_state, msol, BaseStakePoolAmm, InitFromKeyedAccount,
 };
 
 use crate::{MarinadeStakedex, MARINADE_LABEL};
@@ -20,6 +20,10 @@ impl InitFromKeyedAccount for MarinadeStakedex {
 }
 
 impl BaseStakePoolAmm for MarinadeStakedex {
+    fn program_id(&self) -> Pubkey {
+        marinade_program::ID
+    }
+
     fn stake_pool_label(&self) -> &'static str {
         MARINADE_LABEL
     }

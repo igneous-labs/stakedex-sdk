@@ -627,7 +627,7 @@ fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: Option<u
         amount,
         input_mint,
         output_mint,
-        swap_mode: SwapMode::ExactIn,
+        swap_mode: SwapMode::default(),
     });
 
     match res {
@@ -737,7 +737,7 @@ fn test_jsol_drain_vsa_edge_case() {
     let parts_after_fees = (STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.denominator
         - STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.numerator)
         as u128;
-    let max_withdraw_lamports_bef_fees = ((max_withdraw_lamports as u128)
+    let max_withdraw_lamports_bef_fees = u128::from(max_withdraw_lamports)
         * (STAKEDEX.jpool.stake_pool.stake_withdrawal_fee.denominator as u128)
         + parts_after_fees
         - 1)
@@ -812,7 +812,7 @@ pub fn sim_swap_via_stake(
             amount,
             input_mint,
             output_mint,
-            swap_mode: SwapMode::ExactIn,
+            swap_mode: SwapMode::default(),
         })
         .unwrap();
     // println!("{:?}", quote);

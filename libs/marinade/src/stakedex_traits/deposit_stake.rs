@@ -1,6 +1,8 @@
 use anyhow::Result;
 use solana_program::{instruction::Instruction, stake, system_program, sysvar};
-use stakedex_deposit_stake_interface::{marinade_deposit_stake_ix, MarinadeDepositStakeKeys};
+use stakedex_deposit_stake_interface::{
+    marinade_deposit_stake_ix, MarinadeDepositStakeKeys, MARINADE_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
+};
 use stakedex_sdk_common::{
     marinade_program, marinade_state, DepositStake, DepositStakeInfo, DepositStakeQuote,
     WithdrawStakeQuote,
@@ -77,5 +79,9 @@ impl DepositStake for MarinadeStakedex {
             token_program: spl_token::ID,
             stake_program: stake::program::ID,
         })?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        MARINADE_DEPOSIT_STAKE_IX_ACCOUNTS_LEN
     }
 }

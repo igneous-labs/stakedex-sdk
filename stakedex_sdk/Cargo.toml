@@ -3,6 +3,9 @@ name = "stakedex_sdk"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+test-utils = []
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -23,5 +26,5 @@ stakedex_unstake_it = { workspace = true }
 itertools = "0.10.5"
 
 [dev-dependencies]
-solana-client.workspace = true
-lazy_static.workspace = true
+solana-client = { workspace = true }
+lazy_static = { workspace = true }

@@ -84,4 +84,10 @@ pub trait DepositStake: BaseStakePoolAmm {
             ..Quote::default()
         }
     }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        None
+    }
+
+    fn accounts_len(&self) -> usize;
 }
