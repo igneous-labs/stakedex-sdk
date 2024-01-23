@@ -5,9 +5,7 @@ use itertools::Itertools;
 use jupiter_amm_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
 use lazy_static::lazy_static;
 use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList, SplPoolAccounts};
-use solana_sdk::{
-    account::Account, clock::Clock, instruction::Instruction, pubkey::Pubkey, system_program,
-};
+use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{
     DepositStakeKeys, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeArgs,
@@ -467,46 +465,22 @@ impl Stakedex {
         for (first_stakedex, second_stakedex) in stakedexes.into_iter().tuple_combinations() {
             match (first_stakedex, second_stakedex) {
                 (Stakedex::SplStakePool(p1), Stakedex::SplStakePool(p2)) => {
-                    amms.push(Box::new(TwoWayPoolPair {
-                        p1,
-                        p2,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(TwoWayPoolPair::new(p1, p2)));
                 }
                 match_stakedexes!(SplStakePool, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(SplStakePool, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Lido, SplStakePool, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Lido, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Lido, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair {
-                        withdraw,
-                        deposit,
-                        clock: Clock::default(),
-                    }));
+                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
                 }
                 match_stakedexes!(Marinade, UnstakeIt, _, _) => (), // Cannot do anything with those two
                 match_same_stakedex!(UnstakeIt)
@@ -515,11 +489,19 @@ impl Stakedex {
             }
         }
 
-        println!(
-            "StakeDex amms: {:?}",
-            amms.iter().map(|amm| amm.label()).collect::<Vec<_>>()
-        );
-
         amms
     }
+}
+
+pub mod test_utils {
+    pub use stakedex_lido::LidoStakedex;
+    pub use stakedex_marinade::MarinadeStakedex;
+    pub use stakedex_sdk_common::DepositSolWrapper;
+    pub use stakedex_sdk_common::{
+        jito_stake_pool, lido_program, lido_state, marinade_program, marinade_state,
+        socean_program, socean_stake_pool, unstake_it_pool,
+    };
+    pub use stakedex_spl_stake_pool as spl_stake_pool;
+    pub use stakedex_spl_stake_pool::SplStakePoolStakedex;
+    pub use stakedex_unstake_it::UnstakeItStakedex;
 }

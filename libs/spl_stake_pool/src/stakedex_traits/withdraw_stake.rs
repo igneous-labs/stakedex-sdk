@@ -1,9 +1,10 @@
 use anyhow::Result;
-use solana_program::{instruction::Instruction, stake, system_program, sysvar};
+use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
 use spl_stake_pool::{find_stake_program_address, MINIMUM_ACTIVE_STAKE};
 use stakedex_sdk_common::{WithdrawStakeBase, WithdrawStakeIter, WithdrawStakeQuote};
 use stakedex_withdraw_stake_interface::{
     spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeKeys,
+    SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 
 use crate::SplStakePoolStakedex;
@@ -124,5 +125,13 @@ impl WithdrawStakeBase for SplStakePoolStakedex {
                 system_program: system_program::ID,
             },
         )?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN
+    }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&self.stake_pool_addr)
     }
 }

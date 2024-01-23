@@ -4,6 +4,8 @@ use jupiter_amm_interface::AccountMap;
 use solana_program::pubkey::Pubkey;
 
 pub trait BaseStakePoolAmm {
+    fn program_id(&self) -> Pubkey;
+
     fn stake_pool_label(&self) -> &str;
 
     /// For ID purposes

@@ -1,7 +1,10 @@
 use anyhow::Result;
 use solana_program::instruction::Instruction;
 use spl_stake_pool::error::StakePoolError;
-use stakedex_deposit_sol_interface::{spl_stake_pool_deposit_sol_ix, SplStakePoolDepositSolKeys};
+use stakedex_deposit_sol_interface::{
+    spl_stake_pool_deposit_sol_ix, SplStakePoolDepositSolKeys,
+    SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN,
+};
 use stakedex_sdk_common::{DepositSol, DepositSolQuote};
 
 use crate::SplStakePoolStakedex;
@@ -53,5 +56,9 @@ impl DepositSol for SplStakePoolStakedex {
             stake_pool_manager_fee: self.stake_pool.manager_fee_account,
             stake_pool_reserve_stake: self.stake_pool.reserve_stake,
         })?)
+    }
+
+    fn accounts_len(&self) -> usize {
+        SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN
     }
 }

@@ -100,6 +100,12 @@ pub trait WithdrawStakeBase {
     fn can_accept_stake_withdrawals(&self) -> bool;
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction>;
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        None
+    }
+
+    fn accounts_len(&self) -> usize;
 }
 
 pub trait WithdrawStake: BaseStakePoolAmm + WithdrawStakeBase {

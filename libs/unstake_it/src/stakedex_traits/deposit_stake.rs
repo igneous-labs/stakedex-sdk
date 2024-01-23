@@ -1,6 +1,9 @@
 use anyhow::Result;
-use solana_program::{instruction::Instruction, stake, system_program, sysvar};
-use stakedex_deposit_stake_interface::{unstake_it_deposit_stake_ix, UnstakeItDepositStakeKeys};
+use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
+use stakedex_deposit_stake_interface::{
+    unstake_it_deposit_stake_ix, UnstakeItDepositStakeKeys,
+    UNSTAKE_IT_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
+};
 use stakedex_sdk_common::{
     unstake_it_pool, unstake_it_program, DepositStake, DepositStakeInfo, DepositStakeQuote,
     WithdrawStakeQuote, ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS,
@@ -66,5 +69,13 @@ impl DepositStake for UnstakeItStakedex {
             stake_program: stake::program::ID,
             system_program: system_program::ID,
         })?)
+    }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&unstake_it_pool::ID)
+    }
+
+    fn accounts_len(&self) -> usize {
+        UNSTAKE_IT_DEPOSIT_STAKE_IX_ACCOUNTS_LEN
     }
 }
