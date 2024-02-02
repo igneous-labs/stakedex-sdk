@@ -1975,7 +1975,7 @@ dependencies = [
 [[package]]
 name = "lido"
 version = "1.3.6"
-source = "git+https://github.com/jup-ag/solido?rev=ec25a9b#ec25a9b9f3415bf5fd0354cf3ae6d239c28e2c87"
+source = "git+https://github.com/jup-ag/solido?branch=jupiter#ec25a9b9f3415bf5fd0354cf3ae6d239c28e2c87"
 dependencies = [
  "arrayref",
  "borsh 0.10.3",
@@ -2024,7 +2024,7 @@ checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 [[package]]
 name = "marinade_finance_interface"
 version = "0.1.0"
-source = "git+https://github.com/igneous-labs/marinade_finance_interface?rev=4d1895b#4d1895b6b1c34d731c1589e6d8a6c8feb6258152"
+source = "git+https://github.com/igneous-labs/marinade_finance_interface?branch=master#4d1895b6b1c34d731c1589e6d8a6c8feb6258152"
 dependencies = [
  "borsh 0.10.3",
  "num-derive 0.4.1",
@@ -3043,7 +3043,7 @@ checksum = "f98d2aa92eebf49b69786be48e4477826b256916e84a57ff2a4f21923b48eb4c"
 [[package]]
 name = "sanctum-lst-list"
 version = "0.1.0"
-source = "git+https://github.com/igneous-labs/sanctum-lst-list.git?rev=ada4de3#ada4de36641e8fdc05e3a16625eb02fb1ca014db"
+source = "git+https://github.com/igneous-labs/sanctum-lst-list.git?branch=master#25eaf5ff36eef1b7fb4a44a29dc4f2d00ab8a183"
 dependencies = [
  "sanctum-macros",
  "serde",
