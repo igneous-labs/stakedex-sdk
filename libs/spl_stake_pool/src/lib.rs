@@ -8,9 +8,9 @@ use spl_stake_pool::{
 use stakedex_sdk_common::{WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
 
 mod stakedex_traits;
-pub use spl_stake_pool::ID;
 pub use stakedex_traits::*;
 
+/// A SPL stake pool with possibly custom program ID
 #[derive(Clone, Default)]
 pub struct SplStakePoolStakedex {
     pub stake_pool_addr: Pubkey,

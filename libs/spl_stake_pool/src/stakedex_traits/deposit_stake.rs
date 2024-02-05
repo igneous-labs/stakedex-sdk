@@ -14,7 +14,11 @@ use crate::SplStakePoolStakedex;
 impl DepositStake for SplStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
         if self.stake_pool.stake_deposit_authority
-            != find_deposit_authority_program_address(&spl_stake_pool::ID, &self.stake_pool_addr).0
+            != find_deposit_authority_program_address(
+                &self.stake_pool_program,
+                &self.stake_pool_addr,
+            )
+            .0
         {
             return false;
         }
