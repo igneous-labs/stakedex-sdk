@@ -40,7 +40,7 @@ impl InitFromKeyedAccount for SplStakePoolStakedex {
 
 impl BaseStakePoolAmm for SplStakePoolStakedex {
     fn program_id(&self) -> Pubkey {
-        spl_stake_pool::ID
+        self.stake_pool_program
     }
 
     fn stake_pool_label(&self) -> &str {
