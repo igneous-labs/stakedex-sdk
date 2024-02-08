@@ -16,7 +16,11 @@ pub fn stake_pool_pair_amm_key_seeds<'seeds>(
     pool1: &'seeds Pubkey,
     pool2: &'seeds Pubkey,
 ) -> [&'seeds [u8]; 2] {
-    [pool1.as_ref(), pool2.as_ref()]
+    if pool1 < pool2 {
+        [pool1.as_ref(), pool2.as_ref()]
+    } else {
+        [pool2.as_ref(), pool1.as_ref()]
+    }
 }
 
 pub fn bridge_stake_seeds<'seeds>(
