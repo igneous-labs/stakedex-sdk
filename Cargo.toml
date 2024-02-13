@@ -21,7 +21,7 @@ marinade_finance_interface = { git = "https://github.com/igneous-labs/marinade_f
 num-derive = ">=0.1"
 num-traits = ">=0.1"
 rust_decimal = ">=1.0,<=1.32.0" # anything >1.32 uses borsh ^1
-sanctum-lst-list = { git = "https://github.com/igneous-labs/sanctum-lst-list.git", branch = "master" } # rev = 25eaf5f
+sanctum-lst-list = { git = "https://github.com/igneous-labs/sanctum-lst-list.git", branch = "master" } # rev = 70e955f
 sanctum-macros = "^1.2"
 serde = "^1"
 spl-associated-token-account = { version = ">=1", features = ["no-entrypoint"] }
