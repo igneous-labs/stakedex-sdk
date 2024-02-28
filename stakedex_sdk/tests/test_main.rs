@@ -17,7 +17,7 @@ use std::{cmp, collections::HashMap, iter::zip};
 
 // Alameda account. Last known balances:
 // - SOL: 0.011764419 (enough for a new token account)
-// - jSOL: 364859
+// - jSOL: 40000
 // - scnSOL: 60
 // - wSOL: 7004
 pub mod whale {
@@ -416,7 +416,7 @@ pub fn sim_swap_via_stake(
             RpcSimulateTransactionConfig {
                 accounts: Some(RpcSimulateTransactionAccountsConfig {
                     addresses: vec![src_token_acc.to_string(), dst_token_acc.to_string()],
-                    encoding: Some(UiAccountEncoding::JsonParsed),
+                    encoding: Some(UiAccountEncoding::Base64), // UiAccount::decode::<Account>() does NOT work for JSONn
                 }),
                 ..RpcSimulateTransactionConfig::default()
             },

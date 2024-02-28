@@ -1,7 +1,10 @@
 pub mod stakedex_program {
     sanctum_macros::declare_program_keys!(
         "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
-        [("sol-bridge-out", b"sol_bridge_out")]
+        [
+            ("sol-bridge-out", b"sol_bridge_out"),
+            ("prefunder", b"prefunder"),
+        ]
     );
 }
 
