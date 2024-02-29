@@ -1,5 +1,5 @@
 use solana_program::pubkey::Pubkey;
-use solana_sdk::{pubkey::PubkeyError, stake};
+use solana_program::{pubkey::PubkeyError, stake};
 
 pub const FEE_TOKEN_ACCOUNT_SEED_PREFIX: &[u8; 3] = b"fee";
 

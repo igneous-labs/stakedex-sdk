@@ -4566,15 +4566,10 @@ name = "stakedex_sdk_common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bincode",
  "jupiter-amm-interface",
- "rand 0.8.5",
  "rust_decimal",
  "sanctum-macros",
  "solana-program",
- "solana-sdk",
- "spl-token 4.0.0",
- "stakedex_deposit_sol_interface",
  "stakedex_interface",
  "thiserror",
 ]
