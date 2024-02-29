@@ -94,8 +94,9 @@ impl SplStakePoolStakedex {
 
 #[cfg(test)]
 mod tests {
+    use stakedex_jup_interface::DepositSolWrapper;
+
     use crate::*;
-    use stakedex_sdk_common::DepositSolWrapper;
 
     #[test]
     fn test_wrapper_impls_amm_correctly_compile_time() {

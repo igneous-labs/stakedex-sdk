@@ -8,8 +8,8 @@ use stakedex_sdk_common::{
     apply_global_fee, find_bridge_stake, find_fee_token_acc, slumdog_stake_create_with_seed,
     stakedex_program, unstake_it_pool, unstake_it_program, DepositStake, DepositStakeInfo,
     DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake, WithdrawStakeQuote,
-    WithdrawStakeQuoteErr, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    WithdrawStakeQuoteErr, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 use std::collections::HashSet;
 
@@ -24,7 +24,7 @@ pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
 ) -> Result<Vec<AccountMeta>> {
     // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
     let prefund_split_lamports = prefund_repay_params.prefund_split_lamports()?;
-    let (withdraw_quote, deposit_quote) = first_avail_quote(
+    let (withdraw_quote, deposit_quote) = first_avail_prefund_quote(
         swap_params.in_amount,
         prefund_split_lamports,
         withdraw_from,
@@ -83,7 +83,7 @@ pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     deposit_to: &D,
 ) -> Result<Quote> {
     let prefund_split_lamports = prefund_repay_params.prefund_split_lamports()?;
-    let (withdraw_quote, deposit_quote) = first_avail_quote(
+    let (withdraw_quote, deposit_quote) = first_avail_prefund_quote(
         quote_params.amount,
         prefund_split_lamports,
         withdraw_from,
@@ -149,7 +149,7 @@ pub(crate) fn prepare_underlying_liquidities(
 ///   withdraw_stake_quote before splitting off prefund lamports,
 ///   deposit_stake_quote,
 ///)
-fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
+fn first_avail_prefund_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     withdraw_amount: u64,
     prefund_split_lamports: u64,
     withdraw_from: &W,
@@ -158,9 +158,9 @@ fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     if !withdraw_from.can_accept_stake_withdrawals() {
         return Err(WithdrawStakeQuoteErr::CannotAcceptStakeWithdrawals.into());
     }
-    //let split_lamports = prefund_repay_params.prefund_split_lamports()?;
     let withdraw_quote_iter = withdraw_from.withdraw_stake_quote_iter_dyn(withdraw_amount);
     for wsq in withdraw_quote_iter {
+        let wsq = prefund_transform_wsq(wsq);
         let mut wsq_after_prefund = wsq;
         wsq_after_prefund.lamports_out = wsq.lamports_out.saturating_sub(prefund_split_lamports);
         wsq_after_prefund.lamports_staked =
@@ -174,6 +174,13 @@ fn first_avail_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
         }
     }
     Err(SwapViaStakeQuoteErr::NoRouteFound)
+}
+
+/// Since we're prefunding bridge stake with the rent, we need to add it to the output stake account
+fn prefund_transform_wsq(mut wsq: WithdrawStakeQuote) -> WithdrawStakeQuote {
+    wsq.lamports_staked = wsq.lamports_out;
+    wsq.lamports_out += STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS;
+    wsq
 }
 
 /// Calculates approximate fees charged in terms of out token given known

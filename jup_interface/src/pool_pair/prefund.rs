@@ -3,6 +3,7 @@ use jupiter_amm_interface::AccountMap;
 use solana_sdk::{account::Account, pubkey::Pubkey};
 use stakedex_sdk_common::{
     unstake_it_pool, unstake_it_program, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS,
 };
 use unstake_interface::{
     Fee, FeeAccount, FeeEnum, Pool, PoolAccount, ProtocolFee, ProtocolFeeAccount,
@@ -65,6 +66,9 @@ impl PrefundRepayParams {
         // - dynamic rent
         // - SOL minimum delegation feature
         let lamports_required = 2 * STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS;
+        if self.sol_reserves_lamports < lamports_required + ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS {
+            return Err(anyhow!("Not enough liquidity for slumdog instant unstake"));
+        }
         let slumdog_target_lamports = self
             .fee
             .pseudo_reverse(ReverseFeeArgs {

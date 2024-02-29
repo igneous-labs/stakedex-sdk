@@ -6,9 +6,7 @@ mod deposit_stake;
 mod errs;
 mod fees;
 mod init_from_keyed_account;
-pub mod jupiter_stakedex_interface;
 mod pda;
-mod pool_pair;
 mod withdraw_stake;
 
 pub use address::*;
@@ -20,5 +18,4 @@ pub use errs::*;
 pub use fees::*;
 pub use init_from_keyed_account::*;
 pub use pda::*;
-pub use pool_pair::*;
 pub use withdraw_stake::*;

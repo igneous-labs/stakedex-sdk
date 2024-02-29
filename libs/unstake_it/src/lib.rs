@@ -14,10 +14,10 @@ pub const ZERO_RATIONAL: Rational = Rational { num: 0, denom: 1 };
 
 #[derive(Clone)]
 pub struct UnstakeItStakedex {
-    pool: Pool,
-    fee: Fee,
-    protocol_fee: ProtocolFee,
-    sol_reserves_lamports: u64,
+    pub pool: Pool,
+    pub fee: Fee,
+    pub protocol_fee: ProtocolFee,
+    pub sol_reserves_lamports: u64,
 }
 
 impl Default for UnstakeItStakedex {

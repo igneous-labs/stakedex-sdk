@@ -4513,6 +4513,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "borsh 0.10.3",
+ "jupiter-amm-interface",
  "lido",
  "solana-client",
  "solana-program",
@@ -4528,6 +4529,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "borsh 0.10.3",
+ "jupiter-amm-interface",
  "marinade_finance_interface",
  "solana-program",
  "spl-token 4.0.0",
@@ -4551,6 +4553,7 @@ dependencies = [
  "spl-associated-token-account",
  "spl-token 3.5.0",
  "stakedex_interface",
+ "stakedex_jup_interface",
  "stakedex_lido",
  "stakedex_marinade",
  "stakedex_sdk_common",
@@ -4583,11 +4586,13 @@ dependencies = [
  "anyhow",
  "bincode",
  "borsh 0.10.3",
+ "jupiter-amm-interface",
  "solana-program",
  "spl-stake-pool",
  "spl-token 4.0.0",
  "stakedex_deposit_sol_interface",
  "stakedex_deposit_stake_interface",
+ "stakedex_jup_interface",
  "stakedex_sdk_common",
  "stakedex_withdraw_stake_interface",
 ]
@@ -4597,6 +4602,7 @@ name = "stakedex_unstake_it"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "jupiter-amm-interface",
  "solana-program",
  "spl-math 0.1.0",
  "spl-token 4.0.0",

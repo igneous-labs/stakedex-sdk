@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = { workspace = true }
 bincode = { workspace = true }
 borsh = { workspace = true }
+jupiter-amm-interface = { workspace = true }
 solana-program = { workspace = true }
 spl-stake-pool = { workspace = true }
 spl-token = { workspace = true }
@@ -16,3 +17,6 @@ stakedex_deposit_sol_interface = { workspace = true }
 stakedex_deposit_stake_interface = { workspace = true }
 stakedex_sdk_common = { workspace = true }
 stakedex_withdraw_stake_interface = { workspace = true }
+
+[dev-dependencies]
+stakedex_jup_interface = { workspace = true }
