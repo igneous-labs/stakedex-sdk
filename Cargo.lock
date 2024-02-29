@@ -4490,6 +4490,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "stakedex_jup_interface"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "jupiter-amm-interface",
+ "rand 0.8.5",
+ "rust_decimal",
+ "solana-sdk",
+ "spl-token 3.5.0",
+ "stakedex_interface",
+ "stakedex_sdk_common",
+ "unstake-lib",
+ "unstake_interface",
+]
+
+[[package]]
 name = "stakedex_lido"
 version = "0.1.0"
 dependencies = [

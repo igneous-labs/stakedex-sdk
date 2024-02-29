@@ -370,7 +370,8 @@ pub fn sim_swap_via_stake(
                 amount, input_mint, output_mint, err
             );
             /*
-            // dont ignore errors, comment out the tests instead
+            // EDIT: dont ignore errors, comment out the tests instead
+            //
             // - ignores these errors:
             //     - no route found between pools
             //     - stake pool cannot accept stake deposits at this time

@@ -37,9 +37,15 @@ pub struct DepositStakeInfo {
 pub trait DepositStake: BaseStakePoolAmm {
     /// Quotes a deposit stake operation that corresponds to the given withdraw_stake_quote
     ///
-    /// This should only include the stake pool's deposit stake fees, not stakedex's global fees
-    /// Returns Err if stake pool cannot currently accept stake deposits (e.g. not yet updated for this epoch)
-    /// Returns DepositStakeQuote::default() if unable to handle withdraw_stake_quote (e.g. cannot accept provided voter)
+    /// Returns value should only include the stake pool's deposit stake fees, not stakedex's global fees.
+    ///
+    /// `withdraw_stake_quote` should represent the stake account that's being deposited.
+    /// i.e. in the case of PrefundSwapViaStake, the slumdog stake amount should have been subtracted from
+    /// `withdraw_stake_quote.lamports_out` and `withdraw_stake_quote.lamports_staked`
+    ///
+    /// ## Returns
+    /// - `Err` if stake pool cannot currently accept stake deposits (e.g. not yet updated for this epoch)
+    /// - [`DepositStakeQuote::default()`] if unable to handle withdraw_stake_quote (e.g. cannot accept provided voter)
     fn get_deposit_stake_quote(
         &self,
         withdraw_stake_quote: WithdrawStakeQuote,
