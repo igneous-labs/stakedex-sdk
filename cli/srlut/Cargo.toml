@@ -1,0 +1,9 @@
+[package]
+name = "srlut"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+sanctum-solana-cli-utils = { workspace = true, features = ["clap"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
