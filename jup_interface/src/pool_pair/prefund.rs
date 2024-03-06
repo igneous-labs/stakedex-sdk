@@ -10,6 +10,11 @@ use unstake_interface::{
 };
 use unstake_lib::{PoolBalance, ReverseFeeArgs, UnstakeFeeCalc};
 
+// TODO: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS will change with:
+// - dynamic rent
+// - SOL minimum delegation feature
+pub const PREFUND_FLASH_LOAN_LAMPORTS: u64 = 2 * STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS;
+
 /// unstakeit pool account data required
 /// to give an instant unstake quote in order to power the prefund flash loan
 #[derive(Clone, Debug)]
@@ -55,22 +60,14 @@ impl PrefundRepayParams {
         Ok(())
     }
 
-    /// Computes the lamports that must be split off from bridge_stake to slumdog_stake in order to
-    /// instant unstake slumdog_stake to repay the prefund flash loan.
-    ///
-    /// This value is basically a SOL denominated fee for the user and should be subtracted from both
-    /// `withdraw_stake_quote.lamports_out` and `withdraw_stake_quote.staked_lamports` before passing `withdraw_stake_quote` to
-    /// get_deposit_stake_quote()
-    pub fn prefund_split_lamports(&self) -> Result<u64> {
-        // TODO: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS will change with:
-        // - dynamic rent
-        // - SOL minimum delegation feature
-        let lamports_required = 2 * STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS;
+    /// Computes the total lamports (including rent) that the slumdog stake account
+    /// should consist of when it gets instant unstaked in order to repay the prefund flash loan
+    pub fn slumdog_target_lamports(&self) -> Result<u64> {
+        let lamports_required = PREFUND_FLASH_LOAN_LAMPORTS;
         if self.sol_reserves_lamports < lamports_required + ZERO_DATA_ACC_RENT_EXEMPT_LAMPORTS {
             return Err(anyhow!("Not enough liquidity for slumdog instant unstake"));
         }
-        let slumdog_target_lamports = self
-            .fee
+        self.fee
             .pseudo_reverse(ReverseFeeArgs {
                 pool_balance: PoolBalance {
                     pool_incoming_stake: self.incoming_stake,
@@ -78,7 +75,21 @@ impl PrefundRepayParams {
                 },
                 lamports_after_fee: lamports_required,
             })
-            .ok_or_else(|| anyhow!("pseudo_reverse() MathError"))?;
+            .ok_or_else(|| anyhow!("pseudo_reverse() MathError"))
+    }
+
+    /// Computes the lamports that must be split off from bridge_stake to slumdog_stake in order to
+    /// instant unstake slumdog_stake to repay the prefund flash loan.
+    ///
+    /// This value is basically a SOL denominated fee for the user and should be subtracted from both
+    /// `withdraw_stake_quote.lamports_out` and `withdraw_stake_quote.staked_lamports` before passing `withdraw_stake_quote` to
+    /// get_deposit_stake_quote().
+    ///
+    /// The stake account instant unstaked to repay the flash loan will comprise
+    /// - return value staked lamports
+    /// - STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS unstaked lamports
+    pub fn prefund_split_lamports(&self) -> Result<u64> {
+        let slumdog_target_lamports = self.slumdog_target_lamports()?;
         Ok(slumdog_target_lamports.saturating_sub(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS))
     }
 }

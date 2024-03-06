@@ -4745,6 +4745,7 @@ dependencies = [
  "spl-math 0.1.0",
  "spl-token 4.0.0",
  "stakedex_deposit_stake_interface",
+ "stakedex_jup_interface",
  "stakedex_sdk_common",
  "unstake-lib",
  "unstake_interface",

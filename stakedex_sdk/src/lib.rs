@@ -24,7 +24,7 @@ use stakedex_sdk_common::{
     DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
-use stakedex_unstake_it::UnstakeItStakedex;
+use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use stakedex_interface::ID as stakedex_program_id;
 
@@ -52,7 +52,7 @@ macro_rules! match_same_stakedex {
 #[derive(Clone, Default)]
 pub struct Stakedex {
     pub spls: Vec<SplStakePoolStakedex>,
-    pub unstakeit: UnstakeItStakedex,
+    pub unstakeit: UnstakeItStakedexPrefund,
     pub marinade: MarinadeStakedex,
     pub lido: LidoStakedex,
 }
@@ -109,12 +109,13 @@ impl Stakedex {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
 
-        let unstakeit =
+        let unstakeit = UnstakeItStakedexPrefund(
             init_from_keyed_account_no_params(accounts, &unstake_it_program::SOL_RESERVES_ID)
                 .unwrap_or_else(|e| {
                     errs.push(e);
                     UnstakeItStakedex::default()
-                });
+                }),
+        );
 
         let marinade = init_from_keyed_account_no_params(accounts, &marinade_state::ID)
             .unwrap_or_else(|e| {
@@ -190,7 +191,7 @@ impl Stakedex {
             &unstake_it_program::SOL_RESERVES_ID,
         ) {
             Ok(unstakeit) => {
-                self.unstakeit = unstakeit;
+                self.unstakeit = UnstakeItStakedexPrefund(unstakeit);
                 None
             }
             Err(e) => Some(e),
@@ -215,10 +216,10 @@ impl Stakedex {
 
     pub fn prefund_repay_params(&self) -> PrefundRepayParams {
         PrefundRepayParams {
-            fee: self.unstakeit.fee.fee.clone(),
-            incoming_stake: self.unstakeit.pool.incoming_stake,
-            sol_reserves_lamports: self.unstakeit.sol_reserves_lamports,
-            protocol_fee_dest: self.unstakeit.protocol_fee.destination,
+            fee: self.unstakeit.0.fee.fee.clone(),
+            incoming_stake: self.unstakeit.0.pool.incoming_stake,
+            sol_reserves_lamports: self.unstakeit.0.sol_reserves_lamports,
+            protocol_fee_dest: self.unstakeit.0.protocol_fee.destination,
         }
     }
 
@@ -441,7 +442,7 @@ impl Stakedex {
         #[derive(Clone)]
         enum Stakedex {
             SplStakePool(SplStakePoolStakedex),
-            UnstakeIt(UnstakeItStakedex),
+            UnstakeIt(UnstakeItStakedexPrefund),
             Marinade(MarinadeStakedex),
             Lido(LidoStakedex),
         }

@@ -12,6 +12,7 @@ solana-program = { workspace = true }
 spl-math = { workspace = true }
 spl-token = { workspace = true }
 stakedex_deposit_stake_interface = { workspace = true }
+stakedex_jup_interface = { workspace = true }
 stakedex_sdk_common = { workspace = true }
 unstake_interface = { workspace = true }
 unstake-lib = { workspace = true }

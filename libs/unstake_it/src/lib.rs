@@ -6,7 +6,8 @@ mod pda;
 mod stakedex_traits;
 
 pub use pda::*;
-pub use stakedex_traits::*;
+
+use stakedex_traits::*;
 
 pub const UNSTAKE_IT_LABEL: &str = "Unstake.it";
 
@@ -62,3 +63,6 @@ impl UnstakeItStakedex {
         Ok(())
     }
 }
+
+#[derive(Clone, Default)]
+pub struct UnstakeItStakedexPrefund(pub UnstakeItStakedex);

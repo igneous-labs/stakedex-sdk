@@ -20,11 +20,11 @@ use stakedex_sdk::{Stakedex, SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT};
 use stakedex_sdk_common::{bsol, daosol, jitosol, jsol, msol};
 use std::{cmp, collections::HashMap, iter::zip};
 
-// Alameda account. Last known balances:
-// - SOL: 0.1 (enough for a new token account)
-// - jSOL: 40000
+// JSOL whale. Last known balances:
+// - SOL: 1 (enough for a new token account)
+// - JSOL: 175721.072392432
 pub mod whale {
-    solana_sdk::declare_id!("7TWiKQh821UNQKsXSwd4ZHCNg1qiizDLc8NbpXWqrQpv");
+    solana_sdk::declare_id!("5HByfdAGKAJ44Qsq7pLX65n8faur4mvCT81Nqc8LusUL");
 }
 
 pub mod jupiter_program {
@@ -32,9 +32,8 @@ pub mod jupiter_program {
     solana_sdk::declare_id!("JUP4Fb2cqiRUcaTHdrPC8h2gNsA2ETXiPDD33WcGuJB");
 }
 
-// sanctum look up table
-pub mod slut {
-    solana_sdk::declare_id!("EhWxBHdmQ3yDmPzhJbKtGMM9oaZD42emt71kSieghy5");
+pub mod srlut {
+    solana_sdk::declare_id!("KtrvWWkPkhSWM9VMqafZhgnTuozQiHzrBDT8oPcMj3T");
 }
 
 lazy_static! {
@@ -55,10 +54,10 @@ lazy_static! {
     };
     // With the change to PrefundSwapViaStake, all TXs now must use a LUT or it wont fit
     static ref SLUT: AddressLookupTableAccount = {
-        let slut_acc_data = RPC.get_account_data(&slut::ID).unwrap();
+        let slut_acc_data = RPC.get_account_data(&srlut::ID).unwrap();
         let AddressLookupTable { addresses, .. } = AddressLookupTable::deserialize(&slut_acc_data).unwrap();
         AddressLookupTableAccount {
-            key: slut::ID,
+            key: srlut::ID,
             addresses: Vec::from(addresses),
         }
     };
@@ -470,13 +469,6 @@ pub fn sim_swap_via_stake(
     // println!("Before input balance: {:?}\nAfter input balance: {:?}\nBefore output balance: {:?}\nAfter output balance: {:?}", before_source_amount, after_source_amount, before_destination_amount, after_destination_amount);
 
     assert_eq!(quote.in_amount, before_source_amount - after_source_amount);
-    // TODO: if deposit stake is unstake.it then quote will be wrong because
-    // the slumdog instant unstake changes the rates for the second actual unstake
     let actual_out_amount = after_destination_amount - before_destination_amount;
-    if output_mint != native_mint::ID {
-        assert_eq!(quote.out_amount, actual_out_amount);
-    } else {
-        const MAX_ALLOWED_DIFF: u64 = 20;
-        assert!(quote.out_amount <= actual_out_amount + MAX_ALLOWED_DIFF);
-    }
+    assert_eq!(quote.out_amount, actual_out_amount);
 }
