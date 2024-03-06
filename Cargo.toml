@@ -2,16 +2,18 @@
 resolver = "2"
 
 members = [
-    "stakedex_sdk",
+    "cli/*",
     "common",
+    "interfaces/*",
     "libs/*",
-    "interfaces/*"
+    "stakedex_sdk"
 ]
 
 [workspace.dependencies]
 anyhow = "^1.0"
 bincode = "^1.0"
 borsh = ">=0.9,<1.0.0"
+clap = "^3"
 itertools = ">=0.1"
 jupiter-amm-interface = "~0.3.2"
 lazy_static = "^1.0"
@@ -24,13 +26,18 @@ rust_decimal = ">=1.0,<=1.32.0" # anything >1.32 uses borsh ^1
 sanctum-lst-list = { git = "https://github.com/igneous-labs/sanctum-lst-list.git", branch = "master" } # rev = e05d193
 sanctum-macros = "^1.2"
 serde = "^1"
+serde_json = "^1"
 spl-associated-token-account = { version = ">=1", features = ["no-entrypoint"] }
 spl-math = { version = "0.1.0", features = ["no-entrypoint"]}
 spl-stake-pool = { version = "^1", features = ["no-entrypoint"] }
 spl-token = ">=3.0"
 thiserror = "^1.0"
+tokio = "^1.0"
 unstake_interface = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
 unstake-lib = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
+
+# sanctum solana utils
+sanctum-solana-cli-utils = { git = "https://github.com/igneous-labs/sanctum-solana-utils.git", branch = "master" } # rev = "38f9fce"
 
 # solana core crates
 solana-program = "^1"
