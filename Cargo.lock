@@ -4598,6 +4598,7 @@ dependencies = [
  "solana-sdk",
  "spl-associated-token-account",
  "spl-token 3.5.0",
+ "stakedex_sdk_common",
  "tokio",
 ]
 

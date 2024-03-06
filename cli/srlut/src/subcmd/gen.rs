@@ -3,6 +3,7 @@ use std::{fs::File, path::PathBuf};
 use clap::Args;
 use solana_sdk::{pubkey::Pubkey, stake, system_program, sysvar};
 use spl_token::native_mint;
+use stakedex_sdk_common::{stakedex_program, unstake_it_program, wsol_bridge_in};
 
 use crate::lut_list::LutList;
 
@@ -64,46 +65,16 @@ const COMMON_PROGRAMS: [Pubkey; 4] = [
 
 const COMMON_MINTS: [Pubkey; 1] = [native_mint::ID];
 
-pub mod reserve_pool_program {
-    // \xde\...\xc6 = reserve pool
-    sanctum_macros::declare_program_keys!(
-        "unpXTU2Ndrc7WWNyEhQWe4udTzSibLPi25SXv2xbCHQ",
-        [
-            ("sol_reserves", b"\xde\x91\xbbP4tnb;\xfb6\xb7=\xae\"\xa4\x83\xb7\xcf\'\xd2\xad\x83\xfa\x8cx\x05\xa6\xcc`+\xc6"),
-            ("fee", b"\xde\x91\xbbP4tnb;\xfb6\xb7=\xae\"\xa4\x83\xb7\xcf\'\xd2\xad\x83\xfa\x8cx\x05\xa6\xcc`+\xc6", b"fee"),
-            ("protocol_fee", b"protocol-fee")
-        ]
-    );
-}
-
 const RESERVE_POOL_ACCOUNTS: [Pubkey; 4] = [
-    reserve_pool_program::ID,
-    reserve_pool_program::SOL_RESERVES_ID,
-    reserve_pool_program::FEE_ID,
-    reserve_pool_program::PROTOCOL_FEE_ID,
+    unstake_it_program::ID,
+    unstake_it_program::SOL_RESERVES_ID,
+    unstake_it_program::FEE_ID,
+    unstake_it_program::PROTOCOL_FEE_ID,
 ];
 
-pub mod router_program {
-    sanctum_macros::declare_program_keys!(
-        "stkitrT1Uoy18Dk1fTrgPw8W6MVzoCfYoAFT4MLsmhq",
-        [
-            ("sol-bridge-out", b"sol_bridge_out"),
-            ("prefunder", b"prefunder"),
-        ]
-    );
-}
-
-pub mod wsol_bridge_in {
-    sanctum_macros::create_with_seed!(
-        "75jTZDE78xpBJokeB2BcimRNY5BZ7U45bWhpgUrTzWZC",
-        "wsol_bridge_in",
-        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-    );
-}
-
 const ROUTER_PROGRAM_ACCOUNTS: [Pubkey; 4] = [
-    router_program::ID,
-    router_program::SOL_BRIDGE_OUT_ID,
-    router_program::PREFUNDER_ID,
+    stakedex_program::ID,
+    stakedex_program::SOL_BRIDGE_OUT_ID,
+    stakedex_program::PREFUNDER_ID,
     wsol_bridge_in::ID,
 ];

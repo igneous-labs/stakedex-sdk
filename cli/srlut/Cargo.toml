@@ -13,4 +13,5 @@ solana-program = { workspace = true }
 solana-sdk = { workspace = true }
 spl-associated-token-account = { workspace = true }
 spl-token = { workspace = true }
+stakedex_sdk_common = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
