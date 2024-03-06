@@ -844,12 +844,26 @@ checksum = "4ea181bf566f71cb9a5d17a59e1871af638180a18fb0035c92ae62b705207123"
 dependencies = [
  "atty",
  "bitflags 1.3.2",
+ "clap_derive",
  "clap_lex",
  "indexmap 1.9.3",
  "once_cell",
  "strsim 0.10.0",
  "termcolor",
  "textwrap 0.16.0",
+]
+
+[[package]]
+name = "clap_derive"
+version = "3.2.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae6371b8bdc8b7d3959e9cf7b22d4435ef3e79e138688421ec654acf8c81b008"
+dependencies = [
+ "heck",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1184,6 +1198,27 @@ dependencies = [
  "block-buffer 0.10.4",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "dirs-next"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b98cf8ebf19c3d1b223e151f99a4f9f0690dca41414773390fc824184ac833e1"
+dependencies = [
+ "cfg-if",
+ "dirs-sys-next",
+]
+
+[[package]]
+name = "dirs-sys-next"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ebda144c4fe02d1f7ea1a7d9641b6fc6b580adcfa024ae48797ecdeb6825b4d"
+dependencies = [
+ "libc",
+ "redox_users",
+ "winapi",
 ]
 
 [[package]]
@@ -1925,6 +1960,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "302d7ab3130588088d277783b1e2d2e10c9e9e4a16dd9050e6ec93fb3e7048f4"
 
 [[package]]
+name = "libredox"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85c833ca1e66078851dba29046874e38f08b2c883700aa29a03ddd3b23814ee8"
+dependencies = [
+ "bitflags 2.4.1",
+ "libc",
+ "redox_syscall",
+]
+
+[[package]]
 name = "libsecp256k1"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2530,6 +2576,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2760,6 +2830,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4722d768eff46b75989dd134e5c353f0d6296e5aaa3132e776cbdb56be7731aa"
 dependencies = [
  "bitflags 1.3.2",
+]
+
+[[package]]
+name = "redox_users"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a18479200779601e498ada4e8c1e1f50e3ee19deb0259c25825a98b5603b2cb4"
+dependencies = [
+ "getrandom 0.2.11",
+ "libredox",
+ "thiserror",
 ]
 
 [[package]]
@@ -3043,7 +3124,7 @@ checksum = "f98d2aa92eebf49b69786be48e4477826b256916e84a57ff2a4f21923b48eb4c"
 [[package]]
 name = "sanctum-lst-list"
 version = "0.1.0"
-source = "git+https://github.com/igneous-labs/sanctum-lst-list.git?branch=master#70e955fd8910a7306c0637b14ee70ed9b8888f16"
+source = "git+https://github.com/igneous-labs/sanctum-lst-list.git?branch=master#e05d193afc6be61235239f32faf8c5e7929c1078"
 dependencies = [
  "sanctum-macros",
  "serde",
@@ -3063,6 +3144,22 @@ dependencies = [
  "quote",
  "solana-program",
  "syn 2.0.41",
+]
+
+[[package]]
+name = "sanctum-solana-cli-utils"
+version = "0.2.0"
+source = "git+https://github.com/igneous-labs/sanctum-solana-utils.git?branch=master#38f9fce3c5f0c0151cdd68099480b8ad5b516423"
+dependencies = [
+ "async-trait",
+ "bincode",
+ "clap 2.34.0",
+ "clap 3.2.25",
+ "data-encoding",
+ "solana-clap-utils",
+ "solana-cli-config",
+ "solana-client",
+ "solana-sdk",
 ]
 
 [[package]]
@@ -3249,6 +3346,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a15e0ef66bf939a7c890a0bf6d5a733c70202225f9888a89ed5c62298b019129"
+dependencies = [
+ "indexmap 2.1.0",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3416,6 +3526,22 @@ dependencies = [
  "thiserror",
  "tiny-bip39",
  "uriparse",
+ "url",
+]
+
+[[package]]
+name = "solana-cli-config"
+version = "1.17.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47c88fefb22ac1f9f8e0f2d33da1b3f6ebc7411e112a26d6490f03d50254c493"
+dependencies = [
+ "dirs-next",
+ "lazy_static",
+ "serde",
+ "serde_derive",
+ "serde_yaml",
+ "solana-clap-utils",
+ "solana-sdk",
  "url",
 ]
 
@@ -4460,6 +4586,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "srlut"
+version = "0.1.0"
+dependencies = [
+ "clap 3.2.25",
+ "sanctum-macros",
+ "sanctum-solana-cli-utils",
+ "serde",
+ "serde_json",
+ "solana-program",
+ "solana-sdk",
+ "spl-associated-token-account",
+ "spl-token 3.5.0",
+ "tokio",
+]
+
+[[package]]
 name = "stakedex_deposit_sol_interface"
 version = "0.1.0"
 dependencies = [
@@ -5084,6 +5226,12 @@ checksum = "382810877fe448991dfc7f0dd6e3ae5d58088fd0ea5e35189655f84e6814fa56"
 dependencies = [
  "void",
 ]
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab4c90930b95a82d00dc9e9ac071b4991924390d46cbd0dfe566148667605e4b"
 
 [[package]]
 name = "unstake-lib"
