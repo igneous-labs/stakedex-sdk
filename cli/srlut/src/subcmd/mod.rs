@@ -1,14 +1,16 @@
 use clap::Subcommand;
 
-use self::{extend::ExtendArgs, gen::GenArgs};
+use self::{extend::ExtendArgs, gen::GenArgs, init::InitArgs};
 
 mod extend;
 mod gen;
+mod init;
 
 #[derive(Debug, Subcommand)]
 pub enum Subcmd {
     Gen(GenArgs),
     Extend(ExtendArgs),
+    Init(InitArgs),
 }
 
 impl Subcmd {
@@ -16,6 +18,7 @@ impl Subcmd {
         match args.subcmd {
             Self::Gen(_) => GenArgs::run(args).await,
             Self::Extend(_) => ExtendArgs::run(args).await,
+            Self::Init(_) => InitArgs::run(args).await,
         }
     }
 }

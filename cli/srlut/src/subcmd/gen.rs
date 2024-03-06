@@ -93,8 +93,17 @@ pub mod router_program {
     );
 }
 
-const ROUTER_PROGRAM_ACCOUNTS: [Pubkey; 3] = [
+pub mod wsol_bridge_in {
+    sanctum_macros::create_with_seed!(
+        "75jTZDE78xpBJokeB2BcimRNY5BZ7U45bWhpgUrTzWZC",
+        "wsol_bridge_in",
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    );
+}
+
+const ROUTER_PROGRAM_ACCOUNTS: [Pubkey; 4] = [
     router_program::ID,
     router_program::SOL_BRIDGE_OUT_ID,
     router_program::PREFUNDER_ID,
+    wsol_bridge_in::ID,
 ];

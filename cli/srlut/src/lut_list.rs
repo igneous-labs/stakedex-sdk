@@ -3,7 +3,7 @@ use std::str::FromStr;
 use serde::{
     de::{self, Visitor},
     ser::SerializeSeq,
-    Serialize,
+    Deserialize, Serialize,
 };
 use solana_sdk::pubkey::Pubkey;
 
@@ -36,9 +36,18 @@ impl<'de> Visitor<'de> for LutListDeser {
         A: serde::de::SeqAccess<'de>,
     {
         let mut res = vec![];
-        while let Some(pk_str) = seq.next_element()? {
-            res.push(Pubkey::from_str(pk_str).map_err(|e| de::Error::custom(format!("{e}")))?);
+        while let Some(pk_str) = seq.next_element::<String>()? {
+            res.push(Pubkey::from_str(&pk_str).map_err(|e| de::Error::custom(format!("{e}")))?);
         }
         Ok(LutList(res))
+    }
+}
+
+impl<'de> Deserialize<'de> for LutList {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(LutListDeser)
     }
 }
