@@ -4590,7 +4590,14 @@ name = "srlut"
 version = "0.1.0"
 dependencies = [
  "clap 3.2.25",
+ "sanctum-macros",
  "sanctum-solana-cli-utils",
+ "serde",
+ "serde_json",
+ "solana-program",
+ "solana-sdk",
+ "spl-associated-token-account",
+ "spl-token 3.5.0",
  "tokio",
 ]
 

@@ -3,6 +3,7 @@ use sanctum_solana_cli_utils::{ConfigWrapper, TxSendMode};
 use subcmd::Subcmd;
 use tokio::runtime::Runtime;
 
+mod lut_list;
 mod subcmd;
 
 #[derive(Parser, Debug)]
