@@ -53,9 +53,9 @@ lazy_static! {
         stakedex
     };
     // With the change to PrefundSwapViaStake, all TXs now must use a LUT or it wont fit
-    static ref SLUT: AddressLookupTableAccount = {
-        let slut_acc_data = RPC.get_account_data(&srlut::ID).unwrap();
-        let AddressLookupTable { addresses, .. } = AddressLookupTable::deserialize(&slut_acc_data).unwrap();
+    static ref SRLUT: AddressLookupTableAccount = {
+        let srlut_acc_data = RPC.get_account_data(&srlut::ID).unwrap();
+        let AddressLookupTable { addresses, .. } = AddressLookupTable::deserialize(&srlut_acc_data).unwrap();
         AddressLookupTableAccount {
             key: srlut::ID,
             addresses: Vec::from(addresses),
@@ -425,7 +425,7 @@ pub fn sim_swap_via_stake(
     let tx = VersionedTransaction {
         signatures: vec![Default::default()], // for payer
         message: VersionedMessage::V0(
-            Message::try_compile(&signer, &ixs, &[SLUT.to_owned()], rbh).unwrap(),
+            Message::try_compile(&signer, &ixs, &[SRLUT.to_owned()], rbh).unwrap(),
         ),
     };
 
