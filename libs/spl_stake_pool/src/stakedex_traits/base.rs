@@ -1,10 +1,7 @@
 use anyhow::Result;
+use jupiter_amm_interface::{AccountMap, KeyedAccount};
 use solana_program::{clock::Clock, pubkey::Pubkey, sysvar};
-use stakedex_sdk_common::{
-    account_missing_err,
-    jupiter_stakedex_interface::{AccountMap, KeyedAccount},
-    BaseStakePoolAmm, InitFromKeyedAccount,
-};
+use stakedex_sdk_common::{account_missing_err, BaseStakePoolAmm, InitFromKeyedAccount};
 
 use crate::SplStakePoolStakedex;
 

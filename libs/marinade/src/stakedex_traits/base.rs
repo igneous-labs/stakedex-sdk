@@ -1,9 +1,9 @@
 use anyhow::Result;
+use jupiter_amm_interface::{AccountMap, KeyedAccount};
 use solana_program::pubkey::Pubkey;
 use stakedex_sdk_common::{
-    account_missing_err,
-    jupiter_stakedex_interface::{AccountMap, KeyedAccount},
-    marinade_program, marinade_state, msol, BaseStakePoolAmm, InitFromKeyedAccount,
+    account_missing_err, marinade_program, marinade_state, msol, BaseStakePoolAmm,
+    InitFromKeyedAccount,
 };
 
 use crate::{MarinadeStakedex, MARINADE_LABEL};

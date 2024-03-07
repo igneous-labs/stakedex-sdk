@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = { workspace = true }
 bincode = { workspace = true }
 borsh = { workspace = true }
+jupiter-amm-interface = { workspace = true }
 lido = { workspace = true }
 solana-program = { workspace = true }
 spl-token = { workspace = true }

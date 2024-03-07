@@ -6,8 +6,13 @@ use solana_client::{
     rpc_config::{RpcSimulateTransactionAccountsConfig, RpcSimulateTransactionConfig},
 };
 use solana_sdk::{
-    account::Account, compute_budget, program_pack::Pack, pubkey::Pubkey, signer::Signer,
-    transaction::Transaction,
+    account::Account,
+    address_lookup_table::{state::AddressLookupTable, AddressLookupTableAccount},
+    compute_budget,
+    message::{v0::Message, VersionedMessage},
+    program_pack::Pack,
+    pubkey::Pubkey,
+    transaction::VersionedTransaction,
 };
 use spl_associated_token_account::get_associated_token_address;
 use spl_token::native_mint;
@@ -15,18 +20,20 @@ use stakedex_sdk::{Stakedex, SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT};
 use stakedex_sdk_common::{bsol, daosol, jitosol, jsol, msol};
 use std::{cmp, collections::HashMap, iter::zip};
 
-// Alameda account. Last known balances:
-// - SOL: 0.011764419 (enough for a new token account)
-// - jSOL: 364859
-// - scnSOL: 60
-// - wSOL: 7004
+// JSOL whale. Last known balances:
+// - SOL: 1 (enough for a new token account)
+// - JSOL: 175721.072392432
 pub mod whale {
-    solana_sdk::declare_id!("9uyDy9VDBw4K7xoSkhmCAm8NAFCwu4pkF6JeHUCtVKcX");
+    solana_sdk::declare_id!("5HByfdAGKAJ44Qsq7pLX65n8faur4mvCT81Nqc8LusUL");
 }
 
 pub mod jupiter_program {
     // NOT IN USE, JUST BECAUSE ITS REQUIRED AS A STRUCT FIELD FOR jupiter_amm_interface::SwapParams
     solana_sdk::declare_id!("JUP4Fb2cqiRUcaTHdrPC8h2gNsA2ETXiPDD33WcGuJB");
+}
+
+pub mod srlut {
+    solana_sdk::declare_id!("KtrvWWkPkhSWM9VMqafZhgnTuozQiHzrBDT8oPcMj3T");
 }
 
 lazy_static! {
@@ -44,6 +51,15 @@ lazy_static! {
             eprintln!("update errs {:?}", errs);
         }
         stakedex
+    };
+    // With the change to PrefundSwapViaStake, all TXs now must use a LUT or it wont fit
+    static ref SRLUT: AddressLookupTableAccount = {
+        let srlut_acc_data = RPC.get_account_data(&srlut::ID).unwrap();
+        let AddressLookupTable { addresses, .. } = AddressLookupTable::deserialize(&srlut_acc_data).unwrap();
+        AddressLookupTableAccount {
+            key: srlut::ID,
+            addresses: Vec::from(addresses),
+        }
     };
 }
 
@@ -370,7 +386,8 @@ pub fn sim_swap_via_stake(
                 amount, input_mint, output_mint, err
             );
             /*
-            // dont ignore errors, comment out the tests instead
+            // EDIT: dont ignore errors, comment out the tests instead
+            //
             // - ignores these errors:
             //     - no route found between pools
             //     - stake pool cannot accept stake deposits at this time
@@ -405,10 +422,12 @@ pub fn sim_swap_via_stake(
             .unwrap(),
     );
     let rbh = rpc.get_latest_blockhash().unwrap();
-    let mut tx = Transaction::new_with_payer(&ixs, Some(&signer));
-    // partial_sign just to add recentblockhash
-    let no_signers: Vec<Box<dyn Signer>> = vec![];
-    tx.partial_sign(&no_signers, rbh);
+    let tx = VersionedTransaction {
+        signatures: vec![Default::default()], // for payer
+        message: VersionedMessage::V0(
+            Message::try_compile(&signer, &ixs, &[SRLUT.to_owned()], rbh).unwrap(),
+        ),
+    };
 
     let result = RPC
         .simulate_transaction_with_config(
@@ -416,7 +435,7 @@ pub fn sim_swap_via_stake(
             RpcSimulateTransactionConfig {
                 accounts: Some(RpcSimulateTransactionAccountsConfig {
                     addresses: vec![src_token_acc.to_string(), dst_token_acc.to_string()],
-                    encoding: Some(UiAccountEncoding::JsonParsed),
+                    encoding: Some(UiAccountEncoding::Base64), // UiAccount::decode::<Account>() does NOT work for JSONn
                 }),
                 ..RpcSimulateTransactionConfig::default()
             },
@@ -450,8 +469,6 @@ pub fn sim_swap_via_stake(
     // println!("Before input balance: {:?}\nAfter input balance: {:?}\nBefore output balance: {:?}\nAfter output balance: {:?}", before_source_amount, after_source_amount, before_destination_amount, after_destination_amount);
 
     assert_eq!(quote.in_amount, before_source_amount - after_source_amount);
-    assert_eq!(
-        quote.out_amount,
-        after_destination_amount - before_destination_amount
-    );
+    let actual_out_amount = after_destination_amount - before_destination_amount;
+    assert_eq!(quote.out_amount, actual_out_amount);
 }

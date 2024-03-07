@@ -1,8 +1,11 @@
 use solana_program::pubkey::Pubkey;
+use solana_program::{pubkey::PubkeyError, stake};
 
 pub const FEE_TOKEN_ACCOUNT_SEED_PREFIX: &[u8; 3] = b"fee";
 
 pub const BRIDGE_STAKE_SEED_PREFIX: &[u8; 12] = b"bridge_stake";
+
+pub const SLUMDOG_SEED: &str = "slumdog";
 
 pub fn fee_token_account_seeds(token_mint: &Pubkey) -> [&[u8]; 2] {
     [FEE_TOKEN_ACCOUNT_SEED_PREFIX, token_mint.as_ref()]
@@ -57,4 +60,8 @@ pub fn find_stake_pool_pair_amm_key(pool1: &Pubkey, pool2: &Pubkey) -> (Pubkey, 
         &stake_pool_pair_amm_key_seeds(pool1, pool2),
         &stakedex_interface::ID,
     )
+}
+
+pub fn slumdog_stake_create_with_seed(bridge_stake: &Pubkey) -> Result<Pubkey, PubkeyError> {
+    Pubkey::create_with_seed(bridge_stake, SLUMDOG_SEED, &stake::program::ID)
 }

@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 borsh = { workspace = true }
+jupiter-amm-interface = { workspace = true }
 marinade_finance_interface = { workspace = true }
 solana-program = { workspace = true }
 spl-token = { workspace = true }

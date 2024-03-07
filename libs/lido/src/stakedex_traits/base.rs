@@ -1,9 +1,8 @@
 use anyhow::Result;
+use jupiter_amm_interface::{AccountMap, KeyedAccount};
 use solana_program::{pubkey::Pubkey, sysvar};
 use stakedex_sdk_common::{
-    account_missing_err,
-    jupiter_stakedex_interface::{AccountMap, KeyedAccount},
-    lido_program, lido_state, stsol, BaseStakePoolAmm, InitFromKeyedAccount,
+    account_missing_err, lido_program, lido_state, stsol, BaseStakePoolAmm, InitFromKeyedAccount,
 };
 
 use crate::{LidoStakedex, LIDO_LABEL};

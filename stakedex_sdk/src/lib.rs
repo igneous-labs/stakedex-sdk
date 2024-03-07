@@ -8,21 +8,23 @@ use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList, SplPoolAccounts};
 use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{
-    DepositStakeKeys, StakeWrappedSolIxArgs, StakeWrappedSolKeys, SwapViaStakeArgs,
-    SwapViaStakeIxArgs, SwapViaStakeKeys,
+    DepositStakeKeys, PrefundSwapViaStakeIxArgs, PrefundSwapViaStakeKeys, StakeWrappedSolIxArgs,
+    StakeWrappedSolKeys, SwapViaStakeArgs,
+};
+use stakedex_jup_interface::{
+    get_account_metas, quote_pool_pair, DepositSolWrapper, OneWayPoolPair, PrefundRepayParams,
+    TwoWayPoolPair,
 };
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
 use stakedex_sdk_common::{
-    find_bridge_stake, find_fee_token_acc, first_avail_quote, lido_state, marinade_state, msol,
-    quote_pool_pair, stakedex_program, stsol, unstake_it_program, wsol_bridge_in, BaseStakePoolAmm,
-    DepositSol, DepositSolWrapper, DepositStake, DepositStakeInfo, DepositStakeQuote,
-    InitFromKeyedAccount, OneWayPoolPair, TwoWayPoolPair, WithdrawStake, WithdrawStakeQuote,
-    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX, SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-    SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
+    find_fee_token_acc, lido_state, marinade_state, msol, stakedex_program, stsol,
+    unstake_it_program, wsol_bridge_in, BaseStakePoolAmm, DepositSol, DepositStake,
+    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
+    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
-use stakedex_unstake_it::UnstakeItStakedex;
+use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use stakedex_interface::ID as stakedex_program_id;
 
@@ -50,7 +52,7 @@ macro_rules! match_same_stakedex {
 #[derive(Clone, Default)]
 pub struct Stakedex {
     pub spls: Vec<SplStakePoolStakedex>,
-    pub unstakeit: UnstakeItStakedex,
+    pub unstakeit: UnstakeItStakedexPrefund,
     pub marinade: MarinadeStakedex,
     pub lido: LidoStakedex,
 }
@@ -107,12 +109,13 @@ impl Stakedex {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
 
-        let unstakeit =
+        let unstakeit = UnstakeItStakedexPrefund(
             init_from_keyed_account_no_params(accounts, &unstake_it_program::SOL_RESERVES_ID)
                 .unwrap_or_else(|e| {
                     errs.push(e);
                     UnstakeItStakedex::default()
-                });
+                }),
+        );
 
         let marinade = init_from_keyed_account_no_params(accounts, &marinade_state::ID)
             .unwrap_or_else(|e| {
@@ -188,7 +191,7 @@ impl Stakedex {
             &unstake_it_program::SOL_RESERVES_ID,
         ) {
             Ok(unstakeit) => {
-                self.unstakeit = unstakeit;
+                self.unstakeit = UnstakeItStakedexPrefund(unstakeit);
                 None
             }
             Err(e) => Some(e),
@@ -209,6 +212,15 @@ impl Stakedex {
             }
             err_vec
         })
+    }
+
+    pub fn prefund_repay_params(&self) -> PrefundRepayParams {
+        PrefundRepayParams {
+            fee: self.unstakeit.0.fee.fee.clone(),
+            incoming_stake: self.unstakeit.0.pool.incoming_stake,
+            sol_reserves_lamports: self.unstakeit.0.sol_reserves_lamports,
+            protocol_fee_dest: self.unstakeit.0.protocol_fee.destination,
+        }
     }
 
     // TODO: maybe build an index of { mint: SplStakePoolStakedex } for faster lookups
@@ -256,7 +268,12 @@ impl Stakedex {
                     quote_params.output_mint
                 )
             })?;
-        quote_pool_pair(quote_params, withdraw_from, deposit_to)
+        quote_pool_pair(
+            quote_params,
+            &self.prefund_repay_params(),
+            withdraw_from,
+            deposit_to,
+        )
     }
 
     pub fn swap_via_stake_ix(
@@ -275,46 +292,45 @@ impl Stakedex {
                     swap_params.destination_mint
                 )
             })?;
-        // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
-        let (withdraw_quote, deposit_quote) =
-            first_avail_quote(swap_params.in_amount, withdraw_from, deposit_to)?;
-        let bridge_stake_seed_le_bytes = bridge_stake_seed.to_le_bytes();
-        let bridge_stake = find_bridge_stake(
-            &swap_params.token_transfer_authority,
-            &bridge_stake_seed_le_bytes,
-        )
-        .0;
-        let deposit_stake_info = DepositStakeInfo { addr: bridge_stake };
-
-        let mut ix = stakedex_interface::swap_via_stake_ix(
-            SwapViaStakeKeys {
-                user: swap_params.token_transfer_authority,
-                src_token_from: swap_params.source_token_account,
-                src_token_mint: swap_params.source_mint,
-                dest_token_to: swap_params.destination_token_account,
-                dest_token_mint: swap_params.destination_mint,
-                dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
-                bridge_stake,
+        let mut ix = stakedex_interface::prefund_swap_via_stake_ix(
+            // dont cares for keys, since we replace them with
+            // get_account_metas()
+            PrefundSwapViaStakeKeys {
+                user: Pubkey::default(),
+                src_token_from: Pubkey::default(),
+                dest_token_to: Pubkey::default(),
+                bridge_stake: Pubkey::default(),
+                dest_token_fee_token_account: Pubkey::default(),
+                src_token_mint: Pubkey::default(),
+                dest_token_mint: Pubkey::default(),
+                prefunder: Pubkey::default(),
+                slumdog_stake: Pubkey::default(),
+                unstakeit_program: Pubkey::default(),
+                unstake_pool: Pubkey::default(),
+                pool_sol_reserves: Pubkey::default(),
+                unstake_fee: Pubkey::default(),
+                slumdog_stake_acc_record: Pubkey::default(),
+                unstake_protocol_fee: Pubkey::default(),
+                unstake_protocol_fee_dest: Pubkey::default(),
+                clock: Pubkey::default(),
+                stake_program: Pubkey::default(),
+                system_program: Pubkey::default(),
             },
-            SwapViaStakeIxArgs {
+            PrefundSwapViaStakeIxArgs {
                 args: SwapViaStakeArgs {
                     amount: swap_params.in_amount,
                     bridge_stake_seed,
                 },
             },
         )?;
-        for mint_idx in [
-            SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
-            SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX,
-        ] {
-            if ix.accounts[mint_idx].pubkey == native_mint::ID {
-                ix.accounts[mint_idx].is_writable = false;
-            }
-        }
-        let withdraw_from_virtual_ix = withdraw_from.virtual_ix(&withdraw_quote)?;
-        ix.accounts.extend(withdraw_from_virtual_ix.accounts);
-        let deposit_to_virtual_ix = deposit_to.virtual_ix(&deposit_quote, &deposit_stake_info)?;
-        ix.accounts.extend(deposit_to_virtual_ix.accounts);
+        // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
+        ix.accounts = get_account_metas(
+            swap_params,
+            &self.prefund_repay_params(),
+            withdraw_from,
+            deposit_to,
+            bridge_stake_seed,
+        )?;
         Ok(ix)
     }
 
@@ -426,7 +442,7 @@ impl Stakedex {
         #[derive(Clone)]
         enum Stakedex {
             SplStakePool(SplStakePoolStakedex),
-            UnstakeIt(UnstakeItStakedex),
+            UnstakeIt(UnstakeItStakedexPrefund),
             Marinade(MarinadeStakedex),
             Lido(LidoStakedex),
         }
@@ -500,9 +516,9 @@ impl Stakedex {
 
 /// Used by jup, do not delete
 pub mod test_utils {
+    pub use stakedex_jup_interface::DepositSolWrapper;
     pub use stakedex_lido::LidoStakedex;
     pub use stakedex_marinade::MarinadeStakedex;
-    pub use stakedex_sdk_common::DepositSolWrapper;
     pub use stakedex_sdk_common::{
         jito_stake_pool, lido_program, lido_state, marinade_program, marinade_state,
         socean_program, socean_stake_pool, unstake_it_pool,

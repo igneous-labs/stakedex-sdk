@@ -1,11 +1,11 @@
 use std::iter::zip;
 
+use jupiter_amm_interface::KeyedAccount;
 use solana_client::rpc_client::RpcClient;
 use solana_program::sysvar;
 use stakedex_lido::LidoStakedex;
 use stakedex_sdk_common::{
-    jupiter_stakedex_interface::KeyedAccount, lido_state, lido_validator_list, BaseStakePoolAmm,
-    InitFromKeyedAccount,
+    lido_state, lido_validator_list, BaseStakePoolAmm, InitFromKeyedAccount,
 };
 
 #[test]

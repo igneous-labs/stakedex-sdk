@@ -1,0 +1,17 @@
+[package]
+name = "stakedex_jup_interface"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+bincode = { workspace = true }
+jupiter-amm-interface = { workspace = true }
+rand = { workspace = true }
+rust_decimal = { workspace = true }
+solana-sdk = { workspace = true }
+spl-token = { workspace = true }
+stakedex_interface = { workspace = true }
+stakedex_sdk_common = { workspace = true }
+unstake_interface = { workspace = true }
+unstake-lib = { workspace = true }
