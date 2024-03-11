@@ -13,6 +13,8 @@ use unstake_lib::{PoolBalance, ReverseFeeArgs, UnstakeFeeCalc};
 // TODO: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS will change with:
 // - dynamic rent
 // - SOL minimum delegation feature
+/// The flash loan amount given out by the router program to make the slumdog stake and withdrawn stake rent-exempt.
+/// This amount is repaid by instant unstaking the slumdog stake
 pub const PREFUND_FLASH_LOAN_LAMPORTS: u64 = 2 * STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS;
 
 /// unstakeit pool account data required
