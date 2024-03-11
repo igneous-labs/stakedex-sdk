@@ -28,6 +28,11 @@ use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use stakedex_interface::ID as stakedex_program_id;
 
+/// mainnet LUT that contains prefund accounts and other common accounts
+pub mod srlut {
+    solana_sdk::declare_id!("KtrvWWkPkhSWM9VMqafZhgnTuozQiHzrBDT8oPcMj3T");
+}
+
 pub const SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT: u32 = 400_000;
 
 lazy_static! {

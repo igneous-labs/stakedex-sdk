@@ -16,8 +16,8 @@ use solana_sdk::{
 };
 use spl_associated_token_account::get_associated_token_address;
 use spl_token::native_mint;
-use stakedex_sdk::{Stakedex, SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT};
-use stakedex_sdk_common::{bsol, daosol, jitosol, jsol, msol};
+use stakedex_sdk::{srlut, Stakedex, SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT};
+use stakedex_sdk_common::{bsol, daosol, jitosol, jsol, msol, pwrsol};
 use std::{cmp, collections::HashMap, iter::zip};
 
 // JSOL whale. Last known balances:
@@ -30,10 +30,6 @@ pub mod whale {
 pub mod jupiter_program {
     // NOT IN USE, JUST BECAUSE ITS REQUIRED AS A STRUCT FIELD FOR jupiter_amm_interface::SwapParams
     solana_sdk::declare_id!("JUP4Fb2cqiRUcaTHdrPC8h2gNsA2ETXiPDD33WcGuJB");
-}
-
-pub mod srlut {
-    solana_sdk::declare_id!("KtrvWWkPkhSWM9VMqafZhgnTuozQiHzrBDT8oPcMj3T");
 }
 
 lazy_static! {
@@ -131,6 +127,11 @@ fn test_swap_via_stake_jsol_daosol() {
 #[test]
 fn test_swap_via_stake_jsol_jitosol() {
     test_swap_via_stake(jsol::ID, jitosol::ID, SMALL_JSOL_SWAP_AMT);
+}
+
+#[test]
+fn test_swap_via_stake_jsol_pwrsol() {
+    test_swap_via_stake(jsol::ID, pwrsol::ID, SMALL_JSOL_SWAP_AMT);
 }
 
 /*
@@ -470,5 +471,8 @@ pub fn sim_swap_via_stake(
 
     assert_eq!(quote.in_amount, before_source_amount - after_source_amount);
     let actual_out_amount = after_destination_amount - before_destination_amount;
+    // TODO: this can be off by a couple of lamports for anything -unstakeit-> SOL
+    // depending on size, (around 1 lamport per x10 JSOL)
+    // presumably due to precision losses in pseudo_reverse()
     assert_eq!(quote.out_amount, actual_out_amount);
 }

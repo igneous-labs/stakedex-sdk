@@ -109,3 +109,7 @@ pub mod mrgn_validator_list {
 pub mod lst {
     sanctum_macros::declare_program_keys!("LSTxxxnJzKDFSLr4dUkPcmCf5VyryEqzPLz5j4bpxFp", []);
 }
+
+pub mod pwrsol {
+    sanctum_macros::declare_program_keys!("pWrSoLAhue6jUxUkbWgmEy5rD9VJzkFmvfTDV5KgNuu", []);
+}
