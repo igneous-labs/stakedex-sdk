@@ -3,7 +3,7 @@ use std::{fs::File, path::PathBuf};
 use clap::Args;
 use solana_sdk::{pubkey::Pubkey, stake, system_program, sysvar};
 use spl_token::native_mint;
-use stakedex_sdk_common::{stakedex_program, unstake_it_program, wsol_bridge_in};
+use stakedex_sdk_common::{stakedex_program, unstake_it_pool, unstake_it_program, wsol_bridge_in};
 
 use crate::lut_list::LutList;
 
@@ -65,11 +65,12 @@ const COMMON_PROGRAMS: [Pubkey; 4] = [
 
 const COMMON_MINTS: [Pubkey; 1] = [native_mint::ID];
 
-const RESERVE_POOL_ACCOUNTS: [Pubkey; 4] = [
+const RESERVE_POOL_ACCOUNTS: [Pubkey; 5] = [
     unstake_it_program::ID,
     unstake_it_program::SOL_RESERVES_ID,
     unstake_it_program::FEE_ID,
     unstake_it_program::PROTOCOL_FEE_ID,
+    unstake_it_pool::ID,
 ];
 
 const ROUTER_PROGRAM_ACCOUNTS: [Pubkey; 4] = [

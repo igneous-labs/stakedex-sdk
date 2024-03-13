@@ -3,6 +3,7 @@ use jupiter_amm_interface::{
     AccountMap, Amm, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas, SwapParams,
 };
 use solana_sdk::{clock::Clock, pubkey::Pubkey, sysvar};
+use stakedex_interface::PREFUND_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN;
 use stakedex_sdk_common::{
     account_missing_err, find_stake_pool_pair_amm_key, unstake_it_program, DepositStake,
     WithdrawStake, TEMPORARY_JUP_AMM_LABEL,
@@ -160,7 +161,9 @@ where
     }
 
     fn get_accounts_len(&self) -> usize {
-        1 + self.withdraw.accounts_len() + self.deposit.accounts_len()
+        1 + PREFUND_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN
+            + self.withdraw.accounts_len()
+            + self.deposit.accounts_len()
     }
 
     fn underlying_liquidities(&self) -> Option<HashSet<Pubkey>> {
