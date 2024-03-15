@@ -11,7 +11,7 @@ use stakedex_sdk_common::{
 use std::collections::HashSet;
 
 use crate::{
-    get_account_metas, jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META,
+    jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META, manual_concat_get_account_metas,
     prepare_underlying_liquidities, quote_pool_pair, PrefundRepayParams,
 };
 
@@ -141,7 +141,7 @@ where
         let other_account_metas = if swap_params.source_mint == self.p1.staked_sol_mint()
             && swap_params.destination_mint == self.p2.staked_sol_mint()
         {
-            get_account_metas(
+            manual_concat_get_account_metas(
                 swap_params,
                 self.prefund_repay_params_checked()?,
                 &self.p1,
@@ -151,7 +151,7 @@ where
         } else if swap_params.source_mint == self.p2.staked_sol_mint()
             && swap_params.destination_mint == self.p1.staked_sol_mint()
         {
-            get_account_metas(
+            manual_concat_get_account_metas(
                 swap_params,
                 self.prefund_repay_params_checked()?,
                 &self.p2,

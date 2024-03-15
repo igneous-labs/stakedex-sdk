@@ -11,7 +11,7 @@ use stakedex_sdk_common::{
 use std::collections::HashSet;
 
 use crate::{
-    get_account_metas, jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META,
+    jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META, manual_concat_get_account_metas,
     prepare_underlying_liquidities, quote_pool_pair, PrefundRepayParams,
 };
 
@@ -134,7 +134,7 @@ where
     fn get_swap_and_account_metas(&self, swap_params: &SwapParams) -> Result<SwapAndAccountMetas> {
         let bridge_stake_seed = rand::random();
         let mut account_metas = vec![STAKEDEX_ACCOUNT_META.clone()];
-        account_metas.extend(get_account_metas(
+        account_metas.extend(manual_concat_get_account_metas(
             swap_params,
             self.prefund_repay_params_checked()?,
             &self.withdraw,
