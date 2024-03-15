@@ -8,12 +8,13 @@ use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList, SplPoolAccounts};
 use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{
-    DepositStakeKeys, PrefundSwapViaStakeIxArgs, PrefundSwapViaStakeKeys, StakeWrappedSolIxArgs,
+    DepositStakeKeys, PrefundSwapViaStakeIxArgs, PrefundSwapViaStakeKeys,
+    PrefundWithdrawStakeIxArgs, PrefundWithdrawStakeKeys, StakeWrappedSolIxArgs,
     StakeWrappedSolKeys, SwapViaStakeArgs,
 };
 use stakedex_jup_interface::{
-    get_account_metas, quote_pool_pair, DepositSolWrapper, OneWayPoolPair, PrefundRepayParams,
-    TwoWayPoolPair,
+    jup_v6_program_id, manual_concat_get_account_metas, prefund_get_account_metas, quote_pool_pair,
+    DepositSolWrapper, OneWayPoolPair, PrefundRepayParams, TwoWayPoolPair,
 };
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
@@ -281,7 +282,78 @@ impl Stakedex {
         )
     }
 
-    pub fn swap_via_stake_ix(
+    pub fn manual_concat_prefund_swap_via_stake_ixs(
+        &self,
+        swap_params: &SwapParams,
+        bridge_stake_seed: u32,
+    ) -> Result<[Instruction; 2]> {
+        let withdraw_from = self
+            .get_withdraw_stake_pool(&swap_params.source_mint)
+            .ok_or_else(|| anyhow!("pool not found for src mint {}", swap_params.source_mint))?;
+        let deposit_to = self
+            .get_deposit_stake_pool(&swap_params.destination_mint)
+            .ok_or_else(|| {
+                anyhow!(
+                    "pool not found for dst mint {}",
+                    swap_params.destination_mint
+                )
+            })?;
+        let mut prefund_withdraw_stake_ix = stakedex_interface::prefund_withdraw_stake_ix(
+            // dont cares for keys, since we replace them with
+            // get_account_metas()
+            PrefundWithdrawStakeKeys {
+                user: Pubkey::default(),
+                src_token_from: Pubkey::default(),
+                bridge_stake: Pubkey::default(),
+                src_token_mint: Pubkey::default(),
+                prefunder: Pubkey::default(),
+                slumdog_stake: Pubkey::default(),
+                unstakeit_program: Pubkey::default(),
+                unstake_pool: Pubkey::default(),
+                pool_sol_reserves: Pubkey::default(),
+                unstake_fee: Pubkey::default(),
+                slumdog_stake_acc_record: Pubkey::default(),
+                unstake_protocol_fee: Pubkey::default(),
+                unstake_protocol_fee_dest: Pubkey::default(),
+                clock: Pubkey::default(),
+                stake_program: Pubkey::default(),
+                system_program: Pubkey::default(),
+            },
+            PrefundWithdrawStakeIxArgs {
+                args: SwapViaStakeArgs {
+                    amount: swap_params.in_amount,
+                    bridge_stake_seed,
+                },
+            },
+        )?;
+        let mut deposit_stake_ix = stakedex_interface::deposit_stake_ix(
+            // dont cares for keys, since we replace them with
+            // get_account_metas()
+            DepositStakeKeys {
+                user: Pubkey::default(),
+                stake_account: Pubkey::default(),
+                dest_token_to: Pubkey::default(),
+                dest_token_fee_token_account: Pubkey::default(),
+                dest_token_mint: Pubkey::default(),
+            },
+        )?;
+        let metas = manual_concat_get_account_metas(
+            swap_params,
+            &self.prefund_repay_params(),
+            withdraw_from,
+            deposit_to,
+            bridge_stake_seed,
+        )?;
+        let split_at = metas
+            .iter()
+            .position(|meta| meta.pubkey == jup_v6_program_id::ID)
+            .unwrap();
+        prefund_withdraw_stake_ix.accounts = metas[..split_at].into();
+        deposit_stake_ix.accounts = metas[split_at + 1..].into();
+        Ok([prefund_withdraw_stake_ix, deposit_stake_ix])
+    }
+
+    pub fn prefund_swap_via_stake_ix(
         &self,
         swap_params: &SwapParams,
         bridge_stake_seed: u32,
@@ -329,7 +401,7 @@ impl Stakedex {
             },
         )?;
         // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
-        ix.accounts = get_account_metas(
+        ix.accounts = prefund_get_account_metas(
             swap_params,
             &self.prefund_repay_params(),
             withdraw_from,

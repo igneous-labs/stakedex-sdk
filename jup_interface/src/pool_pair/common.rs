@@ -3,19 +3,111 @@ use jupiter_amm_interface::{Quote, QuoteParams, SwapParams};
 use rust_decimal::prelude::*;
 use solana_sdk::{instruction::AccountMeta, pubkey::Pubkey, stake, system_program, sysvar};
 use spl_token::native_mint;
-use stakedex_interface::{PrefundSwapViaStakeKeys, PREFUND_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN};
+use stakedex_interface::{
+    DepositStakeKeys, PrefundSwapViaStakeKeys, PrefundWithdrawStakeKeys,
+    DEPOSIT_STAKE_IX_ACCOUNTS_LEN, PREFUND_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN,
+    PREFUND_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
+};
 use stakedex_sdk_common::{
     apply_global_fee, find_bridge_stake, find_fee_token_acc, slumdog_stake_create_with_seed,
     stakedex_program, unstake_it_pool, unstake_it_program, DepositStake, DepositStakeInfo,
     DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake, WithdrawStakeQuote,
-    WithdrawStakeQuoteErr, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+    WithdrawStakeQuoteErr, DEPOSIT_STAKE_DST_TOKEN_MINT_IDX,
+    PREFUND_WITHDRAW_STAKE_SRC_TOKEN_MINT_IDX, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
     SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
 use std::collections::HashSet;
 
 use crate::PrefundRepayParams;
 
-pub fn get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
+pub mod jup_v6_program_id {
+    solana_sdk::declare_id!("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4");
+}
+
+/// Due to CPI restrictions, PrefundSwapViaStake cannot be CPI'd directly and needs to be
+/// split into 2 CPIs.
+///
+/// Returns:
+/// [
+///    ...PrefundWithdrawStake metas,
+///    jup_v6_program_id as separator,
+///    ...DepositStake metas
+/// ]
+pub fn manual_concat_get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
+    swap_params: &SwapParams,
+    prefund_repay_params: &PrefundRepayParams,
+    withdraw_from: &W,
+    deposit_to: &D,
+    bridge_stake_seed: u32,
+) -> Result<Vec<AccountMeta>> {
+    // TODO: this is doing the same computation as it did in quote, should we cache this somehow?
+    let prefund_split_lamports = prefund_repay_params.prefund_split_lamports()?;
+    let (withdraw_quote, deposit_quote) = first_avail_prefund_quote(
+        swap_params.in_amount,
+        prefund_split_lamports,
+        withdraw_from,
+        deposit_to,
+    )?;
+    let bridge_stake_seed_le_bytes = bridge_stake_seed.to_le_bytes();
+    let bridge_stake = find_bridge_stake(
+        &swap_params.token_transfer_authority,
+        &bridge_stake_seed_le_bytes,
+    )
+    .0;
+    let slumdog_stake = slumdog_stake_create_with_seed(&bridge_stake)?;
+    let deposit_stake_info = DepositStakeInfo { addr: bridge_stake };
+    let mut prefund_withdraw_prefix =
+        <[AccountMeta; PREFUND_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>::from(PrefundWithdrawStakeKeys {
+            user: swap_params.token_transfer_authority,
+            src_token_from: swap_params.source_token_account,
+            bridge_stake,
+            src_token_mint: swap_params.source_mint,
+            prefunder: stakedex_program::PREFUNDER_ID,
+            slumdog_stake,
+            unstakeit_program: unstake_it_program::ID,
+            unstake_pool: unstake_it_pool::ID,
+            pool_sol_reserves: unstake_it_program::SOL_RESERVES_ID,
+            unstake_fee: unstake_it_program::FEE_ID,
+            slumdog_stake_acc_record: find_stake_account_record(&slumdog_stake).0,
+            unstake_protocol_fee: unstake_it_program::PROTOCOL_FEE_ID,
+            unstake_protocol_fee_dest: prefund_repay_params.protocol_fee_dest,
+            clock: sysvar::clock::ID,
+            stake_program: stake::program::ID,
+            system_program: system_program::ID,
+        });
+    if prefund_withdraw_prefix[PREFUND_WITHDRAW_STAKE_SRC_TOKEN_MINT_IDX].pubkey == native_mint::ID
+    {
+        prefund_withdraw_prefix[PREFUND_WITHDRAW_STAKE_SRC_TOKEN_MINT_IDX].is_writable = false;
+    }
+    let mut deposit_prefix =
+        <[AccountMeta; DEPOSIT_STAKE_IX_ACCOUNTS_LEN]>::from(DepositStakeKeys {
+            user: swap_params.token_transfer_authority,
+            stake_account: bridge_stake,
+            dest_token_to: swap_params.destination_token_account,
+            dest_token_fee_token_account: find_fee_token_acc(&swap_params.destination_mint).0,
+            dest_token_mint: swap_params.destination_mint,
+        });
+    if deposit_prefix[DEPOSIT_STAKE_DST_TOKEN_MINT_IDX].pubkey == native_mint::ID {
+        deposit_prefix[DEPOSIT_STAKE_DST_TOKEN_MINT_IDX].is_writable = false;
+    }
+    Ok(prefund_withdraw_prefix
+        .into_iter()
+        .chain(withdraw_from.virtual_ix(&withdraw_quote)?.accounts)
+        .chain(std::iter::once(AccountMeta {
+            pubkey: jup_v6_program_id::ID,
+            is_signer: false,
+            is_writable: false,
+        }))
+        .chain(deposit_prefix)
+        .chain(
+            deposit_to
+                .virtual_ix(&deposit_quote, &deposit_stake_info)?
+                .accounts,
+        )
+        .collect())
+}
+
+pub fn prefund_get_account_metas<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     swap_params: &SwapParams,
     prefund_repay_params: &PrefundRepayParams,
     withdraw_from: &W,

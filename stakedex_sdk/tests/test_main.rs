@@ -1,4 +1,4 @@
-use jupiter_amm_interface::{QuoteParams, SwapMode, SwapParams};
+use jupiter_amm_interface::{Quote, QuoteParams, SwapMode, SwapParams};
 use lazy_static::lazy_static;
 use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
@@ -9,6 +9,7 @@ use solana_sdk::{
     account::Account,
     address_lookup_table::{state::AddressLookupTable, AddressLookupTableAccount},
     compute_budget,
+    instruction::Instruction,
     message::{v0::Message, VersionedMessage},
     program_pack::Pack,
     pubkey::Pubkey,
@@ -17,7 +18,7 @@ use solana_sdk::{
 use spl_associated_token_account::get_associated_token_address;
 use spl_token::native_mint;
 use stakedex_sdk::{srlut, Stakedex, SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT};
-use stakedex_sdk_common::{bsol, daosol, jitosol, jsol, msol, pwrsol};
+use stakedex_sdk_common::{bsol, jitosol, jsol, msol, pwrsol};
 use std::{cmp, collections::HashMap, iter::zip};
 
 // JSOL whale. Last known balances:
@@ -90,7 +91,12 @@ const SMALL_JSOL_SWAP_AMT: u64 = 10_000_000_000; // 10 JSOL
 
 #[test]
 fn test_swap_via_stake_jsol_unstakeit() {
-    test_swap_via_stake(jsol::ID, native_mint::ID, SMALL_JSOL_SWAP_AMT);
+    test_prefund_swap_via_stake(jsol::ID, native_mint::ID, SMALL_JSOL_SWAP_AMT);
+}
+
+#[test]
+fn test_manual_concat_swap_via_stake_jsol_unstakeit() {
+    test_manual_concat_prefund_swap_via_stake(jsol::ID, native_mint::ID, SMALL_JSOL_SWAP_AMT);
 }
 
 /*
@@ -119,19 +125,37 @@ fn test_swap_via_stake_jsol_cogentsol() {
 }
 */
 
+// jito already tests spl -> spl
+/*
 #[test]
 fn test_swap_via_stake_jsol_daosol() {
-    test_swap_via_stake(jsol::ID, daosol::ID, SMALL_JSOL_SWAP_AMT);
+    test_prefund_swap_via_stake(jsol::ID, daosol::ID, SMALL_JSOL_SWAP_AMT);
 }
 
 #[test]
+fn test_manual_concat_swap_via_stake_jsol_daosol() {
+    test_manual_concat_prefund_swap_via_stake(jsol::ID, daosol::ID, SMALL_JSOL_SWAP_AMT);
+}
+ */
+
+#[test]
 fn test_swap_via_stake_jsol_jitosol() {
-    test_swap_via_stake(jsol::ID, jitosol::ID, SMALL_JSOL_SWAP_AMT);
+    test_prefund_swap_via_stake(jsol::ID, jitosol::ID, SMALL_JSOL_SWAP_AMT);
+}
+
+#[test]
+fn test_manual_concat_swap_via_stake_jsol_jitosol() {
+    test_manual_concat_prefund_swap_via_stake(jsol::ID, jitosol::ID, SMALL_JSOL_SWAP_AMT);
 }
 
 #[test]
 fn test_swap_via_stake_jsol_pwrsol() {
-    test_swap_via_stake(jsol::ID, pwrsol::ID, SMALL_JSOL_SWAP_AMT);
+    test_prefund_swap_via_stake(jsol::ID, pwrsol::ID, SMALL_JSOL_SWAP_AMT);
+}
+
+#[test]
+fn test_manual_concat_swap_via_stake_jsol_pwrsol() {
+    test_manual_concat_prefund_swap_via_stake(jsol::ID, pwrsol::ID, SMALL_JSOL_SWAP_AMT);
 }
 
 /*
@@ -160,7 +184,12 @@ fn test_swap_via_stake_jsol_scnsol() {
 
 #[test]
 fn test_swap_via_stake_jsol_msol() {
-    test_swap_via_stake(jsol::ID, msol::ID, SMALL_JSOL_SWAP_AMT);
+    test_prefund_swap_via_stake(jsol::ID, msol::ID, SMALL_JSOL_SWAP_AMT);
+}
+
+#[test]
+fn test_manual_concat_swap_via_stake_jsol_msol() {
+    test_manual_concat_prefund_swap_via_stake(jsol::ID, msol::ID, SMALL_JSOL_SWAP_AMT);
 }
 
 // scnsol to xsol
@@ -230,10 +259,24 @@ fn test_swap_via_stake_scnsol_msol() {
 */
 
 // Set amount to u64::MAX to swap the entire input ATA balance
-fn test_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: u64) {
-    sim_swap_via_stake(
+fn test_prefund_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: u64) {
+    test_sim_prefund_swap_via_stake(
         &STAKEDEX,
-        &RPC,
+        TestSwapViaStakeArgs {
+            amount,
+            input_mint,
+            output_mint,
+            signer: whale::ID,
+            src_token_acc: get_associated_token_address(&whale::ID, &input_mint),
+            dst_token_acc: get_associated_token_address(&whale::ID, &output_mint),
+        },
+    );
+}
+
+// Set amount to u64::MAX to swap the entire input ATA balance
+fn test_manual_concat_prefund_swap_via_stake(input_mint: Pubkey, output_mint: Pubkey, amount: u64) {
+    test_sim_manual_concat_prefund_swap_via_stake(
+        &STAKEDEX,
         TestSwapViaStakeArgs {
             amount,
             input_mint,
@@ -310,8 +353,9 @@ fn test_jsol_drain_vsa_edge_case() {
         },
     );
 }
- */
+*/
 
+#[derive(Clone, Copy, Debug)]
 pub struct TestSwapViaStakeArgs {
     pub amount: u64,
     pub input_mint: Pubkey,
@@ -324,9 +368,9 @@ pub struct TestSwapViaStakeArgs {
 /// - uses min(amount, src_balance) as input amount
 /// - if dst_token_acc is signer's ATA and doesn't exist, prefixes
 ///   the simulated tx with a create ATA instruction
-pub fn sim_swap_via_stake(
-    stakedex: &Stakedex,
-    rpc: &RpcClient,
+///
+/// Returns (amt_to_swap, prefix_ixs, before_source_amount, before_destination_amount)
+fn setup_swap_via_stake(
     TestSwapViaStakeArgs {
         amount,
         input_mint,
@@ -335,7 +379,7 @@ pub fn sim_swap_via_stake(
         src_token_acc,
         dst_token_acc,
     }: TestSwapViaStakeArgs,
-) {
+) -> (u64, Vec<Instruction>, u64, u64) {
     let source_balance = RPC
         .get_token_account_balance(&src_token_acc)
         .map_err(|err| {
@@ -352,29 +396,47 @@ pub fn sim_swap_via_stake(
         compute_budget::ComputeBudgetInstruction::set_compute_unit_price(3),
     ]);
 
-    let (before_destination_amount, mut ixs) = match RPC.get_token_account_balance(&dst_token_acc) {
-        Ok(b) => (b.amount.parse().unwrap(), ixs),
-        Err(_e) => {
-            let ata = get_associated_token_address(&signer, &output_mint);
-            if dst_token_acc != ata {
-                panic!("dst_token_acc {dst_token_acc} does not exist and is not ATA");
+    let (before_destination_amount, prefix_ixs) =
+        match RPC.get_token_account_balance(&dst_token_acc) {
+            Ok(b) => (b.amount.parse().unwrap(), ixs),
+            Err(_e) => {
+                let ata = get_associated_token_address(&signer, &output_mint);
+                if dst_token_acc != ata {
+                    panic!("dst_token_acc {dst_token_acc} does not exist and is not ATA");
+                }
+                ixs.push(
+                    spl_associated_token_account::instruction::create_associated_token_account(
+                        &signer,
+                        &signer,
+                        &output_mint,
+                        // TODO: support token-22
+                        &spl_token::ID,
+                    ),
+                );
+                (0, ixs)
             }
-            ixs.push(
-                spl_associated_token_account::instruction::create_associated_token_account(
-                    &signer,
-                    &signer,
-                    &output_mint,
-                    // TODO: support token-22
-                    &spl_token::ID,
-                ),
-            );
-            (0, ixs)
-        }
-    };
+        };
     let before_source_amount: u64 = source_balance.amount.parse().unwrap();
     let amount = cmp::min(before_source_amount, amount);
 
-    let quote = match stakedex.quote_swap_via_stake(&QuoteParams {
+    (
+        amount,
+        prefix_ixs,
+        before_source_amount,
+        before_destination_amount,
+    )
+}
+
+fn quote_swap_via_stake(
+    stakedex: &Stakedex,
+    amount: u64,
+    TestSwapViaStakeArgs {
+        input_mint,
+        output_mint,
+        ..
+    }: TestSwapViaStakeArgs,
+) -> Quote {
+    match stakedex.quote_swap_via_stake(&QuoteParams {
         amount,
         input_mint,
         output_mint,
@@ -401,28 +463,24 @@ pub fn sim_swap_via_stake(
             return;
              */
         }
-    };
+    }
+}
 
-    ixs.push(
-        stakedex
-            .swap_via_stake_ix(
-                &SwapParams {
-                    jupiter_program_id: &jupiter_program::ID,
-                    in_amount: quote.in_amount,
-                    out_amount: quote.out_amount,
-                    destination_mint: output_mint,
-                    source_mint: input_mint,
-                    destination_token_account: dst_token_acc,
-                    source_token_account: src_token_acc,
-                    token_transfer_authority: signer,
-                    open_order_address: None,
-                    quote_mint_to_referrer: None,
-                },
-                0,
-            )
-            .unwrap(),
-    );
-    let rbh = rpc.get_latest_blockhash().unwrap();
+fn simulate_check_swap_via_stake(
+    TestSwapViaStakeArgs {
+        amount,
+        input_mint,
+        output_mint,
+        signer,
+        src_token_acc,
+        dst_token_acc,
+    }: TestSwapViaStakeArgs,
+    quote: Quote,
+    ixs: Vec<Instruction>,
+    before_source_amount: u64,
+    before_destination_amount: u64,
+) {
+    let rbh = RPC.get_latest_blockhash().unwrap();
     let tx = VersionedTransaction {
         signatures: vec![Default::default()], // for payer
         message: VersionedMessage::V0(
@@ -475,4 +533,95 @@ pub fn sim_swap_via_stake(
     // depending on size, (around 1 lamport per x10 JSOL)
     // presumably due to precision losses in pseudo_reverse()
     assert_eq!(quote.out_amount, actual_out_amount);
+}
+
+pub fn test_sim_prefund_swap_via_stake(stakedex: &Stakedex, args: TestSwapViaStakeArgs) {
+    let TestSwapViaStakeArgs {
+        input_mint,
+        output_mint,
+        signer,
+        src_token_acc,
+        dst_token_acc,
+        ..
+    } = args;
+
+    let (amount, mut ixs, before_source_amount, before_destination_amount) =
+        setup_swap_via_stake(args);
+
+    let quote = quote_swap_via_stake(stakedex, amount, args);
+
+    ixs.push(
+        stakedex
+            .prefund_swap_via_stake_ix(
+                &SwapParams {
+                    jupiter_program_id: &jupiter_program::ID,
+                    in_amount: quote.in_amount,
+                    out_amount: quote.out_amount,
+                    destination_mint: output_mint,
+                    source_mint: input_mint,
+                    destination_token_account: dst_token_acc,
+                    source_token_account: src_token_acc,
+                    token_transfer_authority: signer,
+                    open_order_address: None,
+                    quote_mint_to_referrer: None,
+                },
+                0,
+            )
+            .unwrap(),
+    );
+
+    simulate_check_swap_via_stake(
+        args,
+        quote,
+        ixs,
+        before_source_amount,
+        before_destination_amount,
+    );
+}
+
+pub fn test_sim_manual_concat_prefund_swap_via_stake(
+    stakedex: &Stakedex,
+    args: TestSwapViaStakeArgs,
+) {
+    let TestSwapViaStakeArgs {
+        input_mint,
+        output_mint,
+        signer,
+        src_token_acc,
+        dst_token_acc,
+        ..
+    } = args;
+
+    let (amount, mut ixs, before_source_amount, before_destination_amount) =
+        setup_swap_via_stake(args);
+
+    let quote = quote_swap_via_stake(stakedex, amount, args);
+
+    ixs.extend(
+        stakedex
+            .manual_concat_prefund_swap_via_stake_ixs(
+                &SwapParams {
+                    jupiter_program_id: &jupiter_program::ID,
+                    in_amount: quote.in_amount,
+                    out_amount: quote.out_amount,
+                    destination_mint: output_mint,
+                    source_mint: input_mint,
+                    destination_token_account: dst_token_acc,
+                    source_token_account: src_token_acc,
+                    token_transfer_authority: signer,
+                    open_order_address: None,
+                    quote_mint_to_referrer: None,
+                },
+                0,
+            )
+            .unwrap(),
+    );
+
+    simulate_check_swap_via_stake(
+        args,
+        quote,
+        ixs,
+        before_source_amount,
+        before_destination_amount,
+    );
 }
