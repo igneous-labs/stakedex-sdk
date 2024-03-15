@@ -13,8 +13,8 @@ use stakedex_interface::{
     StakeWrappedSolKeys, SwapViaStakeArgs,
 };
 use stakedex_jup_interface::{
-    jup_v6_program_id, manual_concat_get_account_metas, prefund_get_account_metas, quote_pool_pair,
-    DepositSolWrapper, OneWayPoolPair, PrefundRepayParams, TwoWayPoolPair,
+    manual_concat_get_account_metas, prefund_get_account_metas, quote_pool_pair, DepositSolWrapper,
+    OneWayPoolPair, PrefundRepayParams, TwoWayPoolPair,
 };
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
@@ -346,7 +346,7 @@ impl Stakedex {
         )?;
         let split_at = metas
             .iter()
-            .position(|meta| meta.pubkey == jup_v6_program_id::ID)
+            .position(|meta| *meta == swap_params.placeholder_account_meta())
             .unwrap();
         prefund_withdraw_stake_ix.accounts = metas[..split_at].into();
         deposit_stake_ix.accounts = metas[split_at + 1..].into();

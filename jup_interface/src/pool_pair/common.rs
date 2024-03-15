@@ -20,10 +20,6 @@ use std::collections::HashSet;
 
 use crate::PrefundRepayParams;
 
-pub mod jup_v6_program_id {
-    solana_sdk::declare_id!("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4");
-}
-
 /// Due to CPI restrictions, PrefundSwapViaStake cannot be CPI'd directly and needs to be
 /// split into 2 CPIs.
 ///
@@ -93,11 +89,7 @@ pub fn manual_concat_get_account_metas<W: WithdrawStake + ?Sized, D: DepositStak
     Ok(prefund_withdraw_prefix
         .into_iter()
         .chain(withdraw_from.virtual_ix(&withdraw_quote)?.accounts)
-        .chain(std::iter::once(AccountMeta {
-            pubkey: jup_v6_program_id::ID,
-            is_signer: false,
-            is_writable: false,
-        }))
+        .chain(std::iter::once(swap_params.placeholder_account_meta()))
         .chain(deposit_prefix)
         .chain(
             deposit_to
