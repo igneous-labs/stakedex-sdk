@@ -30,11 +30,12 @@ impl<'a> WithdrawStakeQuoteIter<'a> {
             .pool
             .get_withdraw_stake_quote_for_validator_copied(curr_index, self.withdraw_amount)
             .unwrap_or_default();
-        let next_state = if curr_index >= self.pool.validator_list.validators.len() - 1 {
-            WithdrawStakeQuoteIterState::Ended
-        } else {
-            WithdrawStakeQuoteIterState::Normal(curr_index + 1)
-        };
+        let next_state =
+            if curr_index >= self.pool.validator_list.validators.len().checked_sub(1)? {
+                WithdrawStakeQuoteIterState::Ended
+            } else {
+                WithdrawStakeQuoteIterState::Normal(curr_index.checked_add(1)?)
+            };
         Some((wsq, next_state))
     }
 
