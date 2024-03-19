@@ -39,7 +39,7 @@ unstake_interface = { git = "https://github.com/igneous-labs/sanctum-unstake-pro
 unstake-lib = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
 
 # sanctum solana utils
-sanctum-solana-cli-utils = { git = "https://github.com/igneous-labs/sanctum-solana-utils.git", branch = "master" } # rev = "38f9fce"
+sanctum-solana-cli-utils = { git = "https://github.com/igneous-labs/sanctum-solana-utils.git", branch = "master" } # rev = "111f01"
 
 # solana core crates
 solana-program = "^1"
