@@ -12,8 +12,6 @@ use marinade_finance_interface::{
 };
 use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey};
 
-pub use stakedex_traits::*;
-
 pub const MARINADE_LABEL: &str = "Marinade";
 
 #[derive(Clone)]
