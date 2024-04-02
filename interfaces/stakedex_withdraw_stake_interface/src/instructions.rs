@@ -9,11 +9,11 @@ use solana_program::{
 use std::io::Read;
 #[derive(Clone, Debug, PartialEq)]
 pub enum StakedexWithdrawStakeProgramIx {
-    SoceanStakePoolWithdrawStake,
     SplStakePoolWithdrawStake,
     LidoWithdrawStake,
     MarinadeWithdrawStake,
     SanctumSplStakePoolWithdrawStake,
+    SanctumSplMultiStakePoolWithdrawStake,
 }
 impl StakedexWithdrawStakeProgramIx {
     pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
@@ -22,12 +22,14 @@ impl StakedexWithdrawStakeProgramIx {
         reader.read_exact(&mut maybe_discm_buf)?;
         let maybe_discm = maybe_discm_buf[0];
         match maybe_discm {
-            SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM => Ok(Self::SoceanStakePoolWithdrawStake),
             SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM => Ok(Self::SplStakePoolWithdrawStake),
             LIDO_WITHDRAW_STAKE_IX_DISCM => Ok(Self::LidoWithdrawStake),
             MARINADE_WITHDRAW_STAKE_IX_DISCM => Ok(Self::MarinadeWithdrawStake),
             SANCTUM_SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM => {
                 Ok(Self::SanctumSplStakePoolWithdrawStake)
+            }
+            SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM => {
+                Ok(Self::SanctumSplMultiStakePoolWithdrawStake)
             }
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -37,9 +39,6 @@ impl StakedexWithdrawStakeProgramIx {
     }
     pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
         match self {
-            Self::SoceanStakePoolWithdrawStake => {
-                writer.write_all(&[SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
-            }
             Self::SplStakePoolWithdrawStake => {
                 writer.write_all(&[SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
             }
@@ -47,6 +46,9 @@ impl StakedexWithdrawStakeProgramIx {
             Self::MarinadeWithdrawStake => writer.write_all(&[MARINADE_WITHDRAW_STAKE_IX_DISCM]),
             Self::SanctumSplStakePoolWithdrawStake => {
                 writer.write_all(&[SANCTUM_SPL_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
+            }
+            Self::SanctumSplMultiStakePoolWithdrawStake => {
+                writer.write_all(&[SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
             }
         }
     }
@@ -70,297 +72,6 @@ fn invoke_instruction_signed<'info, A: Into<[AccountInfo<'info>; N]>, const N: u
 ) -> ProgramResult {
     let account_info: [AccountInfo<'info>; N] = accounts.into();
     invoke_signed(ix, &account_info, seeds)
-}
-pub const SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
-#[derive(Copy, Clone, Debug)]
-pub struct SoceanStakePoolWithdrawStakeAccounts<'me, 'info> {
-    pub socean_stake_pool_program: &'me AccountInfo<'info>,
-    pub withdraw_stake_spl_stake_pool: &'me AccountInfo<'info>,
-    pub withdraw_stake_validator_list: &'me AccountInfo<'info>,
-    pub withdraw_stake_withdraw_authority: &'me AccountInfo<'info>,
-    pub withdraw_stake_stake_to_split: &'me AccountInfo<'info>,
-    pub withdraw_stake_manager_fee: &'me AccountInfo<'info>,
-    pub clock: &'me AccountInfo<'info>,
-    pub token_program: &'me AccountInfo<'info>,
-    pub stake_program: &'me AccountInfo<'info>,
-    pub system_program: &'me AccountInfo<'info>,
-}
-#[derive(Copy, Clone, Debug)]
-pub struct SoceanStakePoolWithdrawStakeKeys {
-    pub socean_stake_pool_program: Pubkey,
-    pub withdraw_stake_spl_stake_pool: Pubkey,
-    pub withdraw_stake_validator_list: Pubkey,
-    pub withdraw_stake_withdraw_authority: Pubkey,
-    pub withdraw_stake_stake_to_split: Pubkey,
-    pub withdraw_stake_manager_fee: Pubkey,
-    pub clock: Pubkey,
-    pub token_program: Pubkey,
-    pub stake_program: Pubkey,
-    pub system_program: Pubkey,
-}
-impl From<SoceanStakePoolWithdrawStakeAccounts<'_, '_>> for SoceanStakePoolWithdrawStakeKeys {
-    fn from(accounts: SoceanStakePoolWithdrawStakeAccounts) -> Self {
-        Self {
-            socean_stake_pool_program: *accounts.socean_stake_pool_program.key,
-            withdraw_stake_spl_stake_pool: *accounts.withdraw_stake_spl_stake_pool.key,
-            withdraw_stake_validator_list: *accounts.withdraw_stake_validator_list.key,
-            withdraw_stake_withdraw_authority: *accounts.withdraw_stake_withdraw_authority.key,
-            withdraw_stake_stake_to_split: *accounts.withdraw_stake_stake_to_split.key,
-            withdraw_stake_manager_fee: *accounts.withdraw_stake_manager_fee.key,
-            clock: *accounts.clock.key,
-            token_program: *accounts.token_program.key,
-            stake_program: *accounts.stake_program.key,
-            system_program: *accounts.system_program.key,
-        }
-    }
-}
-impl From<SoceanStakePoolWithdrawStakeKeys>
-    for [AccountMeta; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
-{
-    fn from(keys: SoceanStakePoolWithdrawStakeKeys) -> Self {
-        [
-            AccountMeta {
-                pubkey: keys.socean_stake_pool_program,
-                is_signer: false,
-                is_writable: false,
-            },
-            AccountMeta {
-                pubkey: keys.withdraw_stake_spl_stake_pool,
-                is_signer: false,
-                is_writable: true,
-            },
-            AccountMeta {
-                pubkey: keys.withdraw_stake_validator_list,
-                is_signer: false,
-                is_writable: true,
-            },
-            AccountMeta {
-                pubkey: keys.withdraw_stake_withdraw_authority,
-                is_signer: false,
-                is_writable: false,
-            },
-            AccountMeta {
-                pubkey: keys.withdraw_stake_stake_to_split,
-                is_signer: false,
-                is_writable: true,
-            },
-            AccountMeta {
-                pubkey: keys.withdraw_stake_manager_fee,
-                is_signer: false,
-                is_writable: true,
-            },
-            AccountMeta {
-                pubkey: keys.clock,
-                is_signer: false,
-                is_writable: false,
-            },
-            AccountMeta {
-                pubkey: keys.token_program,
-                is_signer: false,
-                is_writable: false,
-            },
-            AccountMeta {
-                pubkey: keys.stake_program,
-                is_signer: false,
-                is_writable: false,
-            },
-            AccountMeta {
-                pubkey: keys.system_program,
-                is_signer: false,
-                is_writable: false,
-            },
-        ]
-    }
-}
-impl From<[Pubkey; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
-    for SoceanStakePoolWithdrawStakeKeys
-{
-    fn from(pubkeys: [Pubkey; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]) -> Self {
-        Self {
-            socean_stake_pool_program: pubkeys[0],
-            withdraw_stake_spl_stake_pool: pubkeys[1],
-            withdraw_stake_validator_list: pubkeys[2],
-            withdraw_stake_withdraw_authority: pubkeys[3],
-            withdraw_stake_stake_to_split: pubkeys[4],
-            withdraw_stake_manager_fee: pubkeys[5],
-            clock: pubkeys[6],
-            token_program: pubkeys[7],
-            stake_program: pubkeys[8],
-            system_program: pubkeys[9],
-        }
-    }
-}
-impl<'info> From<SoceanStakePoolWithdrawStakeAccounts<'_, 'info>>
-    for [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
-{
-    fn from(accounts: SoceanStakePoolWithdrawStakeAccounts<'_, 'info>) -> Self {
-        [
-            accounts.socean_stake_pool_program.clone(),
-            accounts.withdraw_stake_spl_stake_pool.clone(),
-            accounts.withdraw_stake_validator_list.clone(),
-            accounts.withdraw_stake_withdraw_authority.clone(),
-            accounts.withdraw_stake_stake_to_split.clone(),
-            accounts.withdraw_stake_manager_fee.clone(),
-            accounts.clock.clone(),
-            accounts.token_program.clone(),
-            accounts.stake_program.clone(),
-            accounts.system_program.clone(),
-        ]
-    }
-}
-impl<'me, 'info> From<&'me [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
-    for SoceanStakePoolWithdrawStakeAccounts<'me, 'info>
-{
-    fn from(
-        arr: &'me [AccountInfo<'info>; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN],
-    ) -> Self {
-        Self {
-            socean_stake_pool_program: &arr[0],
-            withdraw_stake_spl_stake_pool: &arr[1],
-            withdraw_stake_validator_list: &arr[2],
-            withdraw_stake_withdraw_authority: &arr[3],
-            withdraw_stake_stake_to_split: &arr[4],
-            withdraw_stake_manager_fee: &arr[5],
-            clock: &arr[6],
-            token_program: &arr[7],
-            stake_program: &arr[8],
-            system_program: &arr[9],
-        }
-    }
-}
-pub const SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM: u8 = 0u8;
-#[derive(Clone, Debug, PartialEq)]
-pub struct SoceanStakePoolWithdrawStakeIxData;
-impl SoceanStakePoolWithdrawStakeIxData {
-    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
-        let mut reader = buf;
-        let mut maybe_discm_buf = [0u8; 1];
-        reader.read_exact(&mut maybe_discm_buf)?;
-        let maybe_discm = maybe_discm_buf[0];
-        if maybe_discm != SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "discm does not match. Expected: {:?}. Received: {:?}",
-                    SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM, maybe_discm
-                ),
-            ));
-        }
-        Ok(Self)
-    }
-    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
-        writer.write_all(&[SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
-    }
-    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
-        let mut data = Vec::new();
-        self.serialize(&mut data)?;
-        Ok(data)
-    }
-}
-pub fn socean_stake_pool_withdraw_stake_ix_with_program_id(
-    program_id: Pubkey,
-    keys: SoceanStakePoolWithdrawStakeKeys,
-) -> std::io::Result<Instruction> {
-    let metas: [AccountMeta; SOCEAN_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] = keys.into();
-    Ok(Instruction {
-        program_id,
-        accounts: Vec::from(metas),
-        data: SoceanStakePoolWithdrawStakeIxData.try_to_vec()?,
-    })
-}
-pub fn socean_stake_pool_withdraw_stake_ix(
-    keys: SoceanStakePoolWithdrawStakeKeys,
-) -> std::io::Result<Instruction> {
-    socean_stake_pool_withdraw_stake_ix_with_program_id(crate::ID, keys)
-}
-pub fn socean_stake_pool_withdraw_stake_invoke_with_program_id(
-    program_id: Pubkey,
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
-) -> ProgramResult {
-    let keys: SoceanStakePoolWithdrawStakeKeys = accounts.into();
-    let ix = socean_stake_pool_withdraw_stake_ix_with_program_id(program_id, keys)?;
-    invoke_instruction(&ix, accounts)
-}
-pub fn socean_stake_pool_withdraw_stake_invoke(
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
-) -> ProgramResult {
-    socean_stake_pool_withdraw_stake_invoke_with_program_id(crate::ID, accounts)
-}
-pub fn socean_stake_pool_withdraw_stake_invoke_signed_with_program_id(
-    program_id: Pubkey,
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
-    seeds: &[&[&[u8]]],
-) -> ProgramResult {
-    let keys: SoceanStakePoolWithdrawStakeKeys = accounts.into();
-    let ix = socean_stake_pool_withdraw_stake_ix_with_program_id(program_id, keys)?;
-    invoke_instruction_signed(&ix, accounts, seeds)
-}
-pub fn socean_stake_pool_withdraw_stake_invoke_signed(
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
-    seeds: &[&[&[u8]]],
-) -> ProgramResult {
-    socean_stake_pool_withdraw_stake_invoke_signed_with_program_id(crate::ID, accounts, seeds)
-}
-pub fn socean_stake_pool_withdraw_stake_verify_account_keys(
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'_, '_>,
-    keys: SoceanStakePoolWithdrawStakeKeys,
-) -> Result<(), (Pubkey, Pubkey)> {
-    for (actual, expected) in [
-        (
-            accounts.socean_stake_pool_program.key,
-            &keys.socean_stake_pool_program,
-        ),
-        (
-            accounts.withdraw_stake_spl_stake_pool.key,
-            &keys.withdraw_stake_spl_stake_pool,
-        ),
-        (
-            accounts.withdraw_stake_validator_list.key,
-            &keys.withdraw_stake_validator_list,
-        ),
-        (
-            accounts.withdraw_stake_withdraw_authority.key,
-            &keys.withdraw_stake_withdraw_authority,
-        ),
-        (
-            accounts.withdraw_stake_stake_to_split.key,
-            &keys.withdraw_stake_stake_to_split,
-        ),
-        (
-            accounts.withdraw_stake_manager_fee.key,
-            &keys.withdraw_stake_manager_fee,
-        ),
-        (accounts.clock.key, &keys.clock),
-        (accounts.token_program.key, &keys.token_program),
-        (accounts.stake_program.key, &keys.stake_program),
-        (accounts.system_program.key, &keys.system_program),
-    ] {
-        if actual != expected {
-            return Err((*actual, *expected));
-        }
-    }
-    Ok(())
-}
-pub fn socean_stake_pool_withdraw_stake_verify_writable_privileges<'me, 'info>(
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'me, 'info>,
-) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
-    for should_be_writable in [
-        accounts.withdraw_stake_spl_stake_pool,
-        accounts.withdraw_stake_validator_list,
-        accounts.withdraw_stake_stake_to_split,
-        accounts.withdraw_stake_manager_fee,
-    ] {
-        if !should_be_writable.is_writable {
-            return Err((should_be_writable, ProgramError::InvalidAccountData));
-        }
-    }
-    Ok(())
-}
-pub fn socean_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
-    accounts: SoceanStakePoolWithdrawStakeAccounts<'me, 'info>,
-) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
-    socean_stake_pool_withdraw_stake_verify_writable_privileges(accounts)?;
-    Ok(())
 }
 pub const SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
 #[derive(Copy, Clone, Debug)]
@@ -1531,5 +1242,308 @@ pub fn sanctum_spl_stake_pool_withdraw_stake_verify_account_privileges<'me, 'inf
     accounts: SanctumSplStakePoolWithdrawStakeAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     sanctum_spl_stake_pool_withdraw_stake_verify_writable_privileges(accounts)?;
+    Ok(())
+}
+pub const SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN: usize = 10;
+#[derive(Copy, Clone, Debug)]
+pub struct SanctumSplMultiStakePoolWithdrawStakeAccounts<'me, 'info> {
+    pub sanctum_spl_multi_stake_pool_program: &'me AccountInfo<'info>,
+    pub withdraw_stake_spl_stake_pool: &'me AccountInfo<'info>,
+    pub withdraw_stake_validator_list: &'me AccountInfo<'info>,
+    pub withdraw_stake_withdraw_authority: &'me AccountInfo<'info>,
+    pub withdraw_stake_stake_to_split: &'me AccountInfo<'info>,
+    pub withdraw_stake_manager_fee: &'me AccountInfo<'info>,
+    pub clock: &'me AccountInfo<'info>,
+    pub token_program: &'me AccountInfo<'info>,
+    pub stake_program: &'me AccountInfo<'info>,
+    pub system_program: &'me AccountInfo<'info>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct SanctumSplMultiStakePoolWithdrawStakeKeys {
+    pub sanctum_spl_multi_stake_pool_program: Pubkey,
+    pub withdraw_stake_spl_stake_pool: Pubkey,
+    pub withdraw_stake_validator_list: Pubkey,
+    pub withdraw_stake_withdraw_authority: Pubkey,
+    pub withdraw_stake_stake_to_split: Pubkey,
+    pub withdraw_stake_manager_fee: Pubkey,
+    pub clock: Pubkey,
+    pub token_program: Pubkey,
+    pub stake_program: Pubkey,
+    pub system_program: Pubkey,
+}
+impl From<SanctumSplMultiStakePoolWithdrawStakeAccounts<'_, '_>>
+    for SanctumSplMultiStakePoolWithdrawStakeKeys
+{
+    fn from(accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts) -> Self {
+        Self {
+            sanctum_spl_multi_stake_pool_program: *accounts
+                .sanctum_spl_multi_stake_pool_program
+                .key,
+            withdraw_stake_spl_stake_pool: *accounts.withdraw_stake_spl_stake_pool.key,
+            withdraw_stake_validator_list: *accounts.withdraw_stake_validator_list.key,
+            withdraw_stake_withdraw_authority: *accounts.withdraw_stake_withdraw_authority.key,
+            withdraw_stake_stake_to_split: *accounts.withdraw_stake_stake_to_split.key,
+            withdraw_stake_manager_fee: *accounts.withdraw_stake_manager_fee.key,
+            clock: *accounts.clock.key,
+            token_program: *accounts.token_program.key,
+            stake_program: *accounts.stake_program.key,
+            system_program: *accounts.system_program.key,
+        }
+    }
+}
+impl From<SanctumSplMultiStakePoolWithdrawStakeKeys>
+    for [AccountMeta; SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(keys: SanctumSplMultiStakePoolWithdrawStakeKeys) -> Self {
+        [
+            AccountMeta {
+                pubkey: keys.sanctum_spl_multi_stake_pool_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_spl_stake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_validator_list,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_withdraw_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_stake_to_split,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.withdraw_stake_manager_fee,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.clock,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.system_program,
+                is_signer: false,
+                is_writable: false,
+            },
+        ]
+    }
+}
+impl From<[Pubkey; SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for SanctumSplMultiStakePoolWithdrawStakeKeys
+{
+    fn from(
+        pubkeys: [Pubkey; SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN],
+    ) -> Self {
+        Self {
+            sanctum_spl_multi_stake_pool_program: pubkeys[0],
+            withdraw_stake_spl_stake_pool: pubkeys[1],
+            withdraw_stake_validator_list: pubkeys[2],
+            withdraw_stake_withdraw_authority: pubkeys[3],
+            withdraw_stake_stake_to_split: pubkeys[4],
+            withdraw_stake_manager_fee: pubkeys[5],
+            clock: pubkeys[6],
+            token_program: pubkeys[7],
+            stake_program: pubkeys[8],
+            system_program: pubkeys[9],
+        }
+    }
+}
+impl<'info> From<SanctumSplMultiStakePoolWithdrawStakeAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts<'_, 'info>) -> Self {
+        [
+            accounts.sanctum_spl_multi_stake_pool_program.clone(),
+            accounts.withdraw_stake_spl_stake_pool.clone(),
+            accounts.withdraw_stake_validator_list.clone(),
+            accounts.withdraw_stake_withdraw_authority.clone(),
+            accounts.withdraw_stake_stake_to_split.clone(),
+            accounts.withdraw_stake_manager_fee.clone(),
+            accounts.clock.clone(),
+            accounts.token_program.clone(),
+            accounts.stake_program.clone(),
+            accounts.system_program.clone(),
+        ]
+    }
+}
+impl<'me, 'info>
+    From<&'me [AccountInfo<'info>; SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN]>
+    for SanctumSplMultiStakePoolWithdrawStakeAccounts<'me, 'info>
+{
+    fn from(
+        arr: &'me [AccountInfo<'info>; SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN],
+    ) -> Self {
+        Self {
+            sanctum_spl_multi_stake_pool_program: &arr[0],
+            withdraw_stake_spl_stake_pool: &arr[1],
+            withdraw_stake_validator_list: &arr[2],
+            withdraw_stake_withdraw_authority: &arr[3],
+            withdraw_stake_stake_to_split: &arr[4],
+            withdraw_stake_manager_fee: &arr[5],
+            clock: &arr[6],
+            token_program: &arr[7],
+            stake_program: &arr[8],
+            system_program: &arr[9],
+        }
+    }
+}
+pub const SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM: u8 = 5u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct SanctumSplMultiStakePoolWithdrawStakeIxData;
+impl SanctumSplMultiStakePoolWithdrawStakeIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
+    }
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_ix_with_program_id(
+    program_id: Pubkey,
+    keys: SanctumSplMultiStakePoolWithdrawStakeKeys,
+) -> std::io::Result<Instruction> {
+    let metas: [AccountMeta; SANCTUM_SPL_MULTI_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN] =
+        keys.into();
+    Ok(Instruction {
+        program_id,
+        accounts: Vec::from(metas),
+        data: SanctumSplMultiStakePoolWithdrawStakeIxData.try_to_vec()?,
+    })
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_ix(
+    keys: SanctumSplMultiStakePoolWithdrawStakeKeys,
+) -> std::io::Result<Instruction> {
+    sanctum_spl_multi_stake_pool_withdraw_stake_ix_with_program_id(crate::ID, keys)
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: SanctumSplMultiStakePoolWithdrawStakeKeys = accounts.into();
+    let ix = sanctum_spl_multi_stake_pool_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_invoke(
+    accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts<'_, '_>,
+) -> ProgramResult {
+    sanctum_spl_multi_stake_pool_withdraw_stake_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let keys: SanctumSplMultiStakePoolWithdrawStakeKeys = accounts.into();
+    let ix = sanctum_spl_multi_stake_pool_withdraw_stake_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_invoke_signed(
+    accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    sanctum_spl_multi_stake_pool_withdraw_stake_invoke_signed_with_program_id(
+        crate::ID,
+        accounts,
+        seeds,
+    )
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_verify_account_keys(
+    accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts<'_, '_>,
+    keys: SanctumSplMultiStakePoolWithdrawStakeKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (
+            accounts.sanctum_spl_multi_stake_pool_program.key,
+            &keys.sanctum_spl_multi_stake_pool_program,
+        ),
+        (
+            accounts.withdraw_stake_spl_stake_pool.key,
+            &keys.withdraw_stake_spl_stake_pool,
+        ),
+        (
+            accounts.withdraw_stake_validator_list.key,
+            &keys.withdraw_stake_validator_list,
+        ),
+        (
+            accounts.withdraw_stake_withdraw_authority.key,
+            &keys.withdraw_stake_withdraw_authority,
+        ),
+        (
+            accounts.withdraw_stake_stake_to_split.key,
+            &keys.withdraw_stake_stake_to_split,
+        ),
+        (
+            accounts.withdraw_stake_manager_fee.key,
+            &keys.withdraw_stake_manager_fee,
+        ),
+        (accounts.clock.key, &keys.clock),
+        (accounts.token_program.key, &keys.token_program),
+        (accounts.stake_program.key, &keys.stake_program),
+        (accounts.system_program.key, &keys.system_program),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_verify_writable_privileges<'me, 'info>(
+    accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.withdraw_stake_spl_stake_pool,
+        accounts.withdraw_stake_validator_list,
+        accounts.withdraw_stake_stake_to_split,
+        accounts.withdraw_stake_manager_fee,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub fn sanctum_spl_multi_stake_pool_withdraw_stake_verify_account_privileges<'me, 'info>(
+    accounts: SanctumSplMultiStakePoolWithdrawStakeAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    sanctum_spl_multi_stake_pool_withdraw_stake_verify_writable_privileges(accounts)?;
     Ok(())
 }

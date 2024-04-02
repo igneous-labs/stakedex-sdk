@@ -125,6 +125,8 @@ impl DepositStake for SplStakePoolStakedex {
             None,
         )
         .0;
+        // spl_stake_pool_deposit_stake_ix works for all spl-stake-pool like
+        // (spl, sanctum-spl, sanctum-spl-multi) because the accounts interface is the exact same
         Ok(spl_stake_pool_deposit_stake_ix(
             SplStakePoolDepositStakeKeys {
                 spl_stake_pool_program: self.stake_pool_program,

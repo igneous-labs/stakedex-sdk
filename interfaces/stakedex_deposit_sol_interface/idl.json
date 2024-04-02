@@ -48,46 +48,6 @@
       }
     },
     {
-      "name": "SoceanStakePoolDepositSol",
-      "accounts": [
-        {
-          "name": "soceanStakePoolProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakePool",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakePoolWithdrawAuthority",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakePoolReserveStake",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "stakePoolManagerFee",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "clock",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [],
-      "discriminant": {
-        "type": "u8",
-        "value": 1
-      }
-    },
-    {
       "name": "SplStakePoolDepositSol",
       "accounts": [
         {
@@ -120,6 +80,76 @@
       "discriminant": {
         "type": "u8",
         "value": 2
+      }
+    },
+    {
+      "name": "SanctumSplStakePoolDepositSol",
+      "accounts": [
+        {
+          "name": "SanctumSplStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolManagerFee",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
+      }
+    },
+    {
+      "name": "SanctumSplMultiStakePoolDepositSol",
+      "accounts": [
+        {
+          "name": "SanctumSplMultiStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolManagerFee",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 4
       }
     }
   ],

@@ -89,7 +89,9 @@ fn sanctum_lst_list_map_all_spl_like<F: FnMut(&SanctumLst, SplPoolAccounts) -> T
         .sanctum_lst_list
         .iter()
         .filter_map(move |lst| match lst.pool {
-            PoolInfo::SanctumSpl(accounts) | PoolInfo::Spl(accounts) => Some(f(lst, accounts)),
+            PoolInfo::SanctumSpl(accounts)
+            | PoolInfo::Spl(accounts)
+            | PoolInfo::SanctumSplMulti(accounts) => Some(f(lst, accounts)),
             PoolInfo::Lido | PoolInfo::Marinade | PoolInfo::ReservePool | PoolInfo::SPool(..) => {
                 None
             }

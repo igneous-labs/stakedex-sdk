@@ -3,66 +3,6 @@
   "name": "stakedex_withdraw_stake",
   "instructions": [
     {
-      "name": "SoceanStakePoolWithdrawStake",
-      "accounts": [
-        {
-          "name": "soceanStakePoolProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeSplStakePool",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeValidatorList",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeWithdrawAuthority",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeStakeToSplit",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "withdrawStakeManagerFee",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "clock",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "stakeProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [],
-      "discriminant": {
-        "type": "u8",
-        "value": 0
-      }
-    },
-    {
       "name": "SplStakePoolWithdrawStake",
       "accounts": [
         {
@@ -310,6 +250,66 @@
       "discriminant": {
         "type": "u8",
         "value": 4
+      }
+    },
+    {
+      "name": "SanctumSplMultiStakePoolWithdrawStake",
+      "accounts": [
+        {
+          "name": "sanctumSplMultiStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeSplStakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeValidatorList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeStakeToSplit",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawStakeManagerFee",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 5
       }
     }
   ],

@@ -49,6 +49,8 @@ impl DepositSol for SplStakePoolStakedex {
     }
 
     fn virtual_ix(&self) -> Result<Instruction> {
+        // spl_stake_pool_deposit_sol_ix works for all spl-stake-pool like
+        // (spl, sanctum-spl, sanctum-spl-multi) because the accounts interface is the exact same
         Ok(spl_stake_pool_deposit_sol_ix(SplStakePoolDepositSolKeys {
             spl_stake_pool_program: self.stake_pool_program,
             stake_pool: self.stake_pool_addr,

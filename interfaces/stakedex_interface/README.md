@@ -10,6 +10,8 @@ This is the on-chain program's interface. However the `StakeWrappedSol` and `Swa
 
   For example, to swap from scnSOL to laineSOL by withdrawing stake from socean then depositing the withdrawn stake to laine stake pool, you would append the `SoceanStakePoolWithdrawStake` instruction accounts, followed by the `SplStakePoolWithdrawStake` instruction accounts to a `SwapViaStake` instruction.
 
+- Since the `stakedex_deposit_sol_interface`, `stakedex_deposit_stake_interface`, and `stakedex_withdraw_stake_interface` IDLs are only used for their instructions' accounts slice definitions, their instruction discriminants are not used.
+
 ## Generate
 
 In workspace root:
