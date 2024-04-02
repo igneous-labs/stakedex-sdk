@@ -25,7 +25,6 @@ num-derive = ">=0.1"
 num-traits = ">=0.1"
 rand = "0.8.5"
 rust_decimal = ">=1.0,<=1.32.0" # anything >1.32 uses borsh ^1
-sanctum-lst-list = { git = "https://github.com/igneous-labs/sanctum-lst-list.git", branch = "master" } # rev = e05d193
 sanctum-macros = "^1.2"
 serde = "^1"
 serde_json = "^1"
@@ -40,6 +39,10 @@ unstake-lib = { git = "https://github.com/igneous-labs/sanctum-unstake-program.g
 
 # sanctum solana utils
 sanctum-solana-cli-utils = { git = "https://github.com/igneous-labs/sanctum-solana-utils.git", branch = "master" } # rev = "111f01"
+
+# sanctum-lst-list
+# keep branch = "master" for flexibility of downstream crates
+sanctum-lst-list = { git = "https://github.com/igneous-labs/sanctum-lst-list.git", branch = "master" } # rev = b4f05b2
 
 # solana core crates
 solana-program = "^1"
