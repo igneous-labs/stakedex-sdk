@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jupiter_amm_interface::{AccountMap, KeyedAccount};
+use jupiter_amm_interface::{AccountMap, AmmContext, KeyedAccount};
 use solana_program::pubkey::Pubkey;
 use stakedex_sdk_common::{
     account_missing_err, marinade_program, marinade_state, msol, BaseStakePoolAmm,
@@ -10,7 +10,7 @@ use crate::{MarinadeStakedex, MARINADE_LABEL};
 
 impl InitFromKeyedAccount for MarinadeStakedex {
     /// Initialize from state
-    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
+    fn from_keyed_account(keyed_account: &KeyedAccount, _amm_context: &AmmContext) -> Result<Self> {
         let mut res = Self::default();
         res.update_state(&keyed_account.account.data)?;
         // NOTE: validator_records is not initialized until self.update() is

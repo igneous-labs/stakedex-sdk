@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jupiter_amm_interface::{AccountMap, KeyedAccount};
+use jupiter_amm_interface::{AccountMap, AmmContext, KeyedAccount};
 use solana_program::{clock::Clock, pubkey::Pubkey, sysvar};
 use stakedex_sdk_common::{account_missing_err, BaseStakePoolAmm, InitFromKeyedAccount};
 
@@ -13,6 +13,7 @@ impl InitFromKeyedAccount for SplStakePoolStakedex {
             account,
             params,
         }: &KeyedAccount,
+        _amm_context: &AmmContext,
     ) -> Result<Self> {
         let mut res = Self::new_uninitialized(crate::SplStakePoolStakedexInitKeys {
             stake_pool_program: account.owner,

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jupiter_amm_interface::{AccountMap, KeyedAccount};
+use jupiter_amm_interface::{AccountMap, AmmContext, KeyedAccount};
 use solana_program::pubkey::Pubkey;
 use stakedex_sdk_common::{
     account_missing_err, unstake_it_pool, unstake_it_program, BaseStakePoolAmm,
@@ -9,7 +9,10 @@ use stakedex_sdk_common::{
 use crate::{UnstakeItStakedex, UNSTAKE_IT_LABEL};
 
 impl InitFromKeyedAccount for UnstakeItStakedex {
-    fn from_keyed_account(_keyed_account: &KeyedAccount) -> Result<Self> {
+    fn from_keyed_account(
+        _keyed_account: &KeyedAccount,
+        _amm_context: &AmmContext,
+    ) -> Result<Self> {
         Ok(UnstakeItStakedex::default())
     }
 }

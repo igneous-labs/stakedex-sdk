@@ -1,5 +1,5 @@
 use anyhow::Result;
-use jupiter_amm_interface::{AccountMap, KeyedAccount};
+use jupiter_amm_interface::{AccountMap, AmmContext, KeyedAccount};
 use solana_program::{pubkey::Pubkey, sysvar};
 use stakedex_sdk_common::{
     account_missing_err, lido_program, lido_state, stsol, BaseStakePoolAmm, InitFromKeyedAccount,
@@ -9,7 +9,7 @@ use crate::{LidoStakedex, LIDO_LABEL};
 
 impl InitFromKeyedAccount for LidoStakedex {
     /// Initialize from lido
-    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
+    fn from_keyed_account(keyed_account: &KeyedAccount, _amm_context: &AmmContext) -> Result<Self> {
         let mut res = Self::default();
         res.update_lido_state(&keyed_account.account.data)?;
         // NOTE: validator_list is not initialized until self.update() is

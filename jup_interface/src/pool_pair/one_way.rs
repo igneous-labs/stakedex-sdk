@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use jupiter_amm_interface::{
-    AccountMap, Amm, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas, SwapParams,
+    AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas,
+    SwapParams,
 };
 use solana_sdk::{clock::Clock, pubkey::Pubkey, sysvar};
 use stakedex_interface::PREFUND_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN;
@@ -58,7 +59,10 @@ where
     W: WithdrawStake + Clone + Send + Sync,
     D: DepositStake + Clone + Send + Sync,
 {
-    fn from_keyed_account(_keyed_account: &KeyedAccount) -> Result<Self> {
+    fn from_keyed_account(
+        _keyed_account: &KeyedAccount,
+        _amm_context: &AmmContext,
+    ) -> Result<Self> {
         todo!() // TODO: Assess this code smell
     }
 

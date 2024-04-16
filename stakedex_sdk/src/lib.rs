@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use jupiter_amm_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
+use jupiter_amm_interface::{
+    AccountMap, Amm, AmmContext, ClockRef, KeyedAccount, Quote, QuoteParams, SwapParams,
+};
 use lazy_static::lazy_static;
 use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList};
 use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
@@ -79,7 +81,13 @@ fn init_from_keyed_account_no_params<P: InitFromKeyedAccount>(
     key: &Pubkey,
 ) -> Result<P> {
     let keyed_acc = get_keyed_account(accounts, key)?;
-    P::from_keyed_account(&keyed_acc)
+
+    P::from_keyed_account(
+        &keyed_acc,
+        &AmmContext {
+            clock_ref: ClockRef::default(),
+        },
+    )
 }
 
 impl Stakedex {
@@ -143,7 +151,12 @@ impl Stakedex {
                         get_keyed_account(accounts, &pool)
                             .map_or_else(Err, |mut ka| {
                                 ka.params = Some(name.as_str().into());
-                                SplStakePoolStakedex::from_keyed_account(&ka)
+                                SplStakePoolStakedex::from_keyed_account(
+                                    &ka,
+                                    &AmmContext {
+                                        clock_ref: ClockRef::default(), // Ok because unused internally
+                                    },
+                                )
                             })
                             .unwrap_or_else(|e| {
                                 errs.push(e);

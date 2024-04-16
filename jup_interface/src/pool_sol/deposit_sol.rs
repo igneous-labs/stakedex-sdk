@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use jupiter_amm_interface::{
-    Amm, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas, SwapParams,
+    Amm, AmmContext, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas, SwapParams,
 };
 use solana_sdk::{account::Account, instruction::AccountMeta, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
@@ -21,8 +21,8 @@ impl<T> Amm for DepositSolWrapper<T>
 where
     T: DepositSol + InitFromKeyedAccount + Clone + Send + Sync,
 {
-    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
-        T::from_keyed_account(keyed_account).map(|t| Self(t))
+    fn from_keyed_account(keyed_account: &KeyedAccount, amm_context: &AmmContext) -> Result<Self> {
+        T::from_keyed_account(keyed_account, amm_context).map(|t| Self(t))
     }
 
     fn label(&self) -> String {
