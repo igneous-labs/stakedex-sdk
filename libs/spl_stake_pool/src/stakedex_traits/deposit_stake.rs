@@ -1,8 +1,6 @@
 use anyhow::Result;
 use solana_program::{instruction::Instruction, stake, sysvar};
-use spl_stake_pool::{
-    find_deposit_authority_program_address, find_stake_program_address, state::StakeStatus,
-};
+use spl_stake_pool::{find_stake_program_address, state::StakeStatus};
 use stakedex_deposit_stake_interface::{
     spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeKeys,
     SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
@@ -13,13 +11,7 @@ use crate::SplStakePoolStakedex;
 
 impl DepositStake for SplStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
-        if self.stake_pool.stake_deposit_authority
-            != find_deposit_authority_program_address(
-                &self.stake_pool_program,
-                &self.stake_pool_addr,
-            )
-            .0
-        {
+        if self.stake_pool.stake_deposit_authority != self.deposit_authority_program_address {
             return false;
         }
         self.is_updated_this_epoch()
