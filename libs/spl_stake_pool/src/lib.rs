@@ -19,6 +19,7 @@ pub struct SplStakePoolStakedex {
     pub stake_pool: StakePool,
     pub validator_list: ValidatorList,
     pub curr_epoch: Epoch,
+    pub deposit_authority_program_address: Pubkey,
 }
 
 impl SplStakePoolStakedex {
