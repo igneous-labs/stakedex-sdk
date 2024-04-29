@@ -1,7 +1,6 @@
 use anyhow::Result;
 use jupiter_amm_interface::{AccountMap, KeyedAccount};
 use solana_program::{clock::Clock, pubkey::Pubkey, sysvar};
-use spl_stake_pool::find_deposit_authority_program_address;
 use stakedex_sdk_common::{account_missing_err, BaseStakePoolAmm, InitFromKeyedAccount};
 
 use crate::SplStakePoolStakedex;
@@ -15,14 +14,10 @@ impl InitFromKeyedAccount for SplStakePoolStakedex {
             params,
         }: &KeyedAccount,
     ) -> Result<Self> {
-        let deposit_authority_program_address =
-            find_deposit_authority_program_address(&account.owner, key).0;
-        let mut res = Self {
+        let mut res = Self::new_uninitialized(crate::SplStakePoolStakedexInitKeys {
             stake_pool_program: account.owner,
             stake_pool_addr: *key,
-            deposit_authority_program_address,
-            ..Default::default()
-        };
+        });
 
         res.update_stake_pool(&account.data)?;
 

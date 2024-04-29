@@ -5,7 +5,10 @@ use stakedex_deposit_stake_interface::{
     spl_stake_pool_deposit_stake_ix, SplStakePoolDepositStakeKeys,
     SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN,
 };
-use stakedex_sdk_common::{DepositStake, DepositStakeInfo, DepositStakeQuote, WithdrawStakeQuote};
+use stakedex_sdk_common::{
+    DepositStake, DepositStakeInfo, DepositStakeQuote, WithdrawStakeQuote,
+    STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+};
 
 use crate::SplStakePoolStakedex;
 
@@ -33,6 +36,13 @@ impl DepositStake for SplStakePoolStakedex {
             None => return DepositStakeQuote::default(),
         };
         if validator_list_entry.status != StakeStatus::Active.into() {
+            return DepositStakeQuote::default();
+        }
+        // This is a newly added validator, so the vsa is not yet active.
+        // We don't handle depositing to merge with the transient stake account for now.
+        if u64::from(validator_list_entry.active_stake_lamports)
+            <= STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS
+        {
             return DepositStakeQuote::default();
         }
         // Reference: https://github.com/solana-labs/solana-program-library/blob/stake-pool-v0.6.4/stake-pool/program/src/processor.rs#L1971

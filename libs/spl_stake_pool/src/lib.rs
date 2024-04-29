@@ -2,12 +2,18 @@ use anyhow::Result;
 use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey, stake_history::Epoch};
 use spl_stake_pool::{
     error::StakePoolError,
-    find_withdraw_authority_program_address,
+    find_deposit_authority_program_address, find_withdraw_authority_program_address,
     state::{StakePool, StakeStatus, ValidatorList},
 };
 use stakedex_sdk_common::{WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
 
 mod stakedex_traits;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SplStakePoolStakedexInitKeys {
+    pub stake_pool_program: Pubkey,
+    pub stake_pool_addr: Pubkey,
+}
 
 /// A SPL stake pool with possibly custom program ID.
 /// Works for different deploys of spl stake pool prog - spl, sanctum spl, sanctum spl multi
@@ -23,6 +29,22 @@ pub struct SplStakePoolStakedex {
 }
 
 impl SplStakePoolStakedex {
+    pub fn new_uninitialized(
+        SplStakePoolStakedexInitKeys {
+            stake_pool_program,
+            stake_pool_addr,
+        }: SplStakePoolStakedexInitKeys,
+    ) -> Self {
+        let (deposit_authority_program_address, _bump) =
+            find_deposit_authority_program_address(&stake_pool_program, &stake_pool_addr);
+        Self {
+            stake_pool_addr,
+            stake_pool_program,
+            deposit_authority_program_address,
+            ..Default::default()
+        }
+    }
+
     pub fn update_stake_pool(&mut self, data: &[u8]) -> Result<()> {
         self.stake_pool = try_from_slice_unchecked::<StakePool>(data)?;
         Ok(())

@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use jupiter_amm_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
 use lazy_static::lazy_static;
-use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList, SplPoolAccounts};
+use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList};
 use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{
@@ -24,7 +24,7 @@ use stakedex_sdk_common::{
     DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
     DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
-use stakedex_spl_stake_pool::SplStakePoolStakedex;
+use stakedex_spl_stake_pool::{SplStakePoolStakedex, SplStakePoolStakedexInitKeys};
 use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use stakedex_interface::ID as stakedex_program_id;
@@ -82,27 +82,20 @@ fn init_from_keyed_account_no_params<P: InitFromKeyedAccount>(
     P::from_keyed_account(&keyed_acc)
 }
 
-fn sanctum_lst_list_map_all_spl_like<F: FnMut(&SanctumLst, SplPoolAccounts) -> T, T>(
-    mut f: F,
-) -> impl Iterator<Item = T> {
-    SANCTUM_LST_LIST
-        .sanctum_lst_list
-        .iter()
-        .filter_map(move |lst| match lst.pool {
-            PoolInfo::SanctumSpl(accounts)
-            | PoolInfo::Spl(accounts)
-            | PoolInfo::SanctumSplMulti(accounts) => Some(f(lst, accounts)),
-            PoolInfo::Lido | PoolInfo::Marinade | PoolInfo::ReservePool | PoolInfo::SPool(..) => {
-                None
-            }
-        })
-}
-
 impl Stakedex {
     /// Gets the list of accounts that must be fetched first to initialize
     /// Stakedex by passing the result into from_fetched_accounts()
-    pub fn init_accounts() -> Vec<Pubkey> {
-        sanctum_lst_list_map_all_spl_like(|_lst, SplPoolAccounts { pool, .. }| pool)
+    pub fn init_accounts<'a, I: Iterator<Item = &'a SanctumLst>>(sanctum_lsts: I) -> Vec<Pubkey> {
+        sanctum_lsts
+            .filter_map(|lst| match lst.pool {
+                PoolInfo::SanctumSpl(accounts)
+                | PoolInfo::Spl(accounts)
+                | PoolInfo::SanctumSplMulti(accounts) => Some(accounts.pool),
+                PoolInfo::Lido
+                | PoolInfo::Marinade
+                | PoolInfo::ReservePool
+                | PoolInfo::SPool(..) => None,
+            })
             .chain([
                 unstake_it_program::SOL_RESERVES_ID,
                 marinade_state::ID,
@@ -111,7 +104,9 @@ impl Stakedex {
             .collect()
     }
 
-    pub fn from_fetched_accounts(
+    /// `sanctum_lsts` must be the same iterator passed to [`Self::init_accounts()`]
+    pub fn from_fetched_accounts<'a>(
+        sanctum_lsts: impl Iterator<Item = &'a SanctumLst>,
         accounts: &HashMap<Pubkey, Account>,
     ) -> (Self, Vec<anyhow::Error>) {
         // So that stakedex is still useable even if some pools fail to load
@@ -137,20 +132,39 @@ impl Stakedex {
                 LidoStakedex::default()
             });
 
-        let spls = sanctum_lst_list_map_all_spl_like(
-            |SanctumLst { name, .. }, SplPoolAccounts { pool, .. }| {
-                get_keyed_account(accounts, &pool)
-                    .map_or_else(Err, |mut ka| {
-                        ka.params = Some(name.as_str().into());
-                        SplStakePoolStakedex::from_keyed_account(&ka)
-                    })
-                    .unwrap_or_else(|e| {
-                        errs.push(e);
-                        SplStakePoolStakedex::default()
-                    })
-            },
-        )
-        .collect();
+        let spls = sanctum_lsts
+            .filter_map(|lst| match lst.pool {
+                PoolInfo::SanctumSpl(spl_accs)
+                | PoolInfo::Spl(spl_accs)
+                | PoolInfo::SanctumSplMulti(spl_accs) => {
+                    let name = &lst.name;
+                    let pool = spl_accs.pool;
+                    Some(
+                        get_keyed_account(accounts, &pool)
+                            .map_or_else(Err, |mut ka| {
+                                ka.params = Some(name.as_str().into());
+                                SplStakePoolStakedex::from_keyed_account(&ka)
+                            })
+                            .unwrap_or_else(|e| {
+                                errs.push(e);
+                                SplStakePoolStakedex {
+                                    stake_pool_label: format!("{name} stake pool"),
+                                    ..SplStakePoolStakedex::new_uninitialized(
+                                        SplStakePoolStakedexInitKeys {
+                                            stake_pool_program: lst.pool.pool_program().into(),
+                                            stake_pool_addr: pool,
+                                        },
+                                    )
+                                }
+                            }),
+                    )
+                }
+                PoolInfo::Lido
+                | PoolInfo::Marinade
+                | PoolInfo::ReservePool
+                | PoolInfo::SPool(..) => None,
+            })
+            .collect();
 
         (
             Self {

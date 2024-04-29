@@ -1,5 +1,6 @@
 use jupiter_amm_interface::{Quote, QuoteParams, SwapMode, SwapParams};
 use lazy_static::lazy_static;
+use sanctum_lst_list::SanctumLstList;
 use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
     rpc_client::RpcClient,
@@ -36,8 +37,9 @@ pub mod jupiter_program {
 lazy_static! {
     static ref RPC: RpcClient = RpcClient::new(std::env::var("SOLANA_RPC_URL").unwrap());
     static ref STAKEDEX: Stakedex = {
-        let init_accounts = fetch_accounts(&Stakedex::init_accounts());
-        let (mut stakedex, errs) = Stakedex::from_fetched_accounts(&init_accounts);
+        let sll = SanctumLstList::load().sanctum_lst_list;
+        let init_accounts = fetch_accounts(&Stakedex::init_accounts(sll.iter()));
+        let (mut stakedex, errs) = Stakedex::from_fetched_accounts(sll.iter(), &init_accounts);
         if !errs.is_empty() {
             eprintln!("init errs {:?}", errs);
         }
