@@ -85,9 +85,7 @@ fn init_from_keyed_account_no_params<P: InitFromKeyedAccount>(
 impl Stakedex {
     /// Gets the list of accounts that must be fetched first to initialize
     /// Stakedex by passing the result into from_fetched_accounts()
-    pub fn init_accounts<'a, I: Iterator<Item = &'a SanctumLst> + 'a>(
-        sanctum_lsts: I,
-    ) -> Vec<Pubkey> {
+    pub fn init_accounts<'a, I: Iterator<Item = &'a SanctumLst>>(sanctum_lsts: I) -> Vec<Pubkey> {
         sanctum_lsts
             .filter_map(|lst| match lst.pool {
                 PoolInfo::SanctumSpl(accounts)
@@ -108,8 +106,8 @@ impl Stakedex {
 
     /// `sanctum_lsts` must be the same iterator passed to [`Self::init_accounts()`]
     pub fn from_fetched_accounts<'a>(
-        sanctum_lsts: impl Iterator<Item = &'a SanctumLst> + 'a,
-        accounts: &'a HashMap<Pubkey, Account>,
+        sanctum_lsts: impl Iterator<Item = &'a SanctumLst>,
+        accounts: &HashMap<Pubkey, Account>,
     ) -> (Self, Vec<anyhow::Error>) {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
