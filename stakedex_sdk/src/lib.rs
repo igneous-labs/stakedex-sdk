@@ -24,7 +24,7 @@ use stakedex_sdk_common::{
     DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
     DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
-use stakedex_spl_stake_pool::SplStakePoolStakedex;
+use stakedex_spl_stake_pool::{SplStakePoolStakedex, SplStakePoolStakedexInitKeys};
 use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use stakedex_interface::ID as stakedex_program_id;
@@ -147,7 +147,15 @@ impl Stakedex {
                             })
                             .unwrap_or_else(|e| {
                                 errs.push(e);
-                                SplStakePoolStakedex::default()
+                                SplStakePoolStakedex {
+                                    stake_pool_label: format!("{name} stake pool"),
+                                    ..SplStakePoolStakedex::new_uninitialized(
+                                        SplStakePoolStakedexInitKeys {
+                                            stake_pool_program: lst.pool.pool_program().into(),
+                                            stake_pool_addr: pool,
+                                        },
+                                    )
+                                }
                             }),
                     )
                 }
