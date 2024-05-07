@@ -6,7 +6,7 @@ use jupiter_amm_interface::{
     AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, SwapParams,
 };
 use lazy_static::lazy_static;
-use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList};
+use sanctum_lst_list::{PoolInfo, SanctumLst};
 use solana_sdk::{instruction::Instruction, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{
@@ -29,6 +29,7 @@ use stakedex_sdk_common::{
 use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
+pub use sanctum_lst_list::SanctumLstList;
 pub use stakedex_interface::ID as stakedex_program_id;
 
 /// mainnet LUT that contains prefund accounts and other common accounts
