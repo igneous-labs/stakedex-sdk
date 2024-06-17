@@ -4,6 +4,7 @@ use clap::Args;
 use sanctum_solana_cli_utils::{parse_signer, TxSendingNonblockingRpcClient};
 use solana_sdk::{
     address_lookup_table::{instruction::extend_lookup_table, state::AddressLookupTable},
+    compute_budget::ComputeBudgetInstruction,
     message::{v0::Message, VersionedMessage},
     pubkey::Pubkey,
     transaction::VersionedTransaction,
@@ -70,6 +71,8 @@ impl ExtendArgs {
         let lut = AddressLookupTable::deserialize(&lut_acc_data).unwrap();
 
         lut_list.retain(|addr| !lut.addresses.contains(addr));
+        lut_list.sort();
+        lut_list.dedup();
 
         if lut_list.is_empty() {
             eprintln!("LUT already synced, nothing to be done");
@@ -89,7 +92,19 @@ impl ExtendArgs {
             let rbh = rpc.get_latest_blockhash().await.unwrap();
             let tx = VersionedTransaction::try_new(
                 VersionedMessage::V0(
-                    Message::try_compile(&payer.pubkey(), &[ix], &[], rbh).unwrap(),
+                    Message::try_compile(
+                        &payer.pubkey(),
+                        &[
+                            // hardcode CUs to set to 5k lamports prio fees for now.
+                            // simulation shows extend lut always takes 600 CUs + 600 CUs for CU ixs = 1200 CUs
+                            ComputeBudgetInstruction::set_compute_unit_limit(1_500),
+                            ComputeBudgetInstruction::set_compute_unit_price(3_334),
+                            ix,
+                        ],
+                        &[],
+                        rbh,
+                    )
+                    .unwrap(),
                 ),
                 &signers,
             )
