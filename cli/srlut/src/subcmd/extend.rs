@@ -98,7 +98,7 @@ impl ExtendArgs {
                             // hardcode CUs to set to 5k lamports prio fees for now.
                             // simulation shows extend lut always takes 600 CUs + 600 CUs for CU ixs = 1200 CUs
                             ComputeBudgetInstruction::set_compute_unit_limit(1_500),
-                            ComputeBudgetInstruction::set_compute_unit_price(3_334),
+                            ComputeBudgetInstruction::set_compute_unit_price(3_333_334),
                             ix,
                         ],
                         &[],
