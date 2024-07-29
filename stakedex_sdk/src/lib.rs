@@ -65,7 +65,7 @@ pub struct Stakedex {
     pub lido: LidoStakedex,
 }
 
-fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Result<KeyedAccount> {
+fn get_keyed_account(accounts: &AccountMap, key: &Pubkey) -> Result<KeyedAccount> {
     Ok(KeyedAccount {
         key: *key,
         account: accounts
@@ -77,7 +77,7 @@ fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Resul
 }
 
 fn init_from_keyed_account_no_params<P: InitFromKeyedAccount>(
-    accounts: &HashMap<Pubkey, Account>,
+    accounts: &AccountMap,
     key: &Pubkey,
 ) -> Result<P> {
     let keyed_acc = get_keyed_account(accounts, key)?;
@@ -115,7 +115,7 @@ impl Stakedex {
     /// `sanctum_lsts` must be the same iterator passed to [`Self::init_accounts()`]
     pub fn from_fetched_accounts<'a>(
         sanctum_lsts: impl Iterator<Item = &'a SanctumLst>,
-        accounts: &HashMap<Pubkey, Account>,
+        accounts: &AccountMap,
     ) -> (Self, Vec<anyhow::Error>) {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
@@ -219,7 +219,7 @@ impl Stakedex {
         })
     }
 
-    pub fn update(&mut self, account_map: &HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
+    pub fn update(&mut self, account_map: &AccountMap) -> Vec<anyhow::Error> {
         // unstake.it special-case: required reinitialization to save sol_reserves_lamports correctly
         let maybe_unstake_it_init_err = match init_from_keyed_account_no_params(
             account_map,

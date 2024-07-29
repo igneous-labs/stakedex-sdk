@@ -1,4 +1,4 @@
-use jupiter_amm_interface::{Quote, QuoteParams, SwapMode, SwapParams};
+use jupiter_amm_interface::{AccountMap, Quote, QuoteParams, SwapMode, SwapParams};
 use lazy_static::lazy_static;
 use sanctum_lst_list::SanctumLstList;
 use solana_account_decoder::UiAccountEncoding;
@@ -62,7 +62,7 @@ lazy_static! {
     };
 }
 
-fn fetch_accounts(accounts_pubkeys: &[Pubkey]) -> HashMap<Pubkey, Account> {
+fn fetch_accounts(accounts_pubkeys: &[Pubkey]) -> AccountMap {
     let fetched = RPC.get_multiple_accounts(accounts_pubkeys).unwrap();
     zip(accounts_pubkeys, fetched)
         .filter_map(|(pubkey, opt)| match opt {
