@@ -341,6 +341,86 @@
         "type": "u8",
         "value": 5
       }
+    },
+    {
+      "name": "SplStakePoolDepositCapGuardDepositStake",
+      "accounts": [
+        {
+          "name": "depositCapGuardProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositCapGuardState",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "splStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeSplStakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeDepositAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeValidatorStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "depositStakeManagerFee",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeHistory",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 6
+      }
     }
   ],
   "metadata": {

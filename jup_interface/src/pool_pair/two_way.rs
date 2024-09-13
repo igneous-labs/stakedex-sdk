@@ -5,8 +5,8 @@ use jupiter_amm_interface::{
 use solana_sdk::{clock::Clock, pubkey::Pubkey, sysvar};
 use stakedex_interface::PREFUND_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN;
 use stakedex_sdk_common::{
-    account_missing_err, find_stake_pool_pair_amm_key, unstake_it_program, DepositStake,
-    WithdrawStake, TEMPORARY_JUP_AMM_LABEL,
+    account_missing_err, find_stake_pool_pair_amm_key, spl_deposit_cap_guard_program,
+    unstake_it_program, DepositStake, WithdrawStake, TEMPORARY_JUP_AMM_LABEL,
 };
 use std::collections::HashSet;
 
@@ -204,6 +204,10 @@ where
                 self.p2.stake_pool_label().to_lowercase(),
             ),
             (unstake_it_program::ID, "unstake.it".to_owned()),
+            (
+                spl_deposit_cap_guard_program::ID,
+                "spl-deposit-cap-guard".to_owned(),
+            ),
         ]
     }
 }

@@ -151,6 +151,51 @@
         "type": "u8",
         "value": 4
       }
+    },
+    {
+      "name": "SplStakePoolDepositCapGuardDepositSol",
+      "accounts": [
+        {
+          "name": "depositCapGuardProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "depositCapGuardState",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "splStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "stakePoolManagerFee",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 5
+      }
     }
   ],
   "metadata": {

@@ -13,6 +13,7 @@ pub enum StakedexDepositSolProgramIx {
     SplStakePoolDepositSol,
     SanctumSplStakePoolDepositSol,
     SanctumSplMultiStakePoolDepositSol,
+    SplStakePoolDepositCapGuardDepositSol,
 }
 impl StakedexDepositSolProgramIx {
     pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
@@ -26,6 +27,9 @@ impl StakedexDepositSolProgramIx {
             SANCTUM_SPL_STAKE_POOL_DEPOSIT_SOL_IX_DISCM => Ok(Self::SanctumSplStakePoolDepositSol),
             SANCTUM_SPL_MULTI_STAKE_POOL_DEPOSIT_SOL_IX_DISCM => {
                 Ok(Self::SanctumSplMultiStakePoolDepositSol)
+            }
+            SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_DISCM => {
+                Ok(Self::SplStakePoolDepositCapGuardDepositSol)
             }
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -44,6 +48,9 @@ impl StakedexDepositSolProgramIx {
             }
             Self::SanctumSplMultiStakePoolDepositSol => {
                 writer.write_all(&[SANCTUM_SPL_MULTI_STAKE_POOL_DEPOSIT_SOL_IX_DISCM])
+            }
+            Self::SplStakePoolDepositCapGuardDepositSol => {
+                writer.write_all(&[SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_DISCM])
             }
         }
     }
@@ -980,5 +987,270 @@ pub fn sanctum_spl_multi_stake_pool_deposit_sol_verify_account_privileges<'me, '
     accounts: SanctumSplMultiStakePoolDepositSolAccounts<'me, 'info>,
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     sanctum_spl_multi_stake_pool_deposit_sol_verify_writable_privileges(accounts)?;
+    Ok(())
+}
+pub const SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_ACCOUNTS_LEN: usize = 7;
+#[derive(Copy, Clone, Debug)]
+pub struct SplStakePoolDepositCapGuardDepositSolAccounts<'me, 'info> {
+    pub deposit_cap_guard_program: &'me AccountInfo<'info>,
+    pub deposit_cap_guard_state: &'me AccountInfo<'info>,
+    pub spl_stake_pool_program: &'me AccountInfo<'info>,
+    pub stake_pool: &'me AccountInfo<'info>,
+    pub stake_pool_withdraw_authority: &'me AccountInfo<'info>,
+    pub stake_pool_reserve_stake: &'me AccountInfo<'info>,
+    pub stake_pool_manager_fee: &'me AccountInfo<'info>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct SplStakePoolDepositCapGuardDepositSolKeys {
+    pub deposit_cap_guard_program: Pubkey,
+    pub deposit_cap_guard_state: Pubkey,
+    pub spl_stake_pool_program: Pubkey,
+    pub stake_pool: Pubkey,
+    pub stake_pool_withdraw_authority: Pubkey,
+    pub stake_pool_reserve_stake: Pubkey,
+    pub stake_pool_manager_fee: Pubkey,
+}
+impl From<SplStakePoolDepositCapGuardDepositSolAccounts<'_, '_>>
+    for SplStakePoolDepositCapGuardDepositSolKeys
+{
+    fn from(accounts: SplStakePoolDepositCapGuardDepositSolAccounts) -> Self {
+        Self {
+            deposit_cap_guard_program: *accounts.deposit_cap_guard_program.key,
+            deposit_cap_guard_state: *accounts.deposit_cap_guard_state.key,
+            spl_stake_pool_program: *accounts.spl_stake_pool_program.key,
+            stake_pool: *accounts.stake_pool.key,
+            stake_pool_withdraw_authority: *accounts.stake_pool_withdraw_authority.key,
+            stake_pool_reserve_stake: *accounts.stake_pool_reserve_stake.key,
+            stake_pool_manager_fee: *accounts.stake_pool_manager_fee.key,
+        }
+    }
+}
+impl From<SplStakePoolDepositCapGuardDepositSolKeys>
+    for [AccountMeta; SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+{
+    fn from(keys: SplStakePoolDepositCapGuardDepositSolKeys) -> Self {
+        [
+            AccountMeta {
+                pubkey: keys.deposit_cap_guard_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.deposit_cap_guard_state,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.spl_stake_pool_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_withdraw_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_reserve_stake,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.stake_pool_manager_fee,
+                is_signer: false,
+                is_writable: true,
+            },
+        ]
+    }
+}
+impl From<[Pubkey; SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_ACCOUNTS_LEN]>
+    for SplStakePoolDepositCapGuardDepositSolKeys
+{
+    fn from(
+        pubkeys: [Pubkey; SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_ACCOUNTS_LEN],
+    ) -> Self {
+        Self {
+            deposit_cap_guard_program: pubkeys[0],
+            deposit_cap_guard_state: pubkeys[1],
+            spl_stake_pool_program: pubkeys[2],
+            stake_pool: pubkeys[3],
+            stake_pool_withdraw_authority: pubkeys[4],
+            stake_pool_reserve_stake: pubkeys[5],
+            stake_pool_manager_fee: pubkeys[6],
+        }
+    }
+}
+impl<'info> From<SplStakePoolDepositCapGuardDepositSolAccounts<'_, 'info>>
+    for [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: SplStakePoolDepositCapGuardDepositSolAccounts<'_, 'info>) -> Self {
+        [
+            accounts.deposit_cap_guard_program.clone(),
+            accounts.deposit_cap_guard_state.clone(),
+            accounts.spl_stake_pool_program.clone(),
+            accounts.stake_pool.clone(),
+            accounts.stake_pool_withdraw_authority.clone(),
+            accounts.stake_pool_reserve_stake.clone(),
+            accounts.stake_pool_manager_fee.clone(),
+        ]
+    }
+}
+impl<'me, 'info>
+    From<&'me [AccountInfo<'info>; SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_ACCOUNTS_LEN]>
+    for SplStakePoolDepositCapGuardDepositSolAccounts<'me, 'info>
+{
+    fn from(
+        arr: &'me [AccountInfo<'info>;
+                 SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_ACCOUNTS_LEN],
+    ) -> Self {
+        Self {
+            deposit_cap_guard_program: &arr[0],
+            deposit_cap_guard_state: &arr[1],
+            spl_stake_pool_program: &arr[2],
+            stake_pool: &arr[3],
+            stake_pool_withdraw_authority: &arr[4],
+            stake_pool_reserve_stake: &arr[5],
+            stake_pool_manager_fee: &arr[6],
+        }
+    }
+}
+pub const SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_DISCM: u8 = 5u8;
+#[derive(Clone, Debug, PartialEq)]
+pub struct SplStakePoolDepositCapGuardDepositSolIxData;
+impl SplStakePoolDepositCapGuardDepositSolIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self)
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_DISCM])
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
+    }
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_ix_with_program_id(
+    program_id: Pubkey,
+    keys: SplStakePoolDepositCapGuardDepositSolKeys,
+) -> std::io::Result<Instruction> {
+    let metas: [AccountMeta; SPL_STAKE_POOL_DEPOSIT_CAP_GUARD_DEPOSIT_SOL_IX_ACCOUNTS_LEN] =
+        keys.into();
+    Ok(Instruction {
+        program_id,
+        accounts: Vec::from(metas),
+        data: SplStakePoolDepositCapGuardDepositSolIxData.try_to_vec()?,
+    })
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_ix(
+    keys: SplStakePoolDepositCapGuardDepositSolKeys,
+) -> std::io::Result<Instruction> {
+    spl_stake_pool_deposit_cap_guard_deposit_sol_ix_with_program_id(crate::ID, keys)
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: SplStakePoolDepositCapGuardDepositSolAccounts<'_, '_>,
+) -> ProgramResult {
+    let keys: SplStakePoolDepositCapGuardDepositSolKeys = accounts.into();
+    let ix = spl_stake_pool_deposit_cap_guard_deposit_sol_ix_with_program_id(program_id, keys)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_invoke(
+    accounts: SplStakePoolDepositCapGuardDepositSolAccounts<'_, '_>,
+) -> ProgramResult {
+    spl_stake_pool_deposit_cap_guard_deposit_sol_invoke_with_program_id(crate::ID, accounts)
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: SplStakePoolDepositCapGuardDepositSolAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let keys: SplStakePoolDepositCapGuardDepositSolKeys = accounts.into();
+    let ix = spl_stake_pool_deposit_cap_guard_deposit_sol_ix_with_program_id(program_id, keys)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_invoke_signed(
+    accounts: SplStakePoolDepositCapGuardDepositSolAccounts<'_, '_>,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    spl_stake_pool_deposit_cap_guard_deposit_sol_invoke_signed_with_program_id(
+        crate::ID,
+        accounts,
+        seeds,
+    )
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_verify_account_keys(
+    accounts: SplStakePoolDepositCapGuardDepositSolAccounts<'_, '_>,
+    keys: SplStakePoolDepositCapGuardDepositSolKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (
+            accounts.deposit_cap_guard_program.key,
+            &keys.deposit_cap_guard_program,
+        ),
+        (
+            accounts.deposit_cap_guard_state.key,
+            &keys.deposit_cap_guard_state,
+        ),
+        (
+            accounts.spl_stake_pool_program.key,
+            &keys.spl_stake_pool_program,
+        ),
+        (accounts.stake_pool.key, &keys.stake_pool),
+        (
+            accounts.stake_pool_withdraw_authority.key,
+            &keys.stake_pool_withdraw_authority,
+        ),
+        (
+            accounts.stake_pool_reserve_stake.key,
+            &keys.stake_pool_reserve_stake,
+        ),
+        (
+            accounts.stake_pool_manager_fee.key,
+            &keys.stake_pool_manager_fee,
+        ),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_verify_writable_privileges<'me, 'info>(
+    accounts: SplStakePoolDepositCapGuardDepositSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.stake_pool,
+        accounts.stake_pool_reserve_stake,
+        accounts.stake_pool_manager_fee,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub fn spl_stake_pool_deposit_cap_guard_deposit_sol_verify_account_privileges<'me, 'info>(
+    accounts: SplStakePoolDepositCapGuardDepositSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    spl_stake_pool_deposit_cap_guard_deposit_sol_verify_writable_privileges(accounts)?;
     Ok(())
 }
