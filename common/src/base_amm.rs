@@ -4,6 +4,10 @@ use jupiter_amm_interface::AccountMap;
 use solana_program::pubkey::Pubkey;
 
 pub trait BaseStakePoolAmm {
+    /// stake pool program ID
+    /// NB: this is not necessarily the program to invoke to execute the deposit/withdraw:
+    /// e.g. a spl pool behind the deposit cap guard program
+    /// will invoke the deposit cap guard program instead
     fn program_id(&self) -> Pubkey;
 
     fn stake_pool_label(&self) -> &str;

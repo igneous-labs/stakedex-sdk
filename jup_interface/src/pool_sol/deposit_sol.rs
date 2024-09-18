@@ -6,8 +6,8 @@ use solana_sdk::{account::Account, instruction::AccountMeta, pubkey::Pubkey, sys
 use spl_token::native_mint;
 use stakedex_interface::{StakeWrappedSolKeys, STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN};
 use stakedex_sdk_common::{
-    find_deposit_stake_amm_key, find_fee_token_acc, stakedex_program, wsol_bridge_in, DepositSol,
-    InitFromKeyedAccount, TEMPORARY_JUP_AMM_LABEL,
+    find_deposit_stake_amm_key, find_fee_token_acc, spl_deposit_cap_guard_program,
+    stakedex_program, wsol_bridge_in, DepositSol, InitFromKeyedAccount, TEMPORARY_JUP_AMM_LABEL,
 };
 use std::collections::HashMap;
 
@@ -104,9 +104,15 @@ where
     }
 
     fn program_dependencies(&self) -> Vec<(Pubkey, String)> {
-        vec![(
-            self.0.program_id(),
-            self.0.stake_pool_label().to_lowercase(),
-        )]
+        vec![
+            (
+                self.0.program_id(),
+                self.0.stake_pool_label().to_lowercase(),
+            ),
+            (
+                spl_deposit_cap_guard_program::ID,
+                "spl-deposit-cap-guard".to_owned(),
+            ),
+        ]
     }
 }

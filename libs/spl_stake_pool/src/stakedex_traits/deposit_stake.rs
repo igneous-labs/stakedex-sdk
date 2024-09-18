@@ -10,7 +10,10 @@ use stakedex_sdk_common::{
     STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
 };
 
-use crate::SplStakePoolStakedex;
+use crate::{
+    deposit_cap_guard::{to_deposit_cap_guard_ix, DepositCap},
+    SplStakePoolStakedex,
+};
 
 impl DepositStake for SplStakePoolStakedex {
     fn can_accept_stake_deposits(&self) -> bool {
@@ -56,6 +59,33 @@ impl DepositStake for SplStakePoolStakedex {
             Some(r) => r,
             None => return DepositStakeQuote::default(),
         };
+
+        if self.is_stake_deposit_capped() {
+            let deposit_cap = match self.deposit_cap_state.as_ref() {
+                Some(d) => d,
+                None => return DepositStakeQuote::default(),
+            };
+            let will_exceed_deposit_cap = match deposit_cap {
+                DepositCap::Lamports(max_lamports) => {
+                    let new_pool_lamports = self
+                        .stake_pool
+                        .total_lamports
+                        .saturating_add(total_deposit_lamports);
+                    new_pool_lamports > *max_lamports
+                }
+                DepositCap::LstAtomics(max_lst_atomics) => {
+                    let new_lst_atomics = self
+                        .stake_pool
+                        .pool_token_supply
+                        .saturating_add(new_pool_tokens);
+                    new_lst_atomics > *max_lst_atomics
+                }
+            };
+            if will_exceed_deposit_cap {
+                return DepositStakeQuote::default();
+            }
+        }
+
         let new_pool_tokens_from_stake = match self
             .stake_pool
             .calc_pool_tokens_for_deposit(stake_deposit_lamports)
@@ -129,22 +159,25 @@ impl DepositStake for SplStakePoolStakedex {
         .0;
         // spl_stake_pool_deposit_stake_ix works for all spl-stake-pool like
         // (spl, sanctum-spl, sanctum-spl-multi) because the accounts interface is the exact same
-        Ok(spl_stake_pool_deposit_stake_ix(
-            SplStakePoolDepositStakeKeys {
-                spl_stake_pool_program: self.stake_pool_program,
-                deposit_stake_spl_stake_pool: self.stake_pool_addr,
-                deposit_stake_validator_list: self.stake_pool.validator_list,
-                deposit_stake_deposit_authority: self.stake_pool.stake_deposit_authority,
-                deposit_stake_withdraw_authority: self.withdraw_authority_addr(),
-                deposit_stake_reserve_stake: self.stake_pool.reserve_stake,
-                deposit_stake_manager_fee: self.stake_pool.manager_fee_account,
-                deposit_stake_validator_stake,
-                clock: sysvar::clock::ID,
-                stake_history: sysvar::stake_history::ID,
-                token_program: spl_token::ID,
-                stake_program: stake::program::ID,
-            },
-        )?)
+        let ix = spl_stake_pool_deposit_stake_ix(SplStakePoolDepositStakeKeys {
+            spl_stake_pool_program: self.stake_pool_program,
+            deposit_stake_spl_stake_pool: self.stake_pool_addr,
+            deposit_stake_validator_list: self.stake_pool.validator_list,
+            deposit_stake_deposit_authority: self.stake_pool.stake_deposit_authority,
+            deposit_stake_withdraw_authority: self.withdraw_authority_addr(),
+            deposit_stake_reserve_stake: self.stake_pool.reserve_stake,
+            deposit_stake_manager_fee: self.stake_pool.manager_fee_account,
+            deposit_stake_validator_stake,
+            clock: sysvar::clock::ID,
+            stake_history: sysvar::stake_history::ID,
+            token_program: spl_token::ID,
+            stake_program: stake::program::ID,
+        })?;
+        Ok(if self.is_stake_deposit_capped() {
+            to_deposit_cap_guard_ix(ix, self.spl_deposit_cap_guard_program_address)
+        } else {
+            ix
+        })
     }
 
     fn accounts_len(&self) -> usize {

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use solana_program::instruction::Instruction;
 use spl_stake_pool::error::StakePoolError;
 use stakedex_deposit_sol_interface::{
@@ -7,7 +7,10 @@ use stakedex_deposit_sol_interface::{
 };
 use stakedex_sdk_common::{DepositSol, DepositSolQuote};
 
-use crate::SplStakePoolStakedex;
+use crate::{
+    deposit_cap_guard::{to_deposit_cap_guard_ix, DepositCap},
+    SplStakePoolStakedex,
+};
 
 impl DepositSol for SplStakePoolStakedex {
     fn can_accept_sol_deposits(&self) -> bool {
@@ -23,6 +26,28 @@ impl DepositSol for SplStakePoolStakedex {
             .stake_pool
             .calc_pool_tokens_for_deposit(lamports)
             .ok_or(StakePoolError::CalculationFailure)?;
+        if self.is_sol_deposit_capped() {
+            let deposit_cap = self
+                .deposit_cap_state
+                .as_ref()
+                .ok_or_else(|| anyhow!("deposit cap state not yet fetched"))?;
+            let will_exceed_deposit_cap = match deposit_cap {
+                DepositCap::Lamports(max_lamports) => {
+                    let new_pool_lamports = self.stake_pool.total_lamports.saturating_add(lamports);
+                    new_pool_lamports > *max_lamports
+                }
+                DepositCap::LstAtomics(max_lst_atomics) => {
+                    let new_lst_atomics = self
+                        .stake_pool
+                        .pool_token_supply
+                        .saturating_add(new_pool_tokens);
+                    new_lst_atomics > *max_lst_atomics
+                }
+            };
+            if will_exceed_deposit_cap {
+                return Err(anyhow!("deposit will exceed cap"));
+            }
+        }
         let pool_tokens_sol_deposit_fee = self
             .stake_pool
             .calc_pool_tokens_sol_deposit_fee(new_pool_tokens)
@@ -51,13 +76,18 @@ impl DepositSol for SplStakePoolStakedex {
     fn virtual_ix(&self) -> Result<Instruction> {
         // spl_stake_pool_deposit_sol_ix works for all spl-stake-pool like
         // (spl, sanctum-spl, sanctum-spl-multi) because the accounts interface is the exact same
-        Ok(spl_stake_pool_deposit_sol_ix(SplStakePoolDepositSolKeys {
+        let ix = spl_stake_pool_deposit_sol_ix(SplStakePoolDepositSolKeys {
             spl_stake_pool_program: self.stake_pool_program,
             stake_pool: self.stake_pool_addr,
             stake_pool_withdraw_authority: self.withdraw_authority_addr(),
             stake_pool_manager_fee: self.stake_pool.manager_fee_account,
             stake_pool_reserve_stake: self.stake_pool.reserve_stake,
-        })?)
+        })?;
+        Ok(if self.is_sol_deposit_capped() {
+            to_deposit_cap_guard_ix(ix, self.spl_deposit_cap_guard_program_address)
+        } else {
+            ix
+        })
     }
 
     fn accounts_len(&self) -> usize {

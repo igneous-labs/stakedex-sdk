@@ -1,10 +1,9 @@
-use marinade_finance_interface::ValidatorRecord;
 use solana_program::pubkey::Pubkey;
 use stakedex_sdk_common::marinade_program;
 
-pub struct ValidatorRecordWrapper<'a>(pub &'a ValidatorRecord);
+pub struct ValidatorRecordWrapper;
 
-impl<'a> ValidatorRecordWrapper<'a> {
+impl ValidatorRecordWrapper {
     pub const DUPLICATE_FLAG_SEED: &'static [u8] = b"unique_validator";
 
     pub fn find_duplication_flag(state: &Pubkey, validator_account: &Pubkey) -> (Pubkey, u8) {

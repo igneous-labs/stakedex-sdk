@@ -52,11 +52,15 @@ impl BaseStakePoolAmm for SplStakePoolStakedex {
     }
 
     fn get_accounts_to_update(&self) -> Vec<Pubkey> {
-        Vec::from([
+        let mut res = Vec::from([
             self.stake_pool_addr,
             self.stake_pool.validator_list,
             sysvar::clock::ID,
-        ])
+        ]);
+        if self.is_sol_deposit_capped() || self.is_stake_deposit_capped() {
+            res.push(self.spl_deposit_cap_guard_program_address);
+        }
+        res
     }
 
     fn update(&mut self, accounts_map: &AccountMap) -> Result<()> {
@@ -79,6 +83,14 @@ impl BaseStakePoolAmm for SplStakePoolStakedex {
             .as_ref();
         let clock: Clock = bincode::deserialize(clock_data)?;
         self.curr_epoch = clock.epoch;
+        if self.is_sol_deposit_capped() || self.is_stake_deposit_capped() {
+            let deposit_cap_data = accounts_map
+                .get(&self.spl_deposit_cap_guard_program_address)
+                .ok_or_else(|| account_missing_err(&self.spl_deposit_cap_guard_program_address))?
+                .data
+                .as_ref();
+            self.update_deposit_cap_state(deposit_cap_data)?;
+        }
         Ok(())
     }
 }
