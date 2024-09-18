@@ -111,7 +111,7 @@ where
             ),
             (
                 spl_deposit_cap_guard_program::ID,
-                "spl-deposit-cap-guard".to_owned(),
+                "spl_deposit_cap_guard".to_owned(),
             ),
         ]
     }

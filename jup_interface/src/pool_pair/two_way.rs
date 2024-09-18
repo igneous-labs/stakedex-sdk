@@ -210,7 +210,7 @@ where
             (unstake_it_program::ID, "unstake.it".to_owned()),
             (
                 spl_deposit_cap_guard_program::ID,
-                "spl-deposit-cap-guard".to_owned(),
+                "spl_deposit_cap_guard".to_owned(),
             ),
         ]
     }
