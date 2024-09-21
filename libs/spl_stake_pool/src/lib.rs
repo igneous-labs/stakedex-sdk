@@ -1,6 +1,8 @@
+use std::sync::{atomic::AtomicU64, Arc};
+
 use anyhow::{anyhow, Result};
 use deposit_cap_guard::{find_spl_deposit_cap_guard_state, DepositCap};
-use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey, stake_history::Epoch};
+use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey};
 use spl_stake_pool::{
     error::StakePoolError,
     find_deposit_authority_program_address, find_withdraw_authority_program_address,
@@ -28,7 +30,7 @@ pub struct SplStakePoolStakedex {
     pub stake_pool_label: String,
     pub stake_pool: StakePool,
     pub validator_list: ValidatorList,
-    pub curr_epoch: Epoch,
+    pub curr_epoch: Arc<AtomicU64>,
     pub deposit_authority_program_address: Pubkey,
     pub spl_deposit_cap_guard_program_address: Pubkey,
     pub deposit_cap_state: Option<DepositCap>,
@@ -40,6 +42,7 @@ impl SplStakePoolStakedex {
             stake_pool_program,
             stake_pool_addr,
         }: SplStakePoolStakedexInitKeys,
+        curr_epoch: Arc<AtomicU64>,
     ) -> Self {
         let (deposit_authority_program_address, _bump) =
             find_deposit_authority_program_address(&stake_pool_program, &stake_pool_addr);
@@ -50,6 +53,7 @@ impl SplStakePoolStakedex {
             stake_pool_program,
             deposit_authority_program_address,
             spl_deposit_cap_guard_program_address,
+            curr_epoch,
             ..Default::default()
         }
     }
@@ -79,7 +83,8 @@ impl SplStakePoolStakedex {
     }
 
     pub fn is_updated_this_epoch(&self) -> bool {
-        self.stake_pool.last_update_epoch >= self.curr_epoch
+        self.stake_pool.last_update_epoch
+            >= self.curr_epoch.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     /// Computes and returns the stake withdraw authority PDA

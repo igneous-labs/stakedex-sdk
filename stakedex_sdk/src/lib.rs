@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use jupiter_amm_interface::{
@@ -7,7 +5,7 @@ use jupiter_amm_interface::{
 };
 use lazy_static::lazy_static;
 use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList};
-use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
+use solana_sdk::{instruction::Instruction, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{
     DepositStakeKeys, PrefundSwapViaStakeIxArgs, PrefundSwapViaStakeKeys,
@@ -26,7 +24,7 @@ use stakedex_sdk_common::{
     DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
     DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
-use stakedex_spl_stake_pool::{SplStakePoolStakedex, SplStakePoolStakedexInitKeys};
+use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use stakedex_interface::ID as stakedex_program_id;
@@ -116,6 +114,7 @@ impl Stakedex {
     pub fn from_fetched_accounts<'a>(
         sanctum_lsts: impl Iterator<Item = &'a SanctumLst>,
         accounts: &AccountMap,
+        amm_context: &AmmContext,
     ) -> (Self, Vec<anyhow::Error>) {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
@@ -147,30 +146,13 @@ impl Stakedex {
                 | PoolInfo::SanctumSplMulti(spl_accs) => {
                     let name = &lst.name;
                     let pool = spl_accs.pool;
-                    Some(
-                        get_keyed_account(accounts, &pool)
-                            .map_or_else(Err, |mut ka| {
-                                ka.params = Some(name.as_str().into());
-                                SplStakePoolStakedex::from_keyed_account(
-                                    &ka,
-                                    &AmmContext {
-                                        clock_ref: ClockRef::default(), // Ok because unused internally
-                                    },
-                                )
-                            })
-                            .unwrap_or_else(|e| {
-                                errs.push(e);
-                                SplStakePoolStakedex {
-                                    stake_pool_label: format!("{name} stake pool"),
-                                    ..SplStakePoolStakedex::new_uninitialized(
-                                        SplStakePoolStakedexInitKeys {
-                                            stake_pool_program: lst.pool.pool_program().into(),
-                                            stake_pool_addr: pool,
-                                        },
-                                    )
-                                }
-                            }),
-                    )
+
+                    get_keyed_account(accounts, &pool)
+                        .map_or_else(Err, |mut ka| {
+                            ka.params = Some(name.as_str().into());
+                            SplStakePoolStakedex::from_keyed_account(&ka, &amm_context)
+                        })
+                        .ok()
                 }
                 PoolInfo::Lido
                 | PoolInfo::Marinade

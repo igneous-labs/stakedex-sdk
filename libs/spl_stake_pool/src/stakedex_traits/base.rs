@@ -1,6 +1,6 @@
 use anyhow::Result;
 use jupiter_amm_interface::{AccountMap, AmmContext, KeyedAccount};
-use solana_program::{clock::Clock, pubkey::Pubkey, sysvar};
+use solana_program::pubkey::Pubkey;
 use stakedex_sdk_common::{account_missing_err, BaseStakePoolAmm, InitFromKeyedAccount};
 
 use crate::SplStakePoolStakedex;
@@ -13,12 +13,15 @@ impl InitFromKeyedAccount for SplStakePoolStakedex {
             account,
             params,
         }: &KeyedAccount,
-        _amm_context: &AmmContext,
+        amm_context: &AmmContext,
     ) -> Result<Self> {
-        let mut res = Self::new_uninitialized(crate::SplStakePoolStakedexInitKeys {
-            stake_pool_program: account.owner,
-            stake_pool_addr: *key,
-        });
+        let mut res = Self::new_uninitialized(
+            crate::SplStakePoolStakedexInitKeys {
+                stake_pool_program: account.owner,
+                stake_pool_addr: *key,
+            },
+            amm_context.clock_ref.epoch.clone(),
+        );
 
         res.update_stake_pool(&account.data)?;
 
@@ -53,11 +56,7 @@ impl BaseStakePoolAmm for SplStakePoolStakedex {
     }
 
     fn get_accounts_to_update(&self) -> Vec<Pubkey> {
-        let mut res = Vec::from([
-            self.stake_pool_addr,
-            self.stake_pool.validator_list,
-            sysvar::clock::ID,
-        ]);
+        let mut res = Vec::from([self.stake_pool_addr, self.stake_pool.validator_list]);
         if self.is_sol_deposit_capped() || self.is_stake_deposit_capped() {
             res.push(self.spl_deposit_cap_guard_program_address);
         }
@@ -77,13 +76,6 @@ impl BaseStakePoolAmm for SplStakePoolStakedex {
             .data
             .as_ref();
         self.update_validator_list(validator_list_data)?;
-        let clock_data = accounts_map
-            .get(&sysvar::clock::ID)
-            .ok_or_else(|| account_missing_err(&sysvar::clock::ID))?
-            .data
-            .as_ref();
-        let clock: Clock = bincode::deserialize(clock_data)?;
-        self.curr_epoch = clock.epoch;
         if self.is_sol_deposit_capped() || self.is_stake_deposit_capped() {
             let deposit_cap_data = accounts_map
                 .get(&self.spl_deposit_cap_guard_program_address)

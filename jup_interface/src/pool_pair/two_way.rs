@@ -3,11 +3,11 @@ use jupiter_amm_interface::{
     AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas,
     SwapParams,
 };
-use solana_sdk::{clock::Clock, pubkey::Pubkey, sysvar};
+use solana_sdk::pubkey::Pubkey;
 use stakedex_interface::PREFUND_SWAP_VIA_STAKE_IX_ACCOUNTS_LEN;
 use stakedex_sdk_common::{
-    account_missing_err, find_stake_pool_pair_amm_key, spl_deposit_cap_guard_program,
-    unstake_it_program, DepositStake, WithdrawStake, TEMPORARY_JUP_AMM_LABEL,
+    find_stake_pool_pair_amm_key, spl_deposit_cap_guard_program, unstake_it_program, DepositStake,
+    WithdrawStake, TEMPORARY_JUP_AMM_LABEL,
 };
 use std::collections::HashSet;
 
@@ -23,7 +23,6 @@ pub struct TwoWayPoolPair<
 > {
     pub p1: P1,
     pub p2: P2,
-    clock: Clock,
     prefund_repay_params: Option<PrefundRepayParams>,
     underlying_liquidities: Option<HashSet<Pubkey>>,
 }
@@ -43,7 +42,6 @@ where
         Self {
             p1,
             p2,
-            clock: Clock::default(),
             prefund_repay_params: None,
             underlying_liquidities,
         }
@@ -84,7 +82,6 @@ where
         [
             self.p1.get_accounts_to_update().as_slice(),
             self.p2.get_accounts_to_update().as_slice(),
-            &[sysvar::clock::ID],
             PrefundRepayParams::ACCOUNTS_TO_UPDATE.as_slice(),
         ]
         .concat()
@@ -94,11 +91,6 @@ where
         // TODO: not sure if should short-circuit and early return if first update() fails
         let r1 = self.p1.update(account_map);
         let r2 = self.p2.update(account_map);
-        let rc = account_map
-            .get(&sysvar::clock::ID)
-            .ok_or_else(|| account_missing_err(&sysvar::clock::ID))
-            .map_or_else(Err, |acc| Ok(bincode::deserialize(&acc.data)?))
-            .map(|new_clock| self.clock = new_clock);
         let rp = match self.prefund_repay_params.as_mut() {
             None => {
                 let init_res = PrefundRepayParams::try_init(account_map);
@@ -108,7 +100,7 @@ where
             }
             Some(p) => p.update(account_map),
         };
-        r1.and(r2).and(rc).and(rp)
+        r1.and(r2).and(rp)
     }
 
     fn quote(&self, quote_params: &QuoteParams) -> Result<Quote> {

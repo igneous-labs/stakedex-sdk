@@ -13,6 +13,7 @@ impl InitFromKeyedAccount for MarinadeStakedex {
     fn from_keyed_account(keyed_account: &KeyedAccount, _amm_context: &AmmContext) -> Result<Self> {
         let mut res = Self::default();
         res.update_state(&keyed_account.account.data)?;
+
         // NOTE: validator_records is not initialized until self.update() is
         // called for the first time with fetched on-chain data
         Ok(res)
