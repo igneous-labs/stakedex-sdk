@@ -1,4 +1,7 @@
-use jupiter_amm_interface::{AccountMap, Quote, QuoteParams, SwapMode, SwapParams};
+use bincode;
+use jupiter_amm_interface::{
+    AccountMap, AmmContext, ClockRef, Quote, QuoteParams, SwapMode, SwapParams,
+};
 use lazy_static::lazy_static;
 use sanctum_lst_list::SanctumLstList;
 use solana_account_decoder::UiAccountEncoding;
@@ -9,18 +12,20 @@ use solana_client::{
 use solana_sdk::{
     account::Account,
     address_lookup_table::{state::AddressLookupTable, AddressLookupTableAccount},
+    clock::Clock,
     compute_budget,
     instruction::Instruction,
     message::{v0::Message, VersionedMessage},
     program_pack::Pack,
     pubkey::Pubkey,
+    sysvar,
     transaction::VersionedTransaction,
 };
 use spl_associated_token_account::get_associated_token_address;
 use spl_token::native_mint;
 use stakedex_sdk::{srlut, Stakedex, SWAP_VIA_STAKE_COMPUTE_BUDGET_LIMIT};
 use stakedex_sdk_common::{bsol, jitosol, jsol, msol, pwrsol};
-use std::{cmp, collections::HashMap, iter::zip};
+use std::{cmp, iter::zip};
 
 // JSOL whale. Last known balances:
 // - SOL: 1 (enough for a new token account)
@@ -34,12 +39,19 @@ pub mod jupiter_program {
     solana_sdk::declare_id!("JUP4Fb2cqiRUcaTHdrPC8h2gNsA2ETXiPDD33WcGuJB");
 }
 
+fn get_clock() -> Clock {
+    bincode::deserialize::<Clock>(&RPC.get_account(&sysvar::clock::ID).unwrap().data).unwrap()
+}
+
 lazy_static! {
     static ref RPC: RpcClient = RpcClient::new(std::env::var("SOLANA_RPC_URL").unwrap());
     static ref STAKEDEX: Stakedex = {
         let sll = SanctumLstList::load().sanctum_lst_list;
         let init_accounts = fetch_accounts(&Stakedex::init_accounts(sll.iter()));
-        let (mut stakedex, errs) = Stakedex::from_fetched_accounts(sll.iter(), &init_accounts);
+        let amm_context = AmmContext {
+            clock_ref: ClockRef::from(get_clock()),
+        };
+        let (mut stakedex, errs) = Stakedex::from_fetched_accounts(sll.iter(), &init_accounts, &amm_context);
         if !errs.is_empty() {
             eprintln!("init errs {:?}", errs);
         }
@@ -566,7 +578,7 @@ pub fn test_sim_prefund_swap_via_stake(stakedex: &Stakedex, args: TestSwapViaSta
                     token_transfer_authority: signer,
                     open_order_address: None,
                     quote_mint_to_referrer: None,
-                    missing_dynamic_accounts_as_default: None,
+                    missing_dynamic_accounts_as_default: false,
                 },
                 0,
             )
@@ -614,7 +626,7 @@ pub fn test_sim_manual_concat_prefund_swap_via_stake(
                     token_transfer_authority: signer,
                     open_order_address: None,
                     quote_mint_to_referrer: None,
-                    missing_dynamic_accounts_as_default: None,
+                    missing_dynamic_accounts_as_default: false,
                 },
                 0,
             )

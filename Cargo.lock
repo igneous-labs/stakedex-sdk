@@ -4693,6 +4693,7 @@ name = "stakedex_sdk"
 version = "0.3.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "itertools",
  "jupiter-amm-interface",
  "lazy_static",
