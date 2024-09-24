@@ -150,7 +150,7 @@ impl Stakedex {
                     get_keyed_account(accounts, &pool)
                         .map_or_else(Err, |mut ka| {
                             ka.params = Some(name.as_str().into());
-                            SplStakePoolStakedex::from_keyed_account(&ka, &amm_context)
+                            SplStakePoolStakedex::from_keyed_account(&ka, amm_context)
                         })
                         .ok()
                 }
