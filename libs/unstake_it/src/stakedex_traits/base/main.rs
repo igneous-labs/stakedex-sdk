@@ -9,6 +9,8 @@ use stakedex_sdk_common::{
 use crate::{UnstakeItStakedex, UNSTAKE_IT_LABEL};
 
 impl InitFromKeyedAccount for UnstakeItStakedex {
+    /// Not usable until first update()
+    #[inline]
     fn from_keyed_account(
         _keyed_account: &KeyedAccount,
         _amm_context: &AmmContext,
@@ -18,22 +20,27 @@ impl InitFromKeyedAccount for UnstakeItStakedex {
 }
 
 impl BaseStakePoolAmm for UnstakeItStakedex {
+    #[inline]
     fn program_id(&self) -> Pubkey {
         unstake_it_program::ID
     }
 
+    #[inline]
     fn stake_pool_label(&self) -> &'static str {
         UNSTAKE_IT_LABEL
     }
 
+    #[inline]
     fn main_state_key(&self) -> Pubkey {
         unstake_it_pool::ID
     }
 
+    #[inline]
     fn staked_sol_mint(&self) -> Pubkey {
         spl_token::native_mint::ID
     }
 
+    #[inline]
     fn get_accounts_to_update(&self) -> Vec<Pubkey> {
         Vec::from([
             unstake_it_pool::ID,
