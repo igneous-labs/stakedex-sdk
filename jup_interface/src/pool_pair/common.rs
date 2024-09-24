@@ -233,7 +233,7 @@ pub(crate) fn prepare_underlying_liquidities(
 ///   withdraw_stake_quote before splitting off prefund lamports,
 ///   deposit_stake_quote,
 ///)
-fn first_avail_prefund_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
+pub fn first_avail_prefund_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     withdraw_amount: u64,
     prefund_split_lamports: u64,
     withdraw_from: &W,
