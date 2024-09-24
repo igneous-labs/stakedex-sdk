@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use jupiter_amm_interface::{AccountMap, Amm, KeyedAccount, Quote, QuoteParams, SwapParams};
+use jupiter_amm_interface::{
+    AccountMap, Amm, AmmContext, ClockRef, KeyedAccount, Quote, QuoteParams, SwapParams,
+};
 use lazy_static::lazy_static;
 use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList};
-use solana_sdk::{account::Account, instruction::Instruction, pubkey::Pubkey, system_program};
+use solana_sdk::{instruction::Instruction, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{
     DepositStakeKeys, PrefundSwapViaStakeIxArgs, PrefundSwapViaStakeKeys,
@@ -24,7 +24,7 @@ use stakedex_sdk_common::{
     DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
     DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
-use stakedex_spl_stake_pool::{SplStakePoolStakedex, SplStakePoolStakedexInitKeys};
+use stakedex_spl_stake_pool::SplStakePoolStakedex;
 use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use stakedex_interface::ID as stakedex_program_id;
@@ -63,7 +63,7 @@ pub struct Stakedex {
     pub lido: LidoStakedex,
 }
 
-fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Result<KeyedAccount> {
+fn get_keyed_account(accounts: &AccountMap, key: &Pubkey) -> Result<KeyedAccount> {
     Ok(KeyedAccount {
         key: *key,
         account: accounts
@@ -75,11 +75,17 @@ fn get_keyed_account(accounts: &HashMap<Pubkey, Account>, key: &Pubkey) -> Resul
 }
 
 fn init_from_keyed_account_no_params<P: InitFromKeyedAccount>(
-    accounts: &HashMap<Pubkey, Account>,
+    accounts: &AccountMap,
     key: &Pubkey,
 ) -> Result<P> {
     let keyed_acc = get_keyed_account(accounts, key)?;
-    P::from_keyed_account(&keyed_acc)
+
+    P::from_keyed_account(
+        &keyed_acc,
+        &AmmContext {
+            clock_ref: ClockRef::default(),
+        },
+    )
 }
 
 impl Stakedex {
@@ -107,7 +113,8 @@ impl Stakedex {
     /// `sanctum_lsts` must be the same iterator passed to [`Self::init_accounts()`]
     pub fn from_fetched_accounts<'a>(
         sanctum_lsts: impl Iterator<Item = &'a SanctumLst>,
-        accounts: &HashMap<Pubkey, Account>,
+        accounts: &AccountMap,
+        amm_context: &AmmContext,
     ) -> (Self, Vec<anyhow::Error>) {
         // So that stakedex is still useable even if some pools fail to load
         let mut errs = Vec::new();
@@ -139,25 +146,13 @@ impl Stakedex {
                 | PoolInfo::SanctumSplMulti(spl_accs) => {
                     let name = &lst.name;
                     let pool = spl_accs.pool;
-                    Some(
-                        get_keyed_account(accounts, &pool)
-                            .map_or_else(Err, |mut ka| {
-                                ka.params = Some(name.as_str().into());
-                                SplStakePoolStakedex::from_keyed_account(&ka)
-                            })
-                            .unwrap_or_else(|e| {
-                                errs.push(e);
-                                SplStakePoolStakedex {
-                                    stake_pool_label: format!("{name} stake pool"),
-                                    ..SplStakePoolStakedex::new_uninitialized(
-                                        SplStakePoolStakedexInitKeys {
-                                            stake_pool_program: lst.pool.pool_program().into(),
-                                            stake_pool_addr: pool,
-                                        },
-                                    )
-                                }
-                            }),
-                    )
+
+                    get_keyed_account(accounts, &pool)
+                        .map_or_else(Err, |mut ka| {
+                            ka.params = Some(name.as_str().into());
+                            SplStakePoolStakedex::from_keyed_account(&ka, &amm_context)
+                        })
+                        .ok()
                 }
                 PoolInfo::Lido
                 | PoolInfo::Marinade
@@ -206,7 +201,7 @@ impl Stakedex {
         })
     }
 
-    pub fn update(&mut self, account_map: &HashMap<Pubkey, Account>) -> Vec<anyhow::Error> {
+    pub fn update(&mut self, account_map: &AccountMap) -> Vec<anyhow::Error> {
         // unstake.it special-case: required reinitialization to save sol_reserves_lamports correctly
         let maybe_unstake_it_init_err = match init_from_keyed_account_no_params(
             account_map,

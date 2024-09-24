@@ -1,11 +1,11 @@
+use std::sync::{atomic::AtomicU64, Arc};
+
 use anyhow::Result;
 use lido::state::{AccountType, Lido, Validator};
 
 mod stakedex_traits;
 
-use solana_program::{
-    borsh0_10::try_from_slice_unchecked, clock::Clock, program_pack::Pack, stake_history::Epoch,
-};
+use solana_program::{borsh0_10::try_from_slice_unchecked, program_pack::Pack};
 pub use stakedex_traits::*;
 
 pub const LIDO_LABEL: &str = "Lido";
@@ -18,7 +18,7 @@ pub const LIST_HEADER_LEN: usize =
 pub struct LidoStakedex {
     lido_state: Lido,
     validator_list: Vec<Validator>,
-    curr_epoch: Epoch,
+    curr_epoch: Arc<AtomicU64>,
 }
 
 impl LidoStakedex {
@@ -45,12 +45,6 @@ impl LidoStakedex {
             validator_list.push(try_from_slice_unchecked::<Validator>(record)?);
         }
         self.validator_list = validator_list;
-        Ok(())
-    }
-
-    pub fn update_curr_epoch(&mut self, clock_data: &[u8]) -> Result<()> {
-        let clock: Clock = bincode::deserialize(clock_data)?;
-        self.curr_epoch = clock.epoch;
         Ok(())
     }
 }

@@ -1,6 +1,6 @@
 use std::iter::zip;
 
-use jupiter_amm_interface::KeyedAccount;
+use jupiter_amm_interface::{AmmContext, ClockRef, KeyedAccount};
 use solana_client::rpc_client::RpcClient;
 use solana_program::sysvar;
 use stakedex_lido::LidoStakedex;
@@ -19,6 +19,12 @@ fn test_mainnet() {
         params: None,
     };
     let accounts_map = zip(keys, accounts.into_iter().map(|o| o.unwrap())).collect();
-    let mut lido = LidoStakedex::from_keyed_account(&keyed_state).unwrap();
+    let mut lido = LidoStakedex::from_keyed_account(
+        &keyed_state,
+        &AmmContext {
+            clock_ref: ClockRef::default(),
+        },
+    )
+    .unwrap();
     lido.update(&accounts_map).unwrap();
 }

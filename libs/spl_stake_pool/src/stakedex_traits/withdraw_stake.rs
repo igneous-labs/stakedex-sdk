@@ -1,3 +1,5 @@
+use std::sync::atomic::Ordering;
+
 use anyhow::Result;
 use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
 use spl_stake_pool::{find_stake_program_address, MINIMUM_ACTIVE_STAKE};
@@ -101,7 +103,7 @@ impl WithdrawStakeIter for SplStakePoolStakedex {
 
 impl WithdrawStakeBase for SplStakePoolStakedex {
     fn can_accept_stake_withdrawals(&self) -> bool {
-        self.stake_pool.last_update_epoch >= self.curr_epoch
+        self.stake_pool.last_update_epoch >= self.curr_epoch.load(Ordering::Relaxed)
     }
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {

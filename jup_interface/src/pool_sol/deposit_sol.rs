@@ -1,15 +1,15 @@
 use anyhow::{anyhow, Result};
 use jupiter_amm_interface::{
-    Amm, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas, SwapParams,
+    AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas,
+    SwapParams,
 };
-use solana_sdk::{account::Account, instruction::AccountMeta, pubkey::Pubkey, system_program};
+use solana_sdk::{instruction::AccountMeta, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{StakeWrappedSolKeys, STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN};
 use stakedex_sdk_common::{
     find_deposit_stake_amm_key, find_fee_token_acc, spl_deposit_cap_guard_program,
     stakedex_program, wsol_bridge_in, DepositSol, InitFromKeyedAccount, TEMPORARY_JUP_AMM_LABEL,
 };
-use std::collections::HashMap;
 
 use crate::jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META;
 
@@ -21,8 +21,8 @@ impl<T> Amm for DepositSolWrapper<T>
 where
     T: DepositSol + InitFromKeyedAccount + Clone + Send + Sync,
 {
-    fn from_keyed_account(keyed_account: &KeyedAccount) -> Result<Self> {
-        T::from_keyed_account(keyed_account).map(|t| Self(t))
+    fn from_keyed_account(keyed_account: &KeyedAccount, amm_context: &AmmContext) -> Result<Self> {
+        T::from_keyed_account(keyed_account, amm_context).map(|t| Self(t))
     }
 
     fn label(&self) -> String {
@@ -43,7 +43,7 @@ where
         self.0.get_accounts_to_update()
     }
 
-    fn update(&mut self, accounts_map: &HashMap<Pubkey, Account>) -> Result<()> {
+    fn update(&mut self, accounts_map: &AccountMap) -> Result<()> {
         self.0.update(accounts_map)
     }
 
@@ -111,7 +111,7 @@ where
             ),
             (
                 spl_deposit_cap_guard_program::ID,
-                "spl-deposit-cap-guard".to_owned(),
+                "spl_deposit_cap_guard".to_owned(),
             ),
         ]
     }

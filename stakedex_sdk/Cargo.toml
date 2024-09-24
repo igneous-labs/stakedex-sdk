@@ -25,6 +25,7 @@ stakedex_marinade = { workspace = true }
 stakedex_sdk_common = { workspace = true }
 stakedex_spl_stake_pool = { workspace = true }
 stakedex_unstake_it = { workspace = true }
+bincode = { workspace = true }
 
 [dev-dependencies]
 solana-client = { workspace = true }

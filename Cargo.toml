@@ -7,7 +7,7 @@ members = [
     "interfaces/*",
     "jup_interface",
     "libs/*",
-    "stakedex_sdk"
+    "stakedex_sdk",
 ]
 
 [workspace.dependencies]
@@ -16,7 +16,7 @@ bincode = "^1.0"
 borsh = ">=0.9,<1.0.0"
 clap = "^3"
 itertools = ">=0.1"
-jupiter-amm-interface = "~0.3.2"
+jupiter-amm-interface = "~0.4.0"
 lazy_static = "^1.0"
 # set git dependencies to branch instead of locking to rev so that consumers can upgrade easily
 lido = { git = "https://github.com/jup-ag/solido", branch = "jupiter", features = ["no-entrypoint"] } # rev = "ec25a9b"

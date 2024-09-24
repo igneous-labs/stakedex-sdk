@@ -16,7 +16,7 @@ use stakedex_sdk_common::{
 use stakedex_withdraw_stake_interface::{
     lido_withdraw_stake_ix, LidoWithdrawStakeKeys, LIDO_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
-use std::ops::Add;
+use std::{ops::Add, sync::atomic::Ordering};
 
 use crate::LidoStakedex;
 
@@ -132,7 +132,7 @@ impl WithdrawStakeIter for LidoStakedex {
 
 impl WithdrawStakeBase for LidoStakedex {
     fn can_accept_stake_withdrawals(&self) -> bool {
-        self.lido_state.exchange_rate.computed_in_epoch >= self.curr_epoch
+        self.lido_state.exchange_rate.computed_in_epoch >= self.curr_epoch.load(Ordering::Relaxed)
     }
 
     fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {
