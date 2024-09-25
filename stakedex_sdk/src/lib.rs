@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use jupiter_amm_interface::{
-    AccountMap, Amm, AmmContext, ClockRef, KeyedAccount, Quote, QuoteParams, SwapParams,
+    AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, SwapParams,
 };
 use lazy_static::lazy_static;
 use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList};
@@ -77,15 +77,10 @@ fn get_keyed_account(accounts: &AccountMap, key: &Pubkey) -> Result<KeyedAccount
 fn init_from_keyed_account_no_params<P: InitFromKeyedAccount>(
     accounts: &AccountMap,
     key: &Pubkey,
+    amm_context: &AmmContext,
 ) -> Result<P> {
     let keyed_acc = get_keyed_account(accounts, key)?;
-
-    P::from_keyed_account(
-        &keyed_acc,
-        &AmmContext {
-            clock_ref: ClockRef::default(),
-        },
-    )
+    P::from_keyed_account(&keyed_acc, amm_context)
 }
 
 impl Stakedex {
@@ -120,21 +115,26 @@ impl Stakedex {
         let mut errs = Vec::new();
 
         let unstakeit = UnstakeItStakedexPrefund(
-            init_from_keyed_account_no_params(accounts, &unstake_it_program::SOL_RESERVES_ID)
-                .unwrap_or_else(|e| {
-                    errs.push(e);
-                    UnstakeItStakedex::default()
-                }),
-        );
-
-        let marinade = init_from_keyed_account_no_params(accounts, &marinade_state::ID)
+            init_from_keyed_account_no_params(
+                accounts,
+                &unstake_it_program::SOL_RESERVES_ID,
+                amm_context,
+            )
             .unwrap_or_else(|e| {
                 errs.push(e);
-                MarinadeStakedex::default()
-            });
+                UnstakeItStakedex::default()
+            }),
+        );
 
-        let lido =
-            init_from_keyed_account_no_params(accounts, &lido_state::ID).unwrap_or_else(|e| {
+        let marinade =
+            init_from_keyed_account_no_params(accounts, &marinade_state::ID, amm_context)
+                .unwrap_or_else(|e| {
+                    errs.push(e);
+                    MarinadeStakedex::default()
+                });
+
+        let lido = init_from_keyed_account_no_params(accounts, &lido_state::ID, amm_context)
+            .unwrap_or_else(|e| {
                 errs.push(e);
                 LidoStakedex::default()
             });
@@ -202,26 +202,6 @@ impl Stakedex {
     }
 
     pub fn update(&mut self, account_map: &AccountMap) -> Vec<anyhow::Error> {
-        // unstake.it special-case: required reinitialization to save sol_reserves_lamports correctly
-        let maybe_unstake_it_init_err = match init_from_keyed_account_no_params(
-            account_map,
-            &unstake_it_program::SOL_RESERVES_ID,
-        ) {
-            Ok(unstakeit) => {
-                self.unstakeit = UnstakeItStakedexPrefund(unstakeit);
-                None
-            }
-            Err(e) => Some(e),
-        };
-
-        let mut errs = self.update_data(account_map);
-        if let Some(e) = maybe_unstake_it_init_err {
-            errs.push(e);
-        }
-        errs
-    }
-
-    pub fn update_data(&mut self, account_map: &AccountMap) -> Vec<anyhow::Error> {
         // accumulate errs in a vec so that other pools are still updated even if some pools fail to update
         self.all_pools_mut().fold(Vec::new(), |mut err_vec, p| {
             if let Err(e) = p.update(account_map) {
