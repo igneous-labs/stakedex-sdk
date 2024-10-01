@@ -1,4 +1,7 @@
-use std::sync::{atomic::AtomicU64, Arc};
+use std::{
+    num::NonZeroU64,
+    sync::{atomic::AtomicU64, Arc},
+};
 
 use anyhow::{anyhow, Result};
 use deposit_cap_guard::{find_spl_deposit_cap_guard_state, DepositCap};
@@ -23,7 +26,7 @@ pub struct SplStakePoolStakedexInitKeys {
 
 /// A SPL stake pool with possibly custom program ID.
 /// Works for different deploys of spl stake pool prog - spl, sanctum spl, sanctum spl multi
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SplStakePoolStakedex {
     pub stake_pool_addr: Pubkey,
     pub stake_pool_program: Pubkey,
@@ -155,6 +158,16 @@ impl SplStakePoolStakedex {
     pub fn is_stake_deposit_capped(&self) -> bool {
         self.stake_pool.stake_deposit_authority == self.spl_deposit_cap_guard_program_address
     }
+}
+
+/// Newtype encapsulating [`SplStakePoolStakedex`] because
+/// DepositSol, DepositStake, WithdrawStake does not require fetching reserve stake account
+/// for quoting, only WithdrawSol does.
+#[derive(Debug, Clone, Default)]
+pub struct SplStakePoolStakedexWithWithdrawSol {
+    pub inner: SplStakePoolStakedex,
+    // NonZero: reserve should always have at least rent-exempt lamports
+    pub reserve_stake_lamports: Option<NonZeroU64>,
 }
 
 #[cfg(test)]

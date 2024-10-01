@@ -1,0 +1,14 @@
+[package]
+name = "stakedex_withdraw_sol_interface"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.borsh]
+workspace = true
+
+[dependencies.serde]
+optional = true
+workspace = true
+
+[dependencies.solana-program]
+workspace = true

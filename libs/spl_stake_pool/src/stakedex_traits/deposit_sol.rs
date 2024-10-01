@@ -90,6 +90,7 @@ impl DepositSol for SplStakePoolStakedex {
         })
     }
 
+    #[inline]
     fn accounts_len(&self) -> usize {
         SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN
     }
