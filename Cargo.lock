@@ -4740,6 +4740,7 @@ dependencies = [
  "stakedex_deposit_stake_interface",
  "stakedex_jup_interface",
  "stakedex_sdk_common",
+ "stakedex_withdraw_sol_interface",
  "stakedex_withdraw_stake_interface",
 ]
 
@@ -4757,6 +4758,15 @@ dependencies = [
  "stakedex_sdk_common",
  "unstake-lib",
  "unstake_interface",
+]
+
+[[package]]
+name = "stakedex_withdraw_sol_interface"
+version = "0.1.0"
+dependencies = [
+ "borsh 0.9.3",
+ "serde",
+ "solana-program",
 ]
 
 [[package]]

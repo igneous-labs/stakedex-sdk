@@ -7,6 +7,7 @@ mod errs;
 mod fees;
 mod init_from_keyed_account;
 mod pda;
+mod withdraw_sol;
 mod withdraw_stake;
 
 pub use address::*;
@@ -18,4 +19,5 @@ pub use errs::*;
 pub use fees::*;
 pub use init_from_keyed_account::*;
 pub use pda::*;
+pub use withdraw_sol::*;
 pub use withdraw_stake::*;
