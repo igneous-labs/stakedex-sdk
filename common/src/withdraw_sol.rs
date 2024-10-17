@@ -4,7 +4,7 @@ use rust_decimal::{
     prelude::{FromPrimitive, Zero},
     Decimal,
 };
-use solana_program::instruction::Instruction;
+use solana_program::{instruction::Instruction, pubkey::Pubkey};
 
 use crate::{apply_global_fee, wsol, BaseStakePoolAmm};
 
@@ -45,5 +45,9 @@ pub trait WithdrawSol: BaseStakePoolAmm {
             fee_mint: wsol::ID,
             ..Quote::default()
         }
+    }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        None
     }
 }

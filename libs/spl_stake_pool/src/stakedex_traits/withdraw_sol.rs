@@ -1,5 +1,5 @@
 use anyhow::Result;
-use solana_program::{instruction::Instruction, stake, sysvar};
+use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, sysvar};
 use spl_stake_pool::{error::StakePoolError, state::StakePool, MINIMUM_RESERVE_LAMPORTS};
 use stakedex_sdk_common::{WithdrawSol, WithdrawSolQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS};
 use stakedex_withdraw_sol_interface::{
@@ -59,6 +59,10 @@ impl WithdrawSol for SplStakePoolStakedexWithWithdrawSol {
     #[inline]
     fn accounts_len(&self) -> usize {
         SPL_STAKE_POOL_WITHDRAW_SOL_IX_ACCOUNTS_LEN
+    }
+
+    fn underlying_liquidity(&self) -> Option<&Pubkey> {
+        Some(&self.inner.stake_pool.reserve_stake)
     }
 }
 

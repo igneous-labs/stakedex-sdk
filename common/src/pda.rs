@@ -15,6 +15,11 @@ pub fn deposit_stake_amm_key_seeds(main_state_key: &Pubkey) -> [&[u8]; 1] {
     [main_state_key.as_ref()]
 }
 
+// TODO: TBC
+pub fn withdraw_stake_amm_key_seeds(main_state_key: &Pubkey) -> [&[u8]; 1] {
+    [main_state_key.as_ref()]
+}
+
 pub fn stake_pool_pair_amm_key_seeds<'seeds>(
     pool1: &'seeds Pubkey,
     pool2: &'seeds Pubkey,
@@ -44,6 +49,13 @@ pub fn find_fee_token_acc(mint: &Pubkey) -> (Pubkey, u8) {
 pub fn find_deposit_stake_amm_key(main_state_key: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &deposit_stake_amm_key_seeds(main_state_key),
+        &stakedex_interface::ID,
+    )
+}
+
+pub fn find_withdraw_stake_amm_key(main_state_key: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &withdraw_stake_amm_key_seeds(main_state_key),
         &stakedex_interface::ID,
     )
 }
