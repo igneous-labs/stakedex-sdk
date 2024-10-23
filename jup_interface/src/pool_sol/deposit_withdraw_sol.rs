@@ -148,9 +148,12 @@ where
         true
     }
 
-    // TODO:
+    // TODO: for compile time max calculation
     //  - should this just be all within const
-    //  - or just ditch const altogether
+    //  - or just ditch const altogether since it's either:
+    //    - 1 + STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN + DepositSol::accounts_len()
+    //    - 1 + WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN + WithdrawSol::accounts_len(),
+    //    - and never the other way around
     fn get_accounts_len(&self) -> usize {
         1 + const {
             if STAKE_WRAPPED_SOL_IX_ACCOUNTS_LEN > WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN {
