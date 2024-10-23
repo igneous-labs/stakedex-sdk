@@ -101,7 +101,7 @@ where
             account_metas.extend(deposit_sol_virtual_ix.accounts);
             account_metas.push(swap_params.placeholder_account_meta());
             Ok(SwapAndAccountMetas {
-                swap: todo!(), // TODO: get jup to add a new variantto Swap enum,
+                swap: todo!(), // TODO: get jup to add a new variant to Swap enum,
                 account_metas,
             })
         } else if swap_params.source_mint == self.0.staked_sol_mint()
@@ -124,7 +124,7 @@ where
             account_metas.extend(withdraw_sol_virtual_ix.accounts);
             account_metas.push(swap_params.placeholder_account_meta());
             Ok(SwapAndAccountMetas {
-                swap: todo!(), // TODO: get jup to add a new variantto Swap enum,
+                swap: todo!(), // TODO: get jup to add a new variant to Swap enum,
                 account_metas,
             })
         } else {
