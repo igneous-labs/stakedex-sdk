@@ -1,0 +1,66 @@
+{
+  "version": "0.1.0",
+  "name": "stakedex_withdraw_sol",
+  "instructions": [
+    {
+      "name": "SplStakePoolWithdrawSol",
+      "accounts": [
+        {
+          "name": "splStakePoolProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawSolSplStakePool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawSolWithdrawAuthority",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawSolReserveStake",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawSolManagerFee",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeHistory",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stakeProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawSolTokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "desc": "possible duplicate to account for token-22 stake pools"
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "TH1S1SAV1RTUAL1DLoNLY1XACCoUNTSAREUSED11111"
+  }
+}

@@ -61,3 +61,4 @@ stakedex_sdk_common = { path = "./common" }
 stakedex_spl_stake_pool = { path = "./libs/spl_stake_pool" }
 stakedex_unstake_it = { path = "./libs/unstake_it" }
 stakedex_withdraw_stake_interface = { path = "./interfaces/stakedex_withdraw_stake_interface" }
+stakedex_withdraw_sol_interface = { path = "./interfaces/stakedex_withdraw_sol_interface" }

@@ -1,6 +1,7 @@
 //! Stake pools that accept direct SOL deposits or withdrawals
 
 mod deposit_sol;
-// TODO: withdraw_sol for SPL
+mod deposit_withdraw_sol;
 
 pub use deposit_sol::*;
+pub use deposit_withdraw_sol::*;
