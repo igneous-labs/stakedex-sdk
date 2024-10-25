@@ -18,11 +18,11 @@ use crate::jupiter_stakedex_interface::STAKEDEX_ACCOUNT_META;
 
 // newtype pattern in order to impl external trait (Amm) on external generic (WithdrawSol)
 #[derive(Clone)]
-pub struct DepositWithdrawSolWrapper<T: WithdrawSol + Clone + Send + Sync + 'static>(pub T);
+pub struct DepositWithdrawSolWrapper<T>(pub T);
 
 impl<T> Amm for DepositWithdrawSolWrapper<T>
 where
-    T: DepositSol + WithdrawSol + InitFromKeyedAccount + Clone + Send + Sync,
+    T: DepositSol + WithdrawSol + InitFromKeyedAccount + Clone + Send + Sync + 'static,
 {
     fn from_keyed_account(keyed_account: &KeyedAccount, amm_context: &AmmContext) -> Result<Self> {
         T::from_keyed_account(keyed_account, amm_context).map(|t| Self(t))
