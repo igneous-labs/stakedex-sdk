@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufReader, path::PathBuf};
 
 use clap::Args;
-use sanctum_solana_cli_utils::{parse_signer, TxSendingNonblockingRpcClient};
+use sanctum_solana_cli_utils::{parse_signer, HandleTxArgs, TxSendingNonblockingRpcClient};
 use solana_sdk::{
     address_lookup_table::{instruction::extend_lookup_table, state::AddressLookupTable},
     compute_budget::ComputeBudgetInstruction,
@@ -109,7 +109,9 @@ impl ExtendArgs {
                 &signers,
             )
             .unwrap();
-            rpc.handle_tx(&tx, args.send_mode).await;
+            rpc.handle_tx(&tx, args.send_mode, HandleTxArgs::cli_default())
+                .await
+                .unwrap();
         }
     }
 }

@@ -2,7 +2,7 @@ use std::sync::{atomic::AtomicU64, Arc};
 
 use anyhow::{anyhow, Result};
 use deposit_cap_guard::{find_spl_deposit_cap_guard_state, DepositCap};
-use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey};
+use solana_program::{borsh1::try_from_slice_unchecked, pubkey::Pubkey};
 use spl_stake_pool::{
     error::StakePoolError,
     find_deposit_authority_program_address, find_withdraw_authority_program_address,
