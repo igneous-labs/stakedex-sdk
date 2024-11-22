@@ -5,7 +5,7 @@ use lido::state::{AccountType, Lido, Validator};
 
 mod stakedex_traits;
 
-use solana_program::{borsh0_10::try_from_slice_unchecked, program_pack::Pack};
+use solana_program::{borsh1::try_from_slice_unchecked, program_pack::Pack};
 pub use stakedex_traits::*;
 
 pub const LIDO_LABEL: &str = "Lido";

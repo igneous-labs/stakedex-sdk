@@ -1,5 +1,5 @@
 use anyhow::Result;
-use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey};
+use solana_program::{borsh1::try_from_slice_unchecked, pubkey::Pubkey};
 use unstake_interface::{Fee, FeeEnum, Pool, ProtocolFee, Rational};
 
 mod pda;
