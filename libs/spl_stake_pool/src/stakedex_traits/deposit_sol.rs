@@ -13,18 +13,22 @@ use crate::{
 };
 
 impl DepositSol for SplStakePoolStakedexWithWithdrawSol {
+    #[inline]
     fn can_accept_sol_deposits(&self) -> bool {
         self.inner.can_accept_sol_deposits()
     }
 
+    #[inline]
     fn get_deposit_sol_quote_unchecked(&self, lamports: u64) -> Result<DepositSolQuote> {
         self.inner.get_deposit_sol_quote_unchecked(lamports)
     }
 
+    #[inline]
     fn virtual_ix(&self) -> Result<Instruction> {
         self.inner.virtual_ix()
     }
 
+    #[inline]
     fn accounts_len(&self) -> usize {
         self.inner.accounts_len()
     }

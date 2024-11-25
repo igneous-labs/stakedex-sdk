@@ -166,7 +166,8 @@ impl SplStakePoolStakedex {
 #[derive(Debug, Clone, Default)]
 pub struct SplStakePoolStakedexWithWithdrawSol {
     pub inner: SplStakePoolStakedex,
-    // NonZero: reserve should always have at least rent-exempt lamports
+    // NonZero: reserve should always have at least rent-exempt lamports.
+    // Initialize with `None`, fetch reserve account to update
     pub reserve_stake_lamports: Option<NonZeroU64>,
 }
 
