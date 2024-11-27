@@ -21,7 +21,7 @@ use stakedex_marinade::MarinadeStakedex;
 use stakedex_sdk_common::{
     find_fee_token_acc, lido_state, marinade_state, msol,
     stakedex_program::{self, WSOL_FEE_TOKEN_ACCOUNT_ID},
-    stsol, unstake_it_program, wsol_bridge_in, BaseStakePoolAmm, DepositSol, DepositStake,
+    stsol, unstake_it_program, wsol, wsol_bridge_in, BaseStakePoolAmm, DepositSol, DepositStake,
     DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawSol, WithdrawStake,
     WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
@@ -487,7 +487,7 @@ impl Stakedex {
         let mut ix = stakedex_interface::withdraw_wrapped_sol_ix(
             WithdrawWrappedSolKeys {
                 user: swap_params.token_transfer_authority,
-                wsol_mint: swap_params.source_mint,
+                wsol_mint: wsol::ID,
                 token_program: spl_token::ID,
                 src_token_from: swap_params.source_token_account,
                 wsol_to: swap_params.destination_token_account,
