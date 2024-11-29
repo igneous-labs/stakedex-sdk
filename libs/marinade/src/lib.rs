@@ -1,9 +1,3 @@
-mod calc;
-mod consts;
-mod stakedex_traits;
-mod state;
-mod validator_system;
-
 use anyhow::{anyhow, Result};
 use borsh::BorshDeserialize;
 use consts::VALIDATOR_RECORD_BYTE_LENGTH;
@@ -11,6 +5,13 @@ use marinade_finance_interface::{
     Fee, FeeCents, LiqPool, List, StakeSystem, State, ValidatorRecord, ValidatorSystem,
 };
 use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey};
+
+mod calc;
+mod consts;
+mod stakedex_traits;
+mod state;
+
+pub mod validator_system;
 
 pub const MARINADE_LABEL: &str = "Marinade";
 
