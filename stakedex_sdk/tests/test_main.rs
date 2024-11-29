@@ -395,9 +395,8 @@ fn setup_swap_via_stake(
 ) -> (u64, Vec<Instruction>, u64, u64) {
     let source_balance = RPC
         .get_token_account_balance(&src_token_acc)
-        .map_err(|err| {
-            println!("Could not swap {} to {}", input_mint, output_mint);
-            err
+        .inspect_err(|err| {
+            println!("Could not swap {input_mint} to {output_mint}: {err}");
         })
         .unwrap();
 

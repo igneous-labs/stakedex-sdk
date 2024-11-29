@@ -16,8 +16,8 @@ pub const MARINADE_LABEL: &str = "Marinade";
 
 #[derive(Clone)]
 pub struct MarinadeStakedex {
-    state: State,
-    validator_records: Vec<ValidatorRecord>,
+    pub state: State,
+    pub validator_records: Vec<ValidatorRecord>,
 }
 
 impl Default for MarinadeStakedex {
