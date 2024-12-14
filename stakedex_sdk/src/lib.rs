@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use jupiter_amm_interface::{
@@ -532,19 +534,27 @@ impl Stakedex {
             ])
             .collect();
 
+        let mut amm_keys = HashSet::new();
         let mut amms: Vec<Box<dyn Amm + Send + Sync>> = Vec::new();
-        for stakedex in stakedexes.iter() {
-            match stakedex {
-                Stakedex::SplStakePool(spl_stake_pool) => {
-                    amms.push(Box::new(DepositSolWrapper(spl_stake_pool.clone())))
-                }
-                Stakedex::Marinade(marinade) => {
-                    amms.push(Box::new(DepositSolWrapper(marinade.clone())))
-                }
-                // non-DepositSol
-                Stakedex::UnstakeIt(_) => (),
-                Stakedex::Lido(_) => (),
+        let mut add_amm_if_new_key = |amm: Box<dyn Amm + Send + Sync>| {
+            let amm_key = amm.key();
+            if !amm_keys.contains(&amm_key) {
+                amm_keys.insert(amm_key);
+                amms.push(amm);
             }
+        };
+
+        for stakedex in stakedexes.iter() {
+            let amm: Box<dyn Amm + Send + Sync> = match stakedex {
+                Stakedex::SplStakePool(spl_stake_pool) => {
+                    Box::new(DepositSolWrapper(spl_stake_pool.clone()))
+                }
+                Stakedex::Marinade(marinade) => Box::new(DepositSolWrapper(marinade.clone())),
+                // non-DepositSol
+                Stakedex::UnstakeIt(_) => continue,
+                Stakedex::Lido(_) => continue,
+            };
+            add_amm_if_new_key(amm);
         }
 
         // SplStakePool WithdrawStake + DepositStake
@@ -552,30 +562,31 @@ impl Stakedex {
         // Marinade DepositStake
         // Lido WithdrawStake
         for (first_stakedex, second_stakedex) in stakedexes.into_iter().tuple_combinations() {
-            match (first_stakedex, second_stakedex) {
+            let amm: Box<dyn Amm + Send + Sync> = match (first_stakedex, second_stakedex) {
                 (Stakedex::SplStakePool(p1), Stakedex::SplStakePool(p2)) => {
-                    amms.push(Box::new(TwoWayPoolPair::new(p1, p2)));
+                    Box::new(TwoWayPoolPair::new(p1, p2))
                 }
                 match_stakedexes!(SplStakePool, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
                 match_stakedexes!(SplStakePool, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
                 match_stakedexes!(Lido, SplStakePool, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
                 match_stakedexes!(Lido, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
                 match_stakedexes!(Lido, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
-                match_stakedexes!(Marinade, UnstakeIt, _, _) => (), // Cannot do anything with those two
+                match_stakedexes!(Marinade, UnstakeIt, _, _) => continue, // Cannot do anything with those two
                 match_same_stakedex!(UnstakeIt)
                 | match_same_stakedex!(Marinade)
-                | match_same_stakedex!(Lido) => (), // Invalid if found
-            }
+                | match_same_stakedex!(Lido) => continue, // Invalid if found
+            };
+            add_amm_if_new_key(amm);
         }
 
         amms
