@@ -7,6 +7,7 @@ use spl_stake_pool::{
     error::StakePoolError,
     find_deposit_authority_program_address, find_withdraw_authority_program_address,
     state::{StakePool, StakeStatus, ValidatorList},
+    MINIMUM_ACTIVE_STAKE,
 };
 use stakedex_sdk_common::{
     spl_deposit_cap_guard_program, WithdrawStakeQuote, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
@@ -132,7 +133,11 @@ impl SplStakePoolStakedex {
         // according to https://github.com/solana-labs/solana-program-library/blob/58c1226a513d3d8bb2de8ec67586a679be7fd2d4/stake-pool/program/src/state.rs#L536C1-L542
         // `active_stake_lamports` = delegation.stake - MIN_ACTIVE_STAKE_LAMPORTS.
         // Withdrawals must leave at least MIN_ACTIVE_STAKE_LAMPORTS active stake in vsa
-        if withdraw_lamports > u64::from(validator_list_entry.active_stake_lamports) {
+        let active_stake_lamports = u64::from(validator_list_entry.active_stake_lamports);
+        if withdraw_lamports > active_stake_lamports
+            || (active_stake_lamports - withdraw_lamports) < MINIMUM_ACTIVE_STAKE
+        {
+            // actually ProgramError::InsufficientFunds in program, but our err type is StakePoolError here
             return Err(StakePoolError::InvalidState);
         }
         let lamports_staked = withdraw_lamports
