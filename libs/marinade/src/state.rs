@@ -6,7 +6,7 @@ use crate::calc::shares_from_value;
 /// NewType for copy-pasta-ing marinade state methods
 pub struct StateWrapper<'a>(pub &'a State);
 
-impl<'a> StateWrapper<'a> {
+impl StateWrapper<'_> {
     pub fn calc_msol_from_lamports(&self, stake_lamports: u64) -> Result<u64> {
         shares_from_value(
             stake_lamports,
