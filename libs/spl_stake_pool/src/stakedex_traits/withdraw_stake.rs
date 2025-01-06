@@ -23,7 +23,7 @@ pub enum WithdrawStakeQuoteIterState {
     Ended,
 }
 
-impl<'a> WithdrawStakeQuoteIter<'a> {
+impl WithdrawStakeQuoteIter<'_> {
     fn next_normal(
         &self,
         curr_index: usize,
@@ -72,7 +72,7 @@ impl<'a> WithdrawStakeQuoteIter<'a> {
     }
 }
 
-impl<'a> Iterator for WithdrawStakeQuoteIter<'a> {
+impl Iterator for WithdrawStakeQuoteIter<'_> {
     type Item = WithdrawStakeQuote;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -92,7 +92,7 @@ pub struct WithdrawStakeQuoteIter<'a> {
     has_checked_largest_validator: bool,
 }
 
-impl<'a> Iterator for WithdrawStakeQuoteIter<'a> {
+impl Iterator for WithdrawStakeQuoteIter<'_> {
     type Item = WithdrawStakeQuote;
 
     fn next(&mut self) -> Option<Self::Item> {

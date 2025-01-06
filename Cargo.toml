@@ -13,14 +13,14 @@ members = [
 [workspace.dependencies]
 anyhow = "^1.0"
 bincode = "^1.0"
-borsh = ">=0.9,<1.0.0"
-clap = "^3"
+borsh = "^1"
+clap = "^4"
 itertools = ">=0.1"
 jupiter-amm-interface = "~0.4.0"
 lazy_static = "^1.0"
 # set git dependencies to branch instead of locking to rev so that consumers can upgrade easily
-lido = { git = "https://github.com/jup-ag/solido", branch = "jupiter", features = ["no-entrypoint"] } # rev = "ec25a9b"
-marinade_finance_interface = { git = "https://github.com/igneous-labs/marinade_finance_interface", branch = "master" } # rev = "4d1895b"
+lido = { git = "https://github.com/igneous-labs/solido", branch = "main", features = ["no-entrypoint"] }
+marinade_finance_interface = { git = "https://github.com/igneous-labs/marinade_finance_interface", branch = "master" }
 num-derive = ">=0.1"
 num-traits = ">=0.1"
 rand = "0.8.5"
@@ -29,26 +29,25 @@ sanctum-macros = "^1.2"
 serde = "^1"
 serde_json = "^1"
 spl-associated-token-account = { version = ">=1", features = ["no-entrypoint"] }
-spl-math = { version = "0.1.0", features = ["no-entrypoint"]}
-spl-stake-pool = { version = "^1", features = ["no-entrypoint"] }
+spl-stake-pool = { version = ">=2.0.1", features = ["no-entrypoint"] } # 2.0.1 is the specific vers that patches incompatible breaking changes in 2.0.0
 spl-token = ">=3.0"
 thiserror = "^1.0"
 tokio = "^1.0"
-unstake_interface = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
-unstake-lib = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "069f941" }
+unstake_interface = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "3651f16" }
+unstake-lib = { git = "https://github.com/igneous-labs/sanctum-unstake-program.git", rev = "3651f16" }
 
 # sanctum solana utils
-sanctum-solana-cli-utils = { git = "https://github.com/igneous-labs/sanctum-solana-utils.git", branch = "master" } # rev = "111f01"
+sanctum-solana-cli-utils = { git = "https://github.com/igneous-labs/sanctum-solana-utils.git", branch = "master" }
 
 # sanctum-lst-list
 # keep branch = "master" for flexibility of downstream crates
-sanctum-lst-list = { git = "https://github.com/igneous-labs/sanctum-lst-list.git", branch = "master" } # rev = ebecde4
+sanctum-lst-list = { git = "https://github.com/igneous-labs/sanctum-lst-list.git", branch = "master" }
 
 # solana core crates
-solana-program = "^1"
-solana-sdk = "^1"
-solana-account-decoder = "^1"
-solana-client = "^1"
+solana-program = ">=1"
+solana-sdk = ">=1"
+solana-account-decoder = ">=1"
+solana-client = ">=1"
 
 # workspace members
 stakedex_deposit_sol_interface = { path = "./interfaces/stakedex_deposit_sol_interface" }
