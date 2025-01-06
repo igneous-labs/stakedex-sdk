@@ -4,7 +4,7 @@ use consts::VALIDATOR_RECORD_BYTE_LENGTH;
 use marinade_finance_interface::{
     Fee, FeeCents, LiqPool, List, StakeSystem, State, ValidatorRecord, ValidatorSystem,
 };
-use solana_program::{borsh0_10::try_from_slice_unchecked, pubkey::Pubkey};
+use solana_program::{borsh1::try_from_slice_unchecked, pubkey::Pubkey};
 
 mod calc;
 mod consts;
