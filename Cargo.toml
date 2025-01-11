@@ -29,7 +29,11 @@ sanctum-macros = "^1.2"
 serde = "^1"
 serde_json = "^1"
 spl-associated-token-account = { version = ">=1", features = ["no-entrypoint"] }
-spl-stake-pool = { version = ">=2.0.1", features = ["no-entrypoint"] } # 2.0.1 is the specific vers that patches incompatible breaking changes in 2.0.0
+# NB: spl-stake-pool=2.0.0 is incompatible with jupiter-amm-interface,
+# but 2.0.1 patches those breaking changes.
+# Ideally, this vers requirement should be "anything >=1.0 except 2.0.0"
+# but theres no way to express that in cargo dep vers syntax
+spl-stake-pool = { version = ">=1.0", features = ["no-entrypoint"] } 
 spl-token = ">=3.0"
 thiserror = "^1.0"
 tokio = "^1.0"
