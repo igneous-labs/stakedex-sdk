@@ -2,14 +2,14 @@ use std::sync::atomic::Ordering;
 
 use anyhow::Result;
 use solana_program::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
-use spl_stake_pool::{find_stake_program_address, MINIMUM_ACTIVE_STAKE};
+use spl_stake_pool::find_stake_program_address;
 use stakedex_sdk_common::{WithdrawStakeBase, WithdrawStakeIter, WithdrawStakeQuote};
 use stakedex_withdraw_stake_interface::{
     spl_stake_pool_withdraw_stake_ix, SplStakePoolWithdrawStakeKeys,
     SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 
-use crate::SplStakePoolStakedex;
+use crate::{SplStakePoolStakedex, VSA_MIN_LAMPORTS};
 
 pub struct WithdrawStakeQuoteIter<'a> {
     pool: &'a SplStakePoolStakedex,
@@ -55,8 +55,14 @@ impl WithdrawStakeQuoteIter<'_> {
             .iter()
             .enumerate()
             .find(|(_, vsi)| vsi.vote_account_address == preferred_voter)?;
-        // preferred cant service withdrawals, fallback to normal
-        if u64::from(vsi.active_stake_lamports) <= MINIMUM_ACTIVE_STAKE {
+        // check if preferred can service withdrawals,
+        // falling back to normal if preferred does not have enough to service withdrawals
+        let lamports_per_pool_token = self.pool.stake_pool.get_lamports_per_pool_token()?;
+        let minimum_lamports_with_tolerance =
+            VSA_MIN_LAMPORTS.saturating_add(lamports_per_pool_token);
+        let available_lamports =
+            u64::from(vsi.active_stake_lamports).saturating_sub(minimum_lamports_with_tolerance);
+        if available_lamports == 0 {
             return Some((
                 WithdrawStakeQuote::default(),
                 WithdrawStakeQuoteIterState::Normal(0),
