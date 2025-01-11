@@ -13,7 +13,7 @@ members = [
 [workspace.dependencies]
 anyhow = "^1.0"
 bincode = "^1.0"
-borsh = ">=0.9"
+borsh = "^1"
 clap = "^4"
 itertools = ">=0.1"
 jupiter-amm-interface = "~0.4.0"
