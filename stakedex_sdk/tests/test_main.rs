@@ -577,6 +577,7 @@ pub fn test_sim_prefund_swap_via_stake(stakedex: &Stakedex, args: TestSwapViaSta
                     open_order_address: None,
                     quote_mint_to_referrer: None,
                     missing_dynamic_accounts_as_default: false,
+                    swap_mode: SwapMode::ExactIn,
                 },
                 0,
             )
@@ -625,6 +626,7 @@ pub fn test_sim_manual_concat_prefund_swap_via_stake(
                     open_order_address: None,
                     quote_mint_to_referrer: None,
                     missing_dynamic_accounts_as_default: false,
+                    swap_mode: SwapMode::ExactIn,
                 },
                 0,
             )

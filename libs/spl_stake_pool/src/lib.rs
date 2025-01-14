@@ -19,6 +19,12 @@ use stakedex_sdk_common::{
 mod deposit_cap_guard;
 mod stakedex_traits;
 
+/// vsas are required to always have a min of
+/// minimum_stake_lamports(meta, stake_program_min_delegation)
+/// = meta.rent_exempt_reserve + max(MINIMUM_ACTIVE_STAKE, stake_program_min_delegation)
+/// total lamports.
+const VSA_MIN_LAMPORTS: u64 = STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS + MINIMUM_ACTIVE_STAKE;
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SplStakePoolStakedexInitKeys {
     pub stake_pool_program: Pubkey,
@@ -133,12 +139,10 @@ impl SplStakePoolStakedex {
         }
         // end copy
 
-        // according to https://github.com/solana-labs/solana-program-library/blob/58c1226a513d3d8bb2de8ec67586a679be7fd2d4/stake-pool/program/src/state.rs#L536C1-L542
-        // `active_stake_lamports` = delegation.stake - MIN_ACTIVE_STAKE_LAMPORTS.
-        // Withdrawals must leave at least MIN_ACTIVE_STAKE_LAMPORTS active stake in vsa
+        // `active_stake_lamports` is the total lamports of the vsa - includes rent-exempt as well
         let active_stake_lamports = u64::from(validator_list_entry.active_stake_lamports);
         if withdraw_lamports > active_stake_lamports
-            || (active_stake_lamports - withdraw_lamports) < MINIMUM_ACTIVE_STAKE
+            || (active_stake_lamports - withdraw_lamports) < VSA_MIN_LAMPORTS
         {
             // actually ProgramError::InsufficientFunds in program, but our err type is StakePoolError here
             return Err(StakePoolError::InvalidState);

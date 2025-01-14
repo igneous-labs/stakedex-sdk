@@ -553,7 +553,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "115e54d64eb62cdebad391c19efc9dce4981c690c85a33a12199d99bb9546fee"
 dependencies = [
  "borsh-derive 0.10.4",
- "hashbrown 0.12.3",
+ "hashbrown 0.13.2",
 ]
 
 [[package]]
@@ -2029,12 +2029,13 @@ dependencies = [
 
 [[package]]
 name = "jupiter-amm-interface"
-version = "0.4.5"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be954b20150b666b2bc328d1e490294a1c096e545f985d852f53c941209b2649"
+checksum = "74b928a82ff9d86743b68e21dab25eab0fff483de02f06ce1980fa7aecd3fa3c"
 dependencies = [
+ "ahash 0.8.11",
  "anyhow",
- "borsh 0.10.4",
+ "borsh 1.5.3",
  "rust_decimal",
  "serde",
  "serde_json",
@@ -2170,7 +2171,7 @@ version = "0.1.0"
 source = "git+https://github.com/igneous-labs/marinade_finance_interface?branch=master#d69279dfeca7f347d452475f9cc8d3dbafa6f9b5"
 dependencies = [
  "borsh 1.5.3",
- "num-derive 0.4.2",
+ "num-derive 0.3.3",
  "num-traits",
  "solana-program",
  "thiserror 1.0.69",
@@ -3008,12 +3009,12 @@ dependencies = [
 
 [[package]]
 name = "rust_decimal"
-version = "1.32.0"
+version = "1.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4c4216490d5a413bc6d10fa4742bd7d4955941d062c0ef873141d6b0e7b30fd"
+checksum = "b082d80e3e3cc52b2ed634388d436fe1f4de6af5786cc2de9ba9737527bdf555"
 dependencies = [
  "arrayvec",
- "borsh 0.10.4",
+ "borsh 1.5.3",
  "bytes",
  "num-traits",
  "rand 0.8.5",
@@ -4566,7 +4567,7 @@ name = "stakedex_interface"
 version = "0.1.0"
 dependencies = [
  "borsh 1.5.3",
- "num-derive 0.4.2",
+ "num-derive 0.3.3",
  "num-traits",
  "serde",
  "solana-program",
@@ -5263,7 +5264,7 @@ version = "2.0.0"
 source = "git+https://github.com/igneous-labs/sanctum-unstake-program.git?rev=3651f16#3651f1699c5ce73695a549d327e55aa57f5e7a79"
 dependencies = [
  "borsh 1.5.3",
- "num-derive 0.4.2",
+ "num-derive 0.3.3",
  "num-traits",
  "solana-program",
  "thiserror 1.0.69",
