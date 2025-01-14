@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use jupiter_amm_interface::{
-    AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, SwapAndAccountMetas, SwapParams,
+    AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, Swap, SwapAndAccountMetas,
+    SwapParams,
 };
 use solana_sdk::{instruction::AccountMeta, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
@@ -100,7 +101,7 @@ where
             account_metas.extend(deposit_sol_virtual_ix.accounts);
             account_metas.push(swap_params.placeholder_account_meta());
             Ok(SwapAndAccountMetas {
-                swap: todo!(), // TODO: get jup to add a new variant to Swap enum,
+                swap: Swap::StakeDexStakeWrappedSol,
                 account_metas,
             })
         } else if swap_params.source_mint == self.0.staked_sol_mint()
@@ -123,7 +124,7 @@ where
             account_metas.extend(withdraw_sol_virtual_ix.accounts);
             account_metas.push(swap_params.placeholder_account_meta());
             Ok(SwapAndAccountMetas {
-                swap: todo!(), // TODO: get jup to add a new variant to Swap enum,
+                swap: Swap::StakeDexWithdrawWrappedSol,
                 account_metas,
             })
         } else {
@@ -141,10 +142,6 @@ where
 
     fn program_id(&self) -> Pubkey {
         stakedex_interface::ID
-    }
-
-    fn unidirectional(&self) -> bool {
-        true
     }
 
     // TODO: for compile time max calculation
