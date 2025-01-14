@@ -1,10 +1,12 @@
+use std::collections::HashSet;
+
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use jupiter_amm_interface::{
     AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, SwapParams,
 };
 use lazy_static::lazy_static;
-use sanctum_lst_list::{PoolInfo, SanctumLst, SanctumLstList};
+use sanctum_lst_list::{PoolInfo, SanctumLst};
 use solana_sdk::{instruction::Instruction, pubkey::Pubkey, system_program};
 use spl_token::native_mint;
 use stakedex_interface::{
@@ -28,6 +30,7 @@ use stakedex_sdk_common::{
 use stakedex_spl_stake_pool::{SplStakePoolStakedex, SplStakePoolStakedexWithWithdrawSol};
 use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
+pub use sanctum_lst_list::SanctumLstList;
 pub use stakedex_interface::ID as stakedex_program_id;
 
 /// mainnet LUT that contains prefund accounts and other common accounts
@@ -588,19 +591,27 @@ impl Stakedex {
             ])
             .collect();
 
+        let mut amm_keys = HashSet::new();
         let mut amms: Vec<Box<dyn Amm + Send + Sync>> = Vec::new();
-        for stakedex in stakedexes.iter() {
-            match stakedex {
-                Stakedex::SplStakePool(spl_stake_pool) => {
-                    amms.push(Box::new(DepositWithdrawSolWrapper(spl_stake_pool.clone())))
-                }
-                Stakedex::Marinade(marinade) => {
-                    amms.push(Box::new(DepositSolWrapper(marinade.clone())))
-                }
-                // non-DepositSol
-                Stakedex::UnstakeIt(_) => (),
-                Stakedex::Lido(_) => (),
+        let mut add_amm_if_new_key = |amm: Box<dyn Amm + Send + Sync>| {
+            let amm_key = amm.key();
+            if !amm_keys.contains(&amm_key) {
+                amm_keys.insert(amm_key);
+                amms.push(amm);
             }
+        };
+
+        for stakedex in stakedexes.iter() {
+            let amm: Box<dyn Amm + Send + Sync> = match stakedex {
+                Stakedex::SplStakePool(spl_stake_pool) => {
+                    Box::new(DepositWithdrawSolWrapper(spl_stake_pool.clone()))
+                }
+                Stakedex::Marinade(marinade) => Box::new(DepositSolWrapper(marinade.clone())),
+                // non-DepositSol
+                Stakedex::UnstakeIt(_) => continue,
+                Stakedex::Lido(_) => continue,
+            };
+            add_amm_if_new_key(amm);
         }
 
         // SplStakePool WithdrawStake + DepositStake
@@ -608,30 +619,31 @@ impl Stakedex {
         // Marinade DepositStake
         // Lido WithdrawStake
         for (first_stakedex, second_stakedex) in stakedexes.into_iter().tuple_combinations() {
-            match (first_stakedex, second_stakedex) {
+            let amm: Box<dyn Amm + Send + Sync> = match (first_stakedex, second_stakedex) {
                 (Stakedex::SplStakePool(p1), Stakedex::SplStakePool(p2)) => {
-                    amms.push(Box::new(TwoWayPoolPair::new(p1.inner, p2.inner)));
+                    Box::new(TwoWayPoolPair::new(p1, p2))
                 }
                 match_stakedexes!(SplStakePool, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw.inner, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
                 match_stakedexes!(SplStakePool, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw.inner, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
                 match_stakedexes!(Lido, SplStakePool, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit.inner)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
                 match_stakedexes!(Lido, UnstakeIt, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
                 match_stakedexes!(Lido, Marinade, withdraw, deposit) => {
-                    amms.push(Box::new(OneWayPoolPair::new(withdraw, deposit)));
+                    Box::new(OneWayPoolPair::new(withdraw, deposit))
                 }
-                match_stakedexes!(Marinade, UnstakeIt, _, _) => (), // Cannot do anything with those two
+                match_stakedexes!(Marinade, UnstakeIt, _, _) => continue, // Cannot do anything with those two
                 match_same_stakedex!(UnstakeIt)
                 | match_same_stakedex!(Marinade)
-                | match_same_stakedex!(Lido) => (), // Invalid if found
-            }
+                | match_same_stakedex!(Lido) => continue, // Invalid if found
+            };
+            add_amm_if_new_key(amm);
         }
 
         amms
@@ -640,7 +652,7 @@ impl Stakedex {
 
 /// Used by jup, do not delete
 pub mod test_utils {
-    pub use stakedex_jup_interface::DepositSolWrapper;
+    pub use stakedex_jup_interface::{DepositSolWrapper, DepositWithdrawSolWrapper};
     pub use stakedex_lido::LidoStakedex;
     pub use stakedex_marinade::MarinadeStakedex;
     pub use stakedex_sdk_common::{

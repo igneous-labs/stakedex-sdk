@@ -139,7 +139,7 @@ where
         )?);
         account_metas.push(swap_params.placeholder_account_meta());
         Ok(SwapAndAccountMetas {
-            swap: Swap::StakeDexSwapViaStake { bridge_stake_seed },
+            swap: Swap::StakeDexPrefundWithdrawStakeAndDepositStake { bridge_stake_seed },
             account_metas,
         })
     }
