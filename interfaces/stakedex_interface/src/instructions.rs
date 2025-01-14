@@ -19,6 +19,7 @@ pub enum StakedexProgramIx {
     DepositStake,
     PrefundWithdrawStake(PrefundWithdrawStakeIxArgs),
     PrefundSwapViaStake(PrefundSwapViaStakeIxArgs),
+    WithdrawWrappedSol(WithdrawWrappedSolIxArgs),
 }
 impl StakedexProgramIx {
     pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
@@ -42,6 +43,9 @@ impl StakedexProgramIx {
             )),
             PREFUND_SWAP_VIA_STAKE_IX_DISCM => Ok(Self::PrefundSwapViaStake(
                 PrefundSwapViaStakeIxArgs::deserialize(&mut reader)?,
+            )),
+            WITHDRAW_WRAPPED_SOL_IX_DISCM => Ok(Self::WithdrawWrappedSol(
+                WithdrawWrappedSolIxArgs::deserialize(&mut reader)?,
             )),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -69,6 +73,10 @@ impl StakedexProgramIx {
             }
             Self::PrefundSwapViaStake(args) => {
                 writer.write_all(&[PREFUND_SWAP_VIA_STAKE_IX_DISCM])?;
+                args.serialize(&mut writer)
+            }
+            Self::WithdrawWrappedSol(args) => {
+                writer.write_all(&[WITHDRAW_WRAPPED_SOL_IX_DISCM])?;
                 args.serialize(&mut writer)
             }
         }
@@ -2446,5 +2454,282 @@ pub fn prefund_swap_via_stake_verify_account_privileges<'me, 'info>(
 ) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
     prefund_swap_via_stake_verify_writable_privileges(accounts)?;
     prefund_swap_via_stake_verify_signer_privileges(accounts)?;
+    Ok(())
+}
+pub const WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN: usize = 7;
+#[derive(Copy, Clone, Debug)]
+pub struct WithdrawWrappedSolAccounts<'me, 'info> {
+    ///The withdraw authority of src_token_from.
+    pub user: &'me AccountInfo<'info>,
+    ///The token account to burn and redeem LSTs from
+    pub src_token_from: &'me AccountInfo<'info>,
+    ///The wSOL token account to receive withdrawn wrapped SOL to
+    pub wsol_to: &'me AccountInfo<'info>,
+    ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
+    pub wsol_fee_token_account: &'me AccountInfo<'info>,
+    ///Input LST token mint
+    pub src_token_mint: &'me AccountInfo<'info>,
+    ///wSOL token mint
+    pub wsol_mint: &'me AccountInfo<'info>,
+    ///Tokenkeg program. The withdraw SOL accounts slice follows
+    pub token_program: &'me AccountInfo<'info>,
+}
+#[derive(Copy, Clone, Debug)]
+pub struct WithdrawWrappedSolKeys {
+    ///The withdraw authority of src_token_from.
+    pub user: Pubkey,
+    ///The token account to burn and redeem LSTs from
+    pub src_token_from: Pubkey,
+    ///The wSOL token account to receive withdrawn wrapped SOL to
+    pub wsol_to: Pubkey,
+    ///The dest_token_mint token account collecting fees. PDA. Seeds = ['fee', dest_token_mint.pubkey]
+    pub wsol_fee_token_account: Pubkey,
+    ///Input LST token mint
+    pub src_token_mint: Pubkey,
+    ///wSOL token mint
+    pub wsol_mint: Pubkey,
+    ///Tokenkeg program. The withdraw SOL accounts slice follows
+    pub token_program: Pubkey,
+}
+impl From<WithdrawWrappedSolAccounts<'_, '_>> for WithdrawWrappedSolKeys {
+    fn from(accounts: WithdrawWrappedSolAccounts) -> Self {
+        Self {
+            user: *accounts.user.key,
+            src_token_from: *accounts.src_token_from.key,
+            wsol_to: *accounts.wsol_to.key,
+            wsol_fee_token_account: *accounts.wsol_fee_token_account.key,
+            src_token_mint: *accounts.src_token_mint.key,
+            wsol_mint: *accounts.wsol_mint.key,
+            token_program: *accounts.token_program.key,
+        }
+    }
+}
+impl From<WithdrawWrappedSolKeys> for [AccountMeta; WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN] {
+    fn from(keys: WithdrawWrappedSolKeys) -> Self {
+        [
+            AccountMeta {
+                pubkey: keys.user,
+                is_signer: true,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.src_token_from,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.wsol_to,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.wsol_fee_token_account,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.src_token_mint,
+                is_signer: false,
+                is_writable: true,
+            },
+            AccountMeta {
+                pubkey: keys.wsol_mint,
+                is_signer: false,
+                is_writable: false,
+            },
+            AccountMeta {
+                pubkey: keys.token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+        ]
+    }
+}
+impl From<[Pubkey; WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN]> for WithdrawWrappedSolKeys {
+    fn from(pubkeys: [Pubkey; WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            user: pubkeys[0],
+            src_token_from: pubkeys[1],
+            wsol_to: pubkeys[2],
+            wsol_fee_token_account: pubkeys[3],
+            src_token_mint: pubkeys[4],
+            wsol_mint: pubkeys[5],
+            token_program: pubkeys[6],
+        }
+    }
+}
+impl<'info> From<WithdrawWrappedSolAccounts<'_, 'info>>
+    for [AccountInfo<'info>; WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN]
+{
+    fn from(accounts: WithdrawWrappedSolAccounts<'_, 'info>) -> Self {
+        [
+            accounts.user.clone(),
+            accounts.src_token_from.clone(),
+            accounts.wsol_to.clone(),
+            accounts.wsol_fee_token_account.clone(),
+            accounts.src_token_mint.clone(),
+            accounts.wsol_mint.clone(),
+            accounts.token_program.clone(),
+        ]
+    }
+}
+impl<'me, 'info> From<&'me [AccountInfo<'info>; WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN]>
+    for WithdrawWrappedSolAccounts<'me, 'info>
+{
+    fn from(arr: &'me [AccountInfo<'info>; WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN]) -> Self {
+        Self {
+            user: &arr[0],
+            src_token_from: &arr[1],
+            wsol_to: &arr[2],
+            wsol_fee_token_account: &arr[3],
+            src_token_mint: &arr[4],
+            wsol_mint: &arr[5],
+            token_program: &arr[6],
+        }
+    }
+}
+pub const WITHDRAW_WRAPPED_SOL_IX_DISCM: u8 = 8u8;
+#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct WithdrawWrappedSolIxArgs {
+    pub amount: u64,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct WithdrawWrappedSolIxData(pub WithdrawWrappedSolIxArgs);
+impl From<WithdrawWrappedSolIxArgs> for WithdrawWrappedSolIxData {
+    fn from(args: WithdrawWrappedSolIxArgs) -> Self {
+        Self(args)
+    }
+}
+impl WithdrawWrappedSolIxData {
+    pub fn deserialize(buf: &[u8]) -> std::io::Result<Self> {
+        let mut reader = buf;
+        let mut maybe_discm_buf = [0u8; 1];
+        reader.read_exact(&mut maybe_discm_buf)?;
+        let maybe_discm = maybe_discm_buf[0];
+        if maybe_discm != WITHDRAW_WRAPPED_SOL_IX_DISCM {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    WITHDRAW_WRAPPED_SOL_IX_DISCM, maybe_discm
+                ),
+            ));
+        }
+        Ok(Self(WithdrawWrappedSolIxArgs::deserialize(&mut reader)?))
+    }
+    pub fn serialize<W: std::io::Write>(&self, mut writer: W) -> std::io::Result<()> {
+        writer.write_all(&[WITHDRAW_WRAPPED_SOL_IX_DISCM])?;
+        self.0.serialize(&mut writer)
+    }
+    pub fn try_to_vec(&self) -> std::io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+        self.serialize(&mut data)?;
+        Ok(data)
+    }
+}
+pub fn withdraw_wrapped_sol_ix_with_program_id(
+    program_id: Pubkey,
+    keys: WithdrawWrappedSolKeys,
+    args: WithdrawWrappedSolIxArgs,
+) -> std::io::Result<Instruction> {
+    let metas: [AccountMeta; WITHDRAW_WRAPPED_SOL_IX_ACCOUNTS_LEN] = keys.into();
+    let data: WithdrawWrappedSolIxData = args.into();
+    Ok(Instruction {
+        program_id,
+        accounts: Vec::from(metas),
+        data: data.try_to_vec()?,
+    })
+}
+pub fn withdraw_wrapped_sol_ix(
+    keys: WithdrawWrappedSolKeys,
+    args: WithdrawWrappedSolIxArgs,
+) -> std::io::Result<Instruction> {
+    withdraw_wrapped_sol_ix_with_program_id(crate::ID, keys, args)
+}
+pub fn withdraw_wrapped_sol_invoke_with_program_id(
+    program_id: Pubkey,
+    accounts: WithdrawWrappedSolAccounts<'_, '_>,
+    args: WithdrawWrappedSolIxArgs,
+) -> ProgramResult {
+    let keys: WithdrawWrappedSolKeys = accounts.into();
+    let ix = withdraw_wrapped_sol_ix_with_program_id(program_id, keys, args)?;
+    invoke_instruction(&ix, accounts)
+}
+pub fn withdraw_wrapped_sol_invoke(
+    accounts: WithdrawWrappedSolAccounts<'_, '_>,
+    args: WithdrawWrappedSolIxArgs,
+) -> ProgramResult {
+    withdraw_wrapped_sol_invoke_with_program_id(crate::ID, accounts, args)
+}
+pub fn withdraw_wrapped_sol_invoke_signed_with_program_id(
+    program_id: Pubkey,
+    accounts: WithdrawWrappedSolAccounts<'_, '_>,
+    args: WithdrawWrappedSolIxArgs,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    let keys: WithdrawWrappedSolKeys = accounts.into();
+    let ix = withdraw_wrapped_sol_ix_with_program_id(program_id, keys, args)?;
+    invoke_instruction_signed(&ix, accounts, seeds)
+}
+pub fn withdraw_wrapped_sol_invoke_signed(
+    accounts: WithdrawWrappedSolAccounts<'_, '_>,
+    args: WithdrawWrappedSolIxArgs,
+    seeds: &[&[&[u8]]],
+) -> ProgramResult {
+    withdraw_wrapped_sol_invoke_signed_with_program_id(crate::ID, accounts, args, seeds)
+}
+pub fn withdraw_wrapped_sol_verify_account_keys(
+    accounts: WithdrawWrappedSolAccounts<'_, '_>,
+    keys: WithdrawWrappedSolKeys,
+) -> Result<(), (Pubkey, Pubkey)> {
+    for (actual, expected) in [
+        (accounts.user.key, &keys.user),
+        (accounts.src_token_from.key, &keys.src_token_from),
+        (accounts.wsol_to.key, &keys.wsol_to),
+        (
+            accounts.wsol_fee_token_account.key,
+            &keys.wsol_fee_token_account,
+        ),
+        (accounts.src_token_mint.key, &keys.src_token_mint),
+        (accounts.wsol_mint.key, &keys.wsol_mint),
+        (accounts.token_program.key, &keys.token_program),
+    ] {
+        if actual != expected {
+            return Err((*actual, *expected));
+        }
+    }
+    Ok(())
+}
+pub fn withdraw_wrapped_sol_verify_writable_privileges<'me, 'info>(
+    accounts: WithdrawWrappedSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_writable in [
+        accounts.src_token_from,
+        accounts.wsol_to,
+        accounts.wsol_fee_token_account,
+        accounts.src_token_mint,
+    ] {
+        if !should_be_writable.is_writable {
+            return Err((should_be_writable, ProgramError::InvalidAccountData));
+        }
+    }
+    Ok(())
+}
+pub fn withdraw_wrapped_sol_verify_signer_privileges<'me, 'info>(
+    accounts: WithdrawWrappedSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    for should_be_signer in [accounts.user] {
+        if !should_be_signer.is_signer {
+            return Err((should_be_signer, ProgramError::MissingRequiredSignature));
+        }
+    }
+    Ok(())
+}
+pub fn withdraw_wrapped_sol_verify_account_privileges<'me, 'info>(
+    accounts: WithdrawWrappedSolAccounts<'me, 'info>,
+) -> Result<(), (&'me AccountInfo<'info>, ProgramError)> {
+    withdraw_wrapped_sol_verify_writable_privileges(accounts)?;
+    withdraw_wrapped_sol_verify_signer_privileges(accounts)?;
     Ok(())
 }

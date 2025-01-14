@@ -12,21 +12,22 @@ use spl_token::native_mint;
 use stakedex_interface::{
     DepositStakeKeys, PrefundSwapViaStakeIxArgs, PrefundSwapViaStakeKeys,
     PrefundWithdrawStakeIxArgs, PrefundWithdrawStakeKeys, StakeWrappedSolIxArgs,
-    StakeWrappedSolKeys, SwapViaStakeArgs,
+    StakeWrappedSolKeys, SwapViaStakeArgs, WithdrawWrappedSolIxArgs, WithdrawWrappedSolKeys,
 };
 use stakedex_jup_interface::{
     manual_concat_get_account_metas, prefund_get_account_metas, quote_pool_pair, DepositSolWrapper,
-    OneWayPoolPair, PrefundRepayParams, TwoWayPoolPair,
+    DepositWithdrawSolWrapper, OneWayPoolPair, PrefundRepayParams, TwoWayPoolPair,
 };
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
 use stakedex_sdk_common::{
-    find_fee_token_acc, lido_state, marinade_state, msol, stakedex_program, stsol,
-    unstake_it_program, wsol_bridge_in, BaseStakePoolAmm, DepositSol, DepositStake,
-    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawStake, WithdrawStakeQuote,
-    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
+    find_fee_token_acc, lido_state, marinade_state, msol,
+    stakedex_program::{self, WSOL_FEE_TOKEN_ACCOUNT_ID},
+    stsol, unstake_it_program, wsol, wsol_bridge_in, BaseStakePoolAmm, DepositSol, DepositStake,
+    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawSol, WithdrawStake,
+    WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
-use stakedex_spl_stake_pool::SplStakePoolStakedex;
+use stakedex_spl_stake_pool::{SplStakePoolStakedex, SplStakePoolStakedexWithWithdrawSol};
 use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use sanctum_lst_list::SanctumLstList;
@@ -58,9 +59,10 @@ macro_rules! match_same_stakedex {
     };
 }
 
+/// Collection of all supported stake pools
 #[derive(Clone, Default)]
 pub struct Stakedex {
-    pub spls: Vec<SplStakePoolStakedex>,
+    pub spls: Vec<SplStakePoolStakedexWithWithdrawSol>,
     pub unstakeit: UnstakeItStakedexPrefund,
     pub marinade: MarinadeStakedex,
     pub lido: LidoStakedex,
@@ -153,7 +155,10 @@ impl Stakedex {
                     get_keyed_account(accounts, &pool)
                         .map_or_else(Err, |mut ka| {
                             ka.params = Some(name.as_str().into());
-                            SplStakePoolStakedex::from_keyed_account(&ka, amm_context)
+                            Ok(SplStakePoolStakedexWithWithdrawSol {
+                                inner: SplStakePoolStakedex::from_keyed_account(&ka, amm_context)?,
+                                reserve_stake_lamports: None,
+                            })
                         })
                         .ok()
                 }
@@ -228,31 +233,50 @@ impl Stakedex {
     pub fn get_deposit_sol_pool(&self, mint: &Pubkey) -> Option<&dyn DepositSol> {
         Some(match *mint {
             msol::ID => &self.marinade,
-            mint => self
-                .spls
-                .iter()
-                .find(|SplStakePoolStakedex { stake_pool, .. }| stake_pool.pool_mint == mint)?,
+            mint => self.spls.iter().find(
+                |SplStakePoolStakedexWithWithdrawSol {
+                     inner: SplStakePoolStakedex { stake_pool, .. },
+                     ..
+                 }| stake_pool.pool_mint == mint,
+            )?,
         })
+    }
+
+    pub fn get_withdraw_sol_pool(&self, mint: &Pubkey) -> Option<&dyn WithdrawSol> {
+        // right now only spls can WithdrawSol
+        self.spls
+            .iter()
+            .find(
+                |SplStakePoolStakedexWithWithdrawSol {
+                     inner: SplStakePoolStakedex { stake_pool, .. },
+                     ..
+                 }| stake_pool.pool_mint == *mint,
+            )
+            .map(|sp| sp as &dyn WithdrawSol)
     }
 
     pub fn get_deposit_stake_pool(&self, mint: &Pubkey) -> Option<&dyn DepositStake> {
         Some(match *mint {
             msol::ID => &self.marinade,
             native_mint::ID => &self.unstakeit,
-            mint => self
-                .spls
-                .iter()
-                .find(|SplStakePoolStakedex { stake_pool, .. }| stake_pool.pool_mint == mint)?,
+            mint => self.spls.iter().find(
+                |SplStakePoolStakedexWithWithdrawSol {
+                     inner: SplStakePoolStakedex { stake_pool, .. },
+                     ..
+                 }| stake_pool.pool_mint == mint,
+            )?,
         })
     }
 
     pub fn get_withdraw_stake_pool(&self, mint: &Pubkey) -> Option<&dyn WithdrawStake> {
         Some(match *mint {
             stsol::ID => &self.lido,
-            mint => self
-                .spls
-                .iter()
-                .find(|SplStakePoolStakedex { stake_pool, .. }| stake_pool.pool_mint == mint)?,
+            mint => self.spls.iter().find(
+                |SplStakePoolStakedexWithWithdrawSol {
+                     inner: SplStakePoolStakedex { stake_pool, .. },
+                     ..
+                 }| stake_pool.pool_mint == mint,
+            )?,
         })
     }
 
@@ -450,6 +474,38 @@ impl Stakedex {
         Ok(ix)
     }
 
+    pub fn quote_withdraw_wrapped_sol(&self, quote_params: &QuoteParams) -> Result<Quote> {
+        let withdraw_from = self
+            .get_withdraw_sol_pool(&quote_params.input_mint)
+            .ok_or_else(|| anyhow!("pool not found for input mint {}", quote_params.input_mint))?;
+        let withdraw_sol_quote = withdraw_from.get_withdraw_sol_quote(quote_params.amount)?;
+        let quote = withdraw_from.convert_quote(withdraw_sol_quote);
+        Ok(quote)
+    }
+
+    pub fn withdraw_wrapped_sol_ix(&self, swap_params: &SwapParams) -> Result<Instruction> {
+        let withdraw_from = self
+            .get_withdraw_sol_pool(&swap_params.source_mint)
+            .ok_or_else(|| anyhow!("pool not found for src mint {}", swap_params.source_mint))?;
+        let mut ix = stakedex_interface::withdraw_wrapped_sol_ix(
+            WithdrawWrappedSolKeys {
+                user: swap_params.token_transfer_authority,
+                wsol_mint: wsol::ID,
+                token_program: spl_token::ID,
+                src_token_from: swap_params.source_token_account,
+                wsol_to: swap_params.destination_token_account,
+                wsol_fee_token_account: WSOL_FEE_TOKEN_ACCOUNT_ID,
+                src_token_mint: swap_params.source_mint,
+            },
+            WithdrawWrappedSolIxArgs {
+                amount: swap_params.in_amount,
+            },
+        )?;
+        let withdraw_sol_virtual_ix = withdraw_from.virtual_ix()?;
+        ix.accounts.extend(withdraw_sol_virtual_ix.accounts);
+        Ok(ix)
+    }
+
     /// input_mint = voter pubkey for deposit stake
     pub fn quote_deposit_stake(&self, quote_params: &QuoteParams) -> Result<Quote> {
         let (deposit_to, dsq) = self.quote_deposit_stake_dsq(
@@ -512,7 +568,7 @@ impl Stakedex {
     pub fn get_amms(self) -> Vec<Box<dyn Amm + Send + Sync>> {
         #[derive(Clone)]
         enum Stakedex {
-            SplStakePool(SplStakePoolStakedex),
+            SplStakePool(SplStakePoolStakedexWithWithdrawSol),
             UnstakeIt(UnstakeItStakedexPrefund),
             Marinade(MarinadeStakedex),
             Lido(LidoStakedex),
@@ -548,7 +604,7 @@ impl Stakedex {
         for stakedex in stakedexes.iter() {
             let amm: Box<dyn Amm + Send + Sync> = match stakedex {
                 Stakedex::SplStakePool(spl_stake_pool) => {
-                    Box::new(DepositSolWrapper(spl_stake_pool.clone()))
+                    Box::new(DepositWithdrawSolWrapper(spl_stake_pool.clone()))
                 }
                 Stakedex::Marinade(marinade) => Box::new(DepositSolWrapper(marinade.clone())),
                 // non-DepositSol
@@ -596,7 +652,7 @@ impl Stakedex {
 
 /// Used by jup, do not delete
 pub mod test_utils {
-    pub use stakedex_jup_interface::DepositSolWrapper;
+    pub use stakedex_jup_interface::{DepositSolWrapper, DepositWithdrawSolWrapper};
     pub use stakedex_lido::LidoStakedex;
     pub use stakedex_marinade::MarinadeStakedex;
     pub use stakedex_sdk_common::{

@@ -12,7 +12,7 @@ use stakedex_sdk_common::{
 
 use crate::{
     deposit_cap_guard::{to_deposit_cap_guard_ix, DepositCap},
-    SplStakePoolStakedex,
+    SplStakePoolStakedex, SplStakePoolStakedexWithWithdrawSol,
 };
 
 impl DepositStake for SplStakePoolStakedex {
@@ -182,5 +182,35 @@ impl DepositStake for SplStakePoolStakedex {
 
     fn accounts_len(&self) -> usize {
         SPL_STAKE_POOL_DEPOSIT_STAKE_IX_ACCOUNTS_LEN
+    }
+}
+
+impl DepositStake for SplStakePoolStakedexWithWithdrawSol {
+    #[inline]
+    fn can_accept_stake_deposits(&self) -> bool {
+        self.inner.can_accept_stake_deposits()
+    }
+
+    #[inline]
+    fn get_deposit_stake_quote_unchecked(
+        &self,
+        withdraw_stake_quote: WithdrawStakeQuote,
+    ) -> DepositStakeQuote {
+        self.inner
+            .get_deposit_stake_quote_unchecked(withdraw_stake_quote)
+    }
+
+    #[inline]
+    fn virtual_ix(
+        &self,
+        quote: &DepositStakeQuote,
+        deposit_stake_info: &DepositStakeInfo,
+    ) -> Result<Instruction> {
+        self.inner.virtual_ix(quote, deposit_stake_info)
+    }
+
+    #[inline]
+    fn accounts_len(&self) -> usize {
+        self.inner.accounts_len()
     }
 }

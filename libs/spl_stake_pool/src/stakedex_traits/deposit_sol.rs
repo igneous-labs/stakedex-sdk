@@ -9,8 +9,30 @@ use stakedex_sdk_common::{DepositSol, DepositSolQuote};
 
 use crate::{
     deposit_cap_guard::{to_deposit_cap_guard_ix, DepositCap},
-    SplStakePoolStakedex,
+    SplStakePoolStakedex, SplStakePoolStakedexWithWithdrawSol,
 };
+
+impl DepositSol for SplStakePoolStakedexWithWithdrawSol {
+    #[inline]
+    fn can_accept_sol_deposits(&self) -> bool {
+        self.inner.can_accept_sol_deposits()
+    }
+
+    #[inline]
+    fn get_deposit_sol_quote_unchecked(&self, lamports: u64) -> Result<DepositSolQuote> {
+        self.inner.get_deposit_sol_quote_unchecked(lamports)
+    }
+
+    #[inline]
+    fn virtual_ix(&self) -> Result<Instruction> {
+        self.inner.virtual_ix()
+    }
+
+    #[inline]
+    fn accounts_len(&self) -> usize {
+        self.inner.accounts_len()
+    }
+}
 
 impl DepositSol for SplStakePoolStakedex {
     fn can_accept_sol_deposits(&self) -> bool {
@@ -90,6 +112,7 @@ impl DepositSol for SplStakePoolStakedex {
         })
     }
 
+    #[inline]
     fn accounts_len(&self) -> usize {
         SPL_STAKE_POOL_DEPOSIT_SOL_IX_ACCOUNTS_LEN
     }

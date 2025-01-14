@@ -9,7 +9,7 @@ use stakedex_withdraw_stake_interface::{
     SPL_STAKE_POOL_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 
-use crate::{SplStakePoolStakedex, VSA_MIN_LAMPORTS};
+use crate::{SplStakePoolStakedex, SplStakePoolStakedexWithWithdrawSol, VSA_MIN_LAMPORTS};
 
 pub struct WithdrawStakeQuoteIter<'a> {
     pool: &'a SplStakePoolStakedex,
@@ -144,5 +144,31 @@ impl WithdrawStakeBase for SplStakePoolStakedex {
 
     fn underlying_liquidity(&self) -> Option<&Pubkey> {
         Some(&self.stake_pool_addr)
+    }
+}
+
+impl WithdrawStakeIter for SplStakePoolStakedexWithWithdrawSol {
+    type Iter<'me> = WithdrawStakeQuoteIter<'me>;
+
+    #[inline]
+    fn withdraw_stake_quote_iter(&self, withdraw_amount: u64) -> Self::Iter<'_> {
+        self.inner.withdraw_stake_quote_iter(withdraw_amount)
+    }
+}
+
+impl WithdrawStakeBase for SplStakePoolStakedexWithWithdrawSol {
+    #[inline]
+    fn can_accept_stake_withdrawals(&self) -> bool {
+        self.inner.can_accept_stake_withdrawals()
+    }
+
+    #[inline]
+    fn virtual_ix(&self, quote: &WithdrawStakeQuote) -> Result<Instruction> {
+        self.inner.virtual_ix(quote)
+    }
+
+    #[inline]
+    fn accounts_len(&self) -> usize {
+        self.inner.accounts_len()
     }
 }

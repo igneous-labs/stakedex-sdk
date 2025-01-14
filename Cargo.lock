@@ -2029,13 +2029,13 @@ dependencies = [
 
 [[package]]
 name = "jupiter-amm-interface"
-version = "0.4.6"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bcd70e16bebdcc4b4ba14a05b4d6357730ad0a6a988872365b799522b2053f8"
+checksum = "74b928a82ff9d86743b68e21dab25eab0fff483de02f06ce1980fa7aecd3fa3c"
 dependencies = [
  "ahash 0.8.11",
  "anyhow",
- "borsh 0.10.4",
+ "borsh 1.5.3",
  "rust_decimal",
  "serde",
  "serde_json",
@@ -4675,6 +4675,7 @@ dependencies = [
  "stakedex_deposit_stake_interface",
  "stakedex_jup_interface",
  "stakedex_sdk_common",
+ "stakedex_withdraw_sol_interface",
  "stakedex_withdraw_stake_interface",
 ]
 
@@ -4691,6 +4692,15 @@ dependencies = [
  "stakedex_sdk_common",
  "unstake-lib",
  "unstake_interface",
+]
+
+[[package]]
+name = "stakedex_withdraw_sol_interface"
+version = "0.1.0"
+dependencies = [
+ "borsh 1.5.3",
+ "serde",
+ "solana-program",
 ]
 
 [[package]]
