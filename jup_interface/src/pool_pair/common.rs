@@ -245,14 +245,12 @@ pub fn first_avail_prefund_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?S
     let withdraw_quote_iter = withdraw_from.withdraw_stake_quote_iter_dyn(withdraw_amount);
     for wsq in withdraw_quote_iter {
         let wsq = prefund_transform_wsq(wsq);
-        let mut wsq_after_prefund = wsq;
-        wsq_after_prefund.lamports_out = wsq.lamports_out.saturating_sub(prefund_split_lamports);
-        wsq_after_prefund.lamports_staked =
-            wsq.lamports_staked.saturating_sub(prefund_split_lamports);
-        if wsq_after_prefund.is_zero_out() {
+        let wsq_after_repaying_prefund = wsq_post_prefund_repay(wsq, prefund_split_lamports);
+        if !wsq_after_repaying_prefund.is_rent_exempt() {
             continue;
         }
-        let dsq = deposit_to.get_deposit_stake_quote(wsq_after_prefund)?;
+        let dsq = deposit_to.get_deposit_stake_quote(wsq_after_repaying_prefund)?;
+
         if !dsq.is_zero_out() {
             return Ok((wsq, dsq));
         }
@@ -260,10 +258,24 @@ pub fn first_avail_prefund_quote<W: WithdrawStake + ?Sized, D: DepositStake + ?S
     Err(SwapViaStakeQuoteErr::NoRouteFound)
 }
 
-/// Since we're prefunding bridge stake with the rent, we need to add it to the output stake account
-fn prefund_transform_wsq(mut wsq: WithdrawStakeQuote) -> WithdrawStakeQuote {
+/// Returns the state of the stake account with rent-exempt lamports prefunded.
+///
+/// This is basically adding [`STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS`] non-staked lamports to the stake account
+/// while treating its original [`WithdrawStakeQuote::lamports_out`] as the [`WithdrawStakeQuote::lamports_staked`]
+pub fn prefund_transform_wsq(mut wsq: WithdrawStakeQuote) -> WithdrawStakeQuote {
     wsq.lamports_staked = wsq.lamports_out;
     wsq.lamports_out += STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS;
+    wsq
+}
+
+/// Returns the state of the stake account after `prefund_split_lamports` is split
+/// from it to repay the prefund flash loan
+pub fn wsq_post_prefund_repay(
+    mut wsq: WithdrawStakeQuote,
+    prefund_split_lamports: u64,
+) -> WithdrawStakeQuote {
+    wsq.lamports_out = wsq.lamports_out.saturating_sub(prefund_split_lamports);
+    wsq.lamports_staked = wsq.lamports_staked.saturating_sub(prefund_split_lamports);
     wsq
 }
 

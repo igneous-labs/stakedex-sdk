@@ -553,7 +553,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "115e54d64eb62cdebad391c19efc9dce4981c690c85a33a12199d99bb9546fee"
 dependencies = [
  "borsh-derive 0.10.4",
- "hashbrown 0.13.2",
+ "hashbrown 0.12.3",
 ]
 
 [[package]]
@@ -4393,8 +4393,7 @@ dependencies = [
 [[package]]
 name = "spl-stake-pool"
 version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc2b2908579aefbdb1ed3e941252cab09e7e471e5b52efd5ecc54d20829ef5e8"
+source = "git+https://github.com/igneous-labs/stake-pool.git?branch=loosen-deps#27eecce9ac698a3a9109cb8b225079455cef8d4c"
 dependencies = [
  "arrayref",
  "bincode",

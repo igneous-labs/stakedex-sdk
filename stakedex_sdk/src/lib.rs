@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use jupiter_amm_interface::{
-    AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, SwapParams,
+    AccountMap, Amm, AmmContext, KeyedAccount, Quote, QuoteParams, SwapMode, SwapParams,
 };
 use lazy_static::lazy_static;
 use sanctum_lst_list::{PoolInfo, SanctumLst};
-use solana_sdk::{instruction::Instruction, pubkey::Pubkey, system_program};
+use solana_sdk::{instruction::Instruction, pubkey::Pubkey, stake, system_program, sysvar};
 use spl_token::native_mint;
 use stakedex_interface::{
     DepositStakeKeys, PrefundSwapViaStakeIxArgs, PrefundSwapViaStakeKeys,
@@ -15,20 +15,23 @@ use stakedex_interface::{
     StakeWrappedSolKeys, SwapViaStakeArgs, WithdrawWrappedSolIxArgs, WithdrawWrappedSolKeys,
 };
 use stakedex_jup_interface::{
-    manual_concat_get_account_metas, prefund_get_account_metas, quote_pool_pair, DepositSolWrapper,
-    DepositWithdrawSolWrapper, OneWayPoolPair, PrefundRepayParams, TwoWayPoolPair,
+    manual_concat_get_account_metas, prefund_get_account_metas, prefund_transform_wsq,
+    quote_pool_pair, wsq_post_prefund_repay, DepositSolWrapper, DepositWithdrawSolWrapper,
+    OneWayPoolPair, PrefundRepayParams, TwoWayPoolPair,
 };
 use stakedex_lido::LidoStakedex;
 use stakedex_marinade::MarinadeStakedex;
 use stakedex_sdk_common::{
-    find_fee_token_acc, lido_state, marinade_state, msol,
+    find_bridge_stake, find_fee_token_acc, lido_state, marinade_state, msol,
+    slumdog_stake_create_with_seed,
     stakedex_program::{self, WSOL_FEE_TOKEN_ACCOUNT_ID},
-    stsol, unstake_it_program, wsol, wsol_bridge_in, BaseStakePoolAmm, DepositSol, DepositStake,
-    DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawSol, WithdrawStake,
-    WithdrawStakeQuote, DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
+    stsol, unstake_it_pool, unstake_it_program, wsol, wsol_bridge_in, BaseStakePoolAmm, DepositSol,
+    DepositStake, DepositStakeInfo, DepositStakeQuote, InitFromKeyedAccount, WithdrawSol,
+    WithdrawStake, WithdrawStakeQuote, WithdrawStakeQuoteErr,
+    DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX,
 };
 use stakedex_spl_stake_pool::{SplStakePoolStakedex, SplStakePoolStakedexWithWithdrawSol};
-use stakedex_unstake_it::{UnstakeItStakedex, UnstakeItStakedexPrefund};
+use stakedex_unstake_it::{find_stake_account_record, UnstakeItStakedex, UnstakeItStakedexPrefund};
 
 pub use sanctum_lst_list::SanctumLstList;
 pub use stakedex_interface::ID as stakedex_program_id;
@@ -300,6 +303,8 @@ impl Stakedex {
         )
     }
 
+    /// Returns [PrefundWithdrawStake, DepositStake] instructions
+    /// to create a SwapViaStake action without running into CPI account write-lock limits
     pub fn manual_concat_prefund_swap_via_stake_ixs(
         &self,
         swap_params: &SwapParams,
@@ -561,6 +566,94 @@ impl Stakedex {
             ix.accounts[DEPOSIT_STAKE_DST_TOKEN_ACCOUNT_INDEX].is_writable = false;
         }
         ix.accounts.extend(deposit_to_virtual_ix.accounts);
+        Ok(ix)
+    }
+
+    /// `output_mint` can either be
+    /// - the desired vote account of the stake account to withdraw, or
+    /// - the stake program to indicate no preference of voter
+    pub fn quote_prefund_withdraw_stake(
+        &self,
+        quote_params: &QuoteParams,
+    ) -> Result<WithdrawStakeQuote> {
+        let prefund_split_lamports = self.prefund_repay_params().prefund_split_lamports()?;
+        let withdraw_from = self
+            .get_withdraw_stake_pool(&quote_params.input_mint)
+            .ok_or_else(|| anyhow!("pool not found for input mint {}", quote_params.input_mint))?;
+        if !withdraw_from.can_accept_stake_withdrawals() {
+            return Err(WithdrawStakeQuoteErr::CannotAcceptStakeWithdrawals.into());
+        }
+        let itr = withdraw_from.withdraw_stake_quote_iter_dyn(quote_params.amount);
+
+        for wsq in itr {
+            let wsq = prefund_transform_wsq(wsq);
+            let wsq_after_repaying_prefund = wsq_post_prefund_repay(wsq, prefund_split_lamports);
+            if wsq_after_repaying_prefund.is_rent_exempt()
+                && (quote_params.output_mint == wsq.voter
+                    || quote_params.output_mint == stake::program::ID)
+            {
+                return Ok(wsq_after_repaying_prefund);
+            }
+        }
+
+        Err(anyhow!("No route found"))
+    }
+
+    /// `destination_mint` can either be
+    /// - the desired vote account of the stake account to withdraw, or
+    /// - the stake program to indicate no preference of voter
+    pub fn prefund_withdraw_stake_ix(
+        &self,
+        SwapParams {
+            in_amount,
+            source_mint,
+            destination_mint,
+            source_token_account,
+            token_transfer_authority,
+            ..
+        }: &SwapParams,
+        bridge_stake_seed: u32,
+    ) -> Result<Instruction> {
+        let withdraw_from = self
+            .get_withdraw_stake_pool(source_mint)
+            .ok_or_else(|| anyhow!("pool not found for input mint {}", source_mint))?;
+        let wsq = self.quote_prefund_withdraw_stake(&QuoteParams {
+            amount: *in_amount,
+            input_mint: *source_mint,
+            output_mint: *destination_mint,
+            swap_mode: SwapMode::ExactIn,
+        })?;
+        let bridge_stake_seed_le_bytes = bridge_stake_seed.to_le_bytes();
+        let bridge_stake =
+            find_bridge_stake(token_transfer_authority, &bridge_stake_seed_le_bytes).0;
+        let slumdog_stake = slumdog_stake_create_with_seed(&bridge_stake)?;
+        let mut ix = stakedex_interface::prefund_withdraw_stake_ix(
+            PrefundWithdrawStakeKeys {
+                user: *token_transfer_authority,
+                src_token_from: *source_token_account,
+                bridge_stake,
+                src_token_mint: *source_mint,
+                prefunder: stakedex_program::PREFUNDER_ID,
+                slumdog_stake,
+                unstakeit_program: unstake_it_program::ID,
+                unstake_pool: unstake_it_pool::ID,
+                pool_sol_reserves: unstake_it_program::SOL_RESERVES_ID,
+                unstake_fee: unstake_it_program::FEE_ID,
+                slumdog_stake_acc_record: find_stake_account_record(&slumdog_stake).0,
+                unstake_protocol_fee: unstake_it_program::PROTOCOL_FEE_ID,
+                unstake_protocol_fee_dest: self.prefund_repay_params().protocol_fee_dest,
+                clock: sysvar::clock::ID,
+                stake_program: stake::program::ID,
+                system_program: system_program::ID,
+            },
+            PrefundWithdrawStakeIxArgs {
+                args: SwapViaStakeArgs {
+                    amount: *in_amount,
+                    bridge_stake_seed,
+                },
+            },
+        )?;
+        ix.accounts.extend(withdraw_from.virtual_ix(&wsq)?.accounts);
         Ok(ix)
     }
 
