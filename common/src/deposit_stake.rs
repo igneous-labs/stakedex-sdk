@@ -6,7 +6,7 @@ use rust_decimal::{
 };
 use solana_program::{instruction::Instruction, pubkey::Pubkey};
 
-use crate::{apply_global_fee, BaseStakePoolAmm, DepositStakeQuoteErr};
+use crate::{apply_deposit_stake_stakedex_fee, BaseStakePoolAmm, DepositStakeQuoteErr};
 
 use super::withdraw_stake::WithdrawStakeQuote;
 
@@ -72,7 +72,7 @@ pub trait DepositStake: BaseStakePoolAmm {
     ) -> Result<Instruction>;
 
     fn convert_deposit_stake_quote(&self, in_amount: u64, quote: DepositStakeQuote) -> Quote {
-        let aft_global_fees = apply_global_fee(quote.tokens_out);
+        let aft_global_fees = apply_deposit_stake_stakedex_fee(quote.tokens_out);
         let total_fees = quote.fee_amount + aft_global_fees.fee;
         let final_out_amount = aft_global_fees.remainder;
         let before_fees = (final_out_amount + total_fees) as f64;
