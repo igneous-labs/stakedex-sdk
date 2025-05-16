@@ -6,7 +6,7 @@ use rust_decimal::{
 };
 use solana_program::{instruction::Instruction, pubkey::Pubkey};
 
-use crate::{apply_global_fee, wsol, BaseStakePoolAmm};
+use crate::{apply_withdraw_wrapped_sol_stakedex_fee, wsol, BaseStakePoolAmm};
 
 #[derive(Copy, Clone, Debug)]
 pub struct WithdrawSolQuote {
@@ -28,7 +28,8 @@ pub trait WithdrawSol: BaseStakePoolAmm {
     fn accounts_len(&self) -> usize;
 
     fn convert_quote(&self, withdraw_sol_quote: WithdrawSolQuote) -> Quote {
-        let aft_global_fees = apply_global_fee(withdraw_sol_quote.out_amount);
+        let aft_global_fees =
+            apply_withdraw_wrapped_sol_stakedex_fee(withdraw_sol_quote.out_amount);
         let total_fees = withdraw_sol_quote.fee_amount + aft_global_fees.fee;
         let final_out_amount = aft_global_fees.remainder;
         let before_fees = (final_out_amount + total_fees) as f64;

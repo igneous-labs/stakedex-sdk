@@ -9,10 +9,10 @@ use stakedex_interface::{
     PREFUND_WITHDRAW_STAKE_IX_ACCOUNTS_LEN,
 };
 use stakedex_sdk_common::{
-    apply_global_fee, find_bridge_stake, find_fee_token_acc, slumdog_stake_create_with_seed,
-    stakedex_program, unstake_it_pool, unstake_it_program, DepositStake, DepositStakeInfo,
-    DepositStakeQuote, SwapViaStakeQuoteErr, WithdrawStake, WithdrawStakeQuote,
-    WithdrawStakeQuoteErr, DEPOSIT_STAKE_DST_TOKEN_MINT_IDX,
+    apply_deposit_stake_stakedex_fee, find_bridge_stake, find_fee_token_acc,
+    slumdog_stake_create_with_seed, stakedex_program, unstake_it_pool, unstake_it_program, wsol,
+    AfterFees, DepositStake, DepositStakeInfo, DepositStakeQuote, SwapViaStakeQuoteErr,
+    WithdrawStake, WithdrawStakeQuote, WithdrawStakeQuoteErr, DEPOSIT_STAKE_DST_TOKEN_MINT_IDX,
     PREFUND_WITHDRAW_STAKE_SRC_TOKEN_MINT_IDX, STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
     SWAP_VIA_STAKE_DST_TOKEN_MINT_ACCOUNT_INDEX, SWAP_VIA_STAKE_SRC_TOKEN_MINT_ACCOUNT_INDEX,
 };
@@ -175,7 +175,15 @@ pub fn quote_pool_pair<W: WithdrawStake + ?Sized, D: DepositStake + ?Sized>(
     )?;
 
     let in_amount = quote_params.amount;
-    let aft_global_fees = apply_global_fee(deposit_quote.tokens_out);
+    let aft_global_fees = if deposit_to.staked_sol_mint() == wsol::ID {
+        // no router fees if `deposit_to` is unstake.it pool
+        AfterFees {
+            fee: 0,
+            remainder: deposit_quote.tokens_out,
+        }
+    } else {
+        apply_deposit_stake_stakedex_fee(deposit_quote.tokens_out)
+    };
     let out_amount = aft_global_fees.remainder;
     // total fees is sum of following fees in sequence:
     // 1. withdraw_from's withdraw stake fees (input mint)

@@ -35,10 +35,9 @@ pub trait DepositSol: BaseStakePoolAmm {
     }
 
     fn convert_quote(&self, deposit_sol_quote: DepositSolQuote) -> Quote {
-        // global fee has been removed for depositsol
-        //let aft_global_fees = apply_global_fee(deposit_sol_quote.out_amount);
-        let total_fees = deposit_sol_quote.fee_amount; // + aft_global_fees.fee;
-        let final_out_amount = deposit_sol_quote.out_amount; //aft_global_fees.remainder;
+        // no stakedex fees for StakeWrappedSol
+        let total_fees = deposit_sol_quote.fee_amount;
+        let final_out_amount = deposit_sol_quote.out_amount;
         let before_fees = (final_out_amount + total_fees) as f64;
         // Decimal::from_f64() returns None if infinite or NaN (before_fees = 0)
         let fee_pct =
