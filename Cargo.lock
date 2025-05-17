@@ -3124,7 +3124,7 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 [[package]]
 name = "sanctum-lst-list"
 version = "0.2.0"
-source = "git+https://github.com/igneous-labs/sanctum-lst-list.git?branch=master#75b8e46d34bea9846300946a82145c5230c920f5"
+source = "git+https://github.com/igneous-labs/sanctum-lst-list.git?branch=master#2753988e2da6c998ec1237f85151c9e3fd98f7c9"
 dependencies = [
  "sanctum-macros",
  "serde",
