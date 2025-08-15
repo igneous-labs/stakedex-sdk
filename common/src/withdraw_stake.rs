@@ -37,6 +37,10 @@ impl WithdrawStakeQuote {
         self.lamports_out == 0
     }
 
+    pub fn is_rent_exempt(&self) -> bool {
+        self.lamports_out.saturating_sub(self.lamports_staked) >= STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS
+    }
+
     pub fn from_lamports_and_voter(stake_acc_lamports: u64, voter: Pubkey) -> Self {
         let (lamports_out, lamports_staked) =
             if stake_acc_lamports > STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS {
